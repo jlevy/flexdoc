@@ -1,18 +1,18 @@
 # flexdoc
 
-flexdoc is a document model for powerful text parsing and processing in Markdown: a
-source-grounded, layered model of Markdown and text. It parses a document into a
-`FlexDoc`/`DocGraph`, lets you query its structure across independent layers with a
-single `collect()` primitive, and anchors spans and edits with `SpanRef` so they survive
-a reparse.
+flexdoc is a source-grounded, layered document model for Markdown and text.
+It parses a document into a `FlexDoc`, lets you query its structure across independent
+layers with a single `collect()` primitive, serializes it as a `DocGraph`, and anchors
+spans and edits with `SpanRef` so they survive a reparse.
 
 The aim is fine-grained understanding of a complex Markdown document along several
-independent axes at once — its **Markdown syntax** (blocks, inline elements, exact spans,
-typed attributes), its **grammar and language** (paragraphs, sentences, tokens), and
-other structures layered onto the same text — over one shared coordinate space.
+independent axes at once — its **Markdown syntax** (blocks, inline elements, exact
+spans, typed attributes), its **grammar and language** (paragraphs, sentences, tokens),
+and other structures layered onto the same text — over one shared coordinate space.
 
-flexdoc is a standalone library. [chopdiff](https://github.com/jlevy/chopdiff) builds its
-diff-filtering and windowed-transform layer on top of flexdoc.
+flexdoc is a standalone library.
+[chopdiff](https://github.com/jlevy/chopdiff) builds its diff-filtering and
+windowed-transform layer on top of flexdoc.
 
 ## Installation
 
@@ -52,7 +52,7 @@ worked scripts. From a repository checkout, run examples with
 ## Project Docs
 
 - Design of record: [docs/flexdoc-spec.md](docs/flexdoc-spec.md).
-- The extraction program and the model's design history:
+- The extraction program and the model’s design history:
   [docs/project/specs/active/](docs/project/specs/active/).
 - For how to install uv and Python, see [installation.md](docs/installation.md).
 - For development workflows, see [development.md](docs/development.md).

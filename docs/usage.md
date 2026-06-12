@@ -1,7 +1,8 @@
 # Usage Guide
 
-`FlexDoc` is the package entry point. It parses Markdown into one source-grounded
-document model, then exposes several projections over the same character offsets.
+`FlexDoc` is the package entry point.
+It parses Markdown into one source-grounded document model, then exposes several
+projections over the same character offsets.
 
 ```python
 from flexdoc import FlexDoc
@@ -14,8 +15,8 @@ doc = FlexDoc.from_text("# Title\n\nSee [docs](https://example.com/docs).\n")
 
 ### Analyze Prose
 
-Use `paragraphs`, `sentences`, and size helpers when the task is about prose rather
-than Markdown syntax.
+Use `paragraphs`, `sentences`, and size helpers when the task is about prose rather than
+Markdown syntax.
 
 ```python
 for paragraph in doc.paragraphs:
@@ -41,13 +42,14 @@ for base in doc.base_blocks():
     print(base.depth, base.block.type, base.block.span)
 ```
 
-`blocks()` is the structural query view. `base_blocks()` is the sequential content
-partition used when you need document-order coverage.
+`blocks()` is the structural query view.
+`base_blocks()` is the sequential content partition used when you need document-order
+coverage.
 
 ### Work With Sections and Links
 
-Use `sections()` for the heading hierarchy. Each `Section` can report its own content,
-subtree content, sizes, and links.
+Use `sections()` for the heading hierarchy.
+Each `Section` can report its own content, subtree content, sizes, and links.
 
 ```python
 for section in doc.sections():
@@ -57,8 +59,9 @@ for section in doc.sections():
 ```
 
 `doc.links()` resolves inline links, autolinks, bare URLs, and reference-style links
-within the content body. Leading YAML frontmatter is non-content, so links and reference
-definitions there do not affect `doc.links()`.
+within the content body.
+Leading YAML frontmatter is non-content, so links and reference definitions there do not
+affect `doc.links()`.
 
 ### Query the Normalized Node Table
 
@@ -73,8 +76,8 @@ headings = doc.collect(kinds={NodeKind.heading}, layer={Layer.markdown})
 links = doc.collect(kinds={NodeKind.link})
 ```
 
-The node table is a normalized projection, not a replacement for the source text. Its
-nodes carry source spans where they can be located.
+The node table is a normalized projection, not a replacement for the source text.
+Its nodes carry source spans where they can be located.
 
 ### Persist and Resolve Spans
 
@@ -92,8 +95,8 @@ print(resolve(ref.to_persisted(), doc.source_text))
 ### Transform Text
 
 Editing methods build transformed output through `reassemble()`. Source offsets still
-refer to the original parsed text. Reparse transformed output before analyzing its new
-structure.
+refer to the original parsed text.
+Reparse transformed output before analyzing its new structure.
 
 ```python
 doc.replace_str("docs", "guide")

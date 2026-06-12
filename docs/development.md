@@ -6,9 +6,8 @@ This project is set up to use [uv](https://docs.astral.sh/uv/) to manage Python 
 dependencies. First, be sure you
 [have uv installed](https://docs.astral.sh/uv/getting-started/installation/).
 
-Then
-[fork the jlevy/flexdoc repo](https://github.com/jlevy/flexdoc/fork)
-(having your own fork will make it easier to contribute) and
+Then [fork the jlevy/flexdoc repo](https://github.com/jlevy/flexdoc/fork) (having your
+own fork will make it easier to contribute) and
 [clone it](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository).
 
 ## Basic Developer Workflows
@@ -91,8 +90,11 @@ Its key defaults:
 
 - **Cool-off period:** Don’t install or upgrade to a release less than 14 days old
   (absent a documented exception); most malicious publishes are caught within days.
-  This project records the uv cutoff in `pyproject.toml` and commits the resulting
-  `uv.lock`; validation runs with frozen lockfile semantics.
+  This project enforces the cutoff with `[tool.uv] exclude-newer` in `pyproject.toml`,
+  so `uv lock`, `uv sync`, and `uv run` all honor it, and CI installs `--locked` from
+  the committed lockfile.
+  See [SUPPLY-CHAIN-SECURITY.md](../SUPPLY-CHAIN-SECURITY.md) for the policy, the
+  upgrade procedure, and the exception process.
 
 - **Vet before adding:** Confirm the package is actually needed and its name is spelled
   correctly (typosquats are common), and prefer a little first-party code over a new

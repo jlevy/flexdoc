@@ -98,9 +98,11 @@ def _memoized_derivation(
 @dataclass
 class FlexDoc:
     """
-    A class for parsing and handling documents consisting of sentences and paragraphs
-    of text. Preserves original text, tracking offsets of each sentence and paragraph.
-    Compatible with Markdown and Markdown with HTML tags.
+    A parsed document: one retained source string plus its layered projections.
+    `FlexDoc.from_text(text)` parses Markdown (with or without embedded HTML) into the
+    blank-line editing view (paragraphs and sentences, with exact source offsets) and
+    derives the structural views on demand: `blocks()`, `sections()`, `links()`,
+    `base_blocks()`, the node table, `collect()`, and `graph()`.
 
     Contract and intended use:
 

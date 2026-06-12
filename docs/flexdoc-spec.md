@@ -1,11 +1,11 @@
 # FlexDoc and DocGraph: Design Specification
 
-**Status:** Definitive, standalone reference for the document model in the `flexdoc`
-package: the `FlexDoc` Python core and the `DocGraph` serialized projection. The design
-decisions are recorded in this document itself; §14 states precisely what is
-implemented versus specified-but-not-yet-built. Dated planning documents under
-`docs/project/specs/` track work toward this spec and reference it; this spec does not
-depend on them.
+**Status:** Specifies the document model in the `flexdoc` package: the `FlexDoc` Python
+core and the `DocGraph` serialized projection.
+Design decisions are recorded in this document; §14 states what is implemented versus
+specified but not yet built.
+Dated planning documents under `docs/project/specs/` track work toward this spec and
+reference it; this spec does not depend on them.
 
 ## 1. Purpose
 
@@ -21,7 +21,7 @@ back to the source by exact character offset:
 - **Document structure:** heading hierarchy and table of contents.
 - **Document sizes at every grain:** bytes, characters, lines, words, sentences,
   paragraphs — and **approximate LLM token estimates** — all derived on demand, never
-  stored. Sizing matters because the model's main consumers window, chunk, and budget
+  stored. Sizing matters because the model’s main consumers window, chunk, and budget
   documents for LLM processing.
 
 A Markdown parser gives you a block/inline AST but no sentences, sizes, or section
@@ -38,20 +38,21 @@ Two surfaces, one design:
 
 ### Terminology
 
-Terms used throughout, defined once. Each is elaborated in the section noted.
+Terms used throughout; each is detailed in the section noted.
 
-- **Source text** — the single immutable input string a `FlexDoc` retains. Everything
-  else is derived from it (§4.1).
-- **Offset / span** — a position, or `[start, end)` half-open range, in the source
-  text, measured in **Unicode code points** (§4.1).
+- **Source text** — the single immutable input string a `FlexDoc` retains.
+  Everything else is derived from it (§4.1).
+- **Offset / span** — a position, or `[start, end)` half-open range, in the source text,
+  measured in **Unicode code points** (§4.1).
 - **Layer** — one independent parse dimension over the same source: `textual`,
   `markdown`, `document`, `synthetic` (§3).
-- **Node / node table / node kind** — the id-addressed record of one parsed element;
-  the flat table of all of them across layers; and the element's type tag (heading,
+- **Node / node table / node kind** — the id-addressed record of one parsed element; the
+  flat table of all of them across layers; and the element’s type tag (heading,
   paragraph, link, section, ...) (§4.3).
-- **Block** — a Markdown block-level element. §6 disambiguates the three precise
-  senses: *block element* (the CommonMark class), *block node* (a node in the recursive
-  structural tree), and *base block* (a unit of the flat sequential partition).
+- **Block** — a Markdown block-level element.
+  §6 disambiguates the three precise senses: *block element* (the CommonMark class),
+  *block node* (a node in the recursive structural tree), and *base block* (a unit of
+  the flat sequential partition).
 - **Paragraph / sentence (editing view)** — the blank-line-delimited units and their
   sentences; the mutable view edits and `reassemble()` operate on (§4.4, §12).
 - **Section** — a heading plus the content it owns, nested by heading level (§7).
@@ -61,21 +62,20 @@ Terms used throughout, defined once. Each is elaborated in the section noted.
   `bytes`, `chars`, `lines`, `words`, `wordtoks`, `sentences`, `paragraphs`, `tokens`.
   The `tokens` unit is an **approximate LLM token estimate** (a characters-per-token
   heuristic), useful for windowing and budgeting; it is never a provider-exact count.
-- **Wordtok** — the model's lowest-level lexical unit, used by the editing view and by
+- **Wordtok** — the model’s lowest-level lexical unit, used by the editing view and by
   downstream word-oriented diff/window machinery: a word, a punctuation character, a
   whitespace break, or an embedded HTML tag kept whole, with sentence/paragraph breaks
-  represented as sentinel tokens. Wordtoks are an implementation-level unit for exact
-  word-level alignment; they are **not** LLM tokens (see `tokens` above for that).
-- **`SpanRef`** — the durable reference to a piece of the document: a quoted text
-  anchor with an offset hint (§11).
+  represented as sentinel tokens.
+  Wordtoks are an implementation-level unit for exact word-level alignment; they are
+  **not** LLM tokens (see `tokens` above for that).
+- **`SpanRef`** — the durable reference to a piece of the document: a quoted text anchor
+  with an offset hint (§11).
 - **`DocGraph`** — the serialized JSON projection of a parse (§10).
 
 ## 2. Principles and Goals
 
-The design rests on a small spine of foundational principles; the capability and
-pragmatic principles below are consequences of it, and the goals that follow each
-realize one or more of them.
-Every later decision should cite the principle it serves.
+The foundational principles are the spine; the representation and pragmatic principles
+follow from them. Decisions throughout this spec cite the principle they serve.
 
 ### Principles
 
@@ -96,8 +96,8 @@ Every later decision should cite the principle it serves.
   per-kind rollups or fixed detail ladders.
   New capability is one additive layer or detail, not an API refactor.
 - **P5. Model ≠ format ≠ implementation.** The contract is a language-neutral JSON
-  schema (Pydantic-authored); Python today, Rust/TypeScript later, implement one
-  frozen contract.
+  schema (Pydantic-authored); Python today, Rust/TypeScript later, implement one frozen
+  contract.
 
 **Tier 2 — Representation (what the model must faithfully carry):**
 
@@ -136,27 +136,28 @@ Every later decision should cite the principle it serves.
 
 ### Error posture
 
-P17 in full. Three rules govern errors everywhere in the model, and each layer's
-section below ends with the specific cases for that layer:
+P17, expanded into the three rules that govern errors throughout the model.
+Each layer’s section ends with its specific cases.
 
 1. **Input is handled leniently and deterministically.** Parsing any string yields a
    model; no input — malformed Markdown, broken tables, unclosed fences or tags,
-   headingless or structureless documents — raises an exception. Every degradation is
-   deterministic and documented in the owning layer's error-handling subsection, and the
-   golden test corpus pins the behavior (including a dedicated malformed-input
-   document).
+   headingless or structureless documents — raises an exception.
+   Every degradation is deterministic and documented in the owning layer’s
+   error-handling subsection, and the golden test corpus pins the behavior (including a
+   dedicated malformed-input document).
 2. **Degradation is visible, never silent.** When the model falls back, the fallback is
    observable in the structure itself: a block that fails to parse as a table *is* a
    `paragraph` node; an unlocatable reference link carries `span=None`; a headingless
    document has `sections() == []`. Consumers can always inspect what was actually
    recognized; nothing is patched over or guessed invisibly.
 3. **Internal contracts are validated strictly.** Builder invariants (layer nesting
-   guarantees, deterministic node-id assignment) and serialization contracts
-   (JSON-safe `attrs`) are checked and **raise** on violation — these indicate bugs in
-   the model, never bad input, so failing loudly is correct. Where opt-in strictness on
-   *input* exists it is explicit (e.g. the HTML tag finder's `strict=True` raises on
-   unparseable candidates instead of skipping them). A uniform opt-in strict-validation
-   / diagnostics pass over a whole parse is specified direction, not yet built (§14).
+   guarantees, deterministic node-id assignment) and serialization contracts (JSON-safe
+   `attrs`) are checked and **raise** on violation — these indicate bugs in the model,
+   never bad input, so failing loudly is correct.
+   Where opt-in strictness on *input* exists it is explicit (e.g. the HTML tag finder’s
+   `strict=True` raises on unparseable candidates instead of skipping them).
+   A uniform opt-in strict-validation / diagnostics pass over a whole parse is specified
+   direction, not yet built (§14).
 
 ### Goals
 
@@ -187,7 +188,7 @@ Each goal realizes the principle(s) noted.
 - **Source-canonical references** (P1, P2). A span reference is durable for annotations
   across edits (`SpanRef`): a text quote is the canonical anchor, offsets are
   recomputable hints.
-- **Cross-language contract** (P5, P14). `DocGraph` is a boring, parser-agnostic JSON
+- **Cross-language contract** (P5, P14). `DocGraph` is a plain, parser-agnostic JSON
   schema (Pydantic-authored); Python and any future TypeScript/Rust client are
   implementations of one contract.
 - **Dual use** (P8, P11). Analysis of a fixed document *and* an editable model: modify
@@ -206,10 +207,10 @@ The **node table** is the primary such projection — a stable set of nodes addr
 id and span — and is what the serialized contract and cross-layer queries are built on:
 
 1. **Source:** `source_text` plus exact `[start, end)` spans (Unicode code points); each
-   unit's `original_text` is a computed slice, exact by construction.
+   unit’s `original_text` is a computed slice, exact by construction.
 2. **Node table:** one node per block, inline element, and heading:
    `Node{id, kind, parent, children, source_span, attrs}`. Block containment is
-   `parent`/`children`; this is taken from marko's parse and *referenced*, not
+   `parent`/`children`; this is taken from marko’s parse and *referenced*, not
    duplicated.
 3. **Language structure:** paragraphs, sentences, and the wordtok view, with spans and
    spacing tokens (the editing view).
@@ -217,9 +218,9 @@ id and span — and is what the serialized contract and cross-layer queries are 
 A leading YAML frontmatter block (`---`-delimited) is a **non-content region**: it is
 excluded from the node table, the block/section views, and the editing view (and so from
 every size/prose count), and exposed verbatim via `FlexDoc.frontmatter`. `source_text`
-retains it, so spans stay absolute and the document still round-trips. A leading `---`
-line with no closing `---` line is **not** frontmatter; it parses as an ordinary
-thematic break (a deterministic, lenient reading of the ambiguity).
+retains it, so spans stay absolute and the document still round-trips.
+A leading `---` line with no closing `---` line is **not** frontmatter; it parses as an
+ordinary thematic break (a deterministic, lenient reading of the ambiguity).
 
 Why a node table and not a single tree: a document has several hierarchies that overlap
 and do not nest: a **section** spans sibling blocks and is not a subtree of the block
@@ -247,7 +248,7 @@ canonical store:
 - the **section tree** (heading hierarchy);
 - the **inline/link index**.
 
-The editing view's block boundaries are unchanged by the structural tree, so there is no
+The editing view’s block boundaries are unchanged by the structural tree, so there is no
 forced migration of the editing unit.
 
 **Parse layers.** Those views are not ad-hoc; each is one **parse layer** over the
@@ -266,8 +267,8 @@ Two consequences define how layers interact:
 
 - **Cross-layer relationships are offset-containment queries, not stored edges.** Within
   a layer, navigate `parent`/`children`; *across* layers, use interval
-  containment/overlap ("which markdown blocks are inside this region", "which section
-  contains this link"). This is what lets layers overlap and cross-cut without
+  containment/overlap ("which markdown blocks are inside this region", “which section
+  contains this link”). This is what lets layers overlap and cross-cut without
   contradiction (a section is not a subtree of the block tree; a marked region may open
   mid-block).
 - **Each layer declares a nesting guarantee:** well-nested layers project to a tree
@@ -280,14 +281,14 @@ Two consequences define how layers interact:
 
 The **synthetic layer** carries structure that authors or tools introduce *into* the
 text with marker tags: a configured subset of XML-style elements whose open/close pairs
-delimit regions for chunking, grouping, and in-band metadata. Each recognized region
-becomes a node in the synthetic layer with the tag's name and attributes in `attrs`, so
-"which markdown blocks fall inside this region" is the same offset-containment query as
-any other cross-layer relationship.
+delimit regions for chunking, grouping, and in-band metadata.
+Each recognized region becomes a node in the synthetic layer with the tag’s name and
+attributes in `attrs`, so “which markdown blocks fall inside this region” is the same
+offset-containment query as any other cross-layer relationship.
 
 The tag vocabulary is configuration, not code: it is a defined whitelist of tag names,
-and adding a tag is adding an entry. In practice the vocabulary takes a few common
-shapes:
+and adding a tag is adding an entry.
+In practice the vocabulary takes a few common shapes:
 
 - **custom extension-style tags**, typically lowercase and hyphenated in the HTML
   custom-element convention (`<my-chunk id="a">...</my-chunk>`), or simple semantic XML
@@ -298,10 +299,11 @@ shapes:
   structure in Markdown without rendering.
 
 Tags outside the configured vocabulary are inert: they remain ordinary text/HTML in the
-other layers and produce no synthetic node. Because layers are compositional (P3, P18),
-future extensions can introduce further parsing-based layers of the same shape — any
-mechanism that yields spans over the shared offset space can contribute a layer —
-without changes to the node table, `collect()`, or the serialization contract.
+other layers and produce no synthetic node.
+Because layers are compositional (P3, P18), future extensions can introduce further
+parsing-based layers of the same shape — any mechanism that yields spans over the shared
+offset space can contribute a layer — without changes to the node table, `collect()`, or
+the serialization contract.
 
 Layers are **enabled à la carte**: a configuration, not a fork of the model.
 
@@ -309,25 +311,23 @@ Layers are **enabled à la carte**: a configuration, not a fork of the model.
 package; §14 states what exists today and where the migration is tracked.
 
 **Error handling — synthetic layer (specified behavior).** Unknown tags: inert, by
-definition of the whitelist. An unclosed marker tag forms no region; the tag itself
-remains visible to the markdown layer as inline/block HTML (rule 2: the degradation is
-observable). Regions that fail to nest (overlapping open/close pairs) violate the
-layer's declared tree guarantee; the implementation must either reject the offending
-region (lenient: drop it, keep the text) or relax the layer's guarantee to
-ordered-list — this is an open implementation decision recorded with the migration
-plan. Builder-side, whichever policy is chosen is then enforced strictly at node-table
-build like every other layer invariant.
+definition of the whitelist.
+An unclosed marker tag forms no region; the tag itself remains visible to the markdown
+layer as inline/block HTML (rule 2: the degradation is observable).
+Regions that fail to nest (overlapping open/close pairs) violate the layer’s declared
+tree guarantee; the implementation must either reject the offending region (lenient:
+drop it, keep the text) or relax the layer’s guarantee to ordered-list — this is an open
+implementation decision recorded with the migration plan.
+Builder-side, whichever policy is chosen is then enforced strictly at node-table build
+like every other layer invariant.
 
 ## 4. Core Types, Nodes, and Offsets
-
-This section defines the model's core vocabulary precisely. Each subsection introduces
-the terms the later sections rely on.
 
 ### 4.1 The source and its offset space
 
 A parse begins from one immutable string, the **source text** (`source_text`). All
 positions in the model are **offsets** into this string, counted in **Unicode code
-points** (Python's native string indexing — *not* bytes, and *not* UTF-16 code units).
+points** (Python’s native string indexing — *not* bytes, and *not* UTF-16 code units).
 A **span** is a half-open offset pair `[start, end)`, so `source_text[start:end]` is
 exactly the spanned text, empty spans are representable, and adjacent spans share a
 boundary without overlapping.
@@ -338,23 +338,24 @@ The defining invariant of the whole model (P1, P6):
 source_text[unit.span[0] : unit.span[1]] == unit.original_text
 ```
 
-for every source-backed unit — paragraph, sentence, block, node. A unit's
-`original_text` is therefore a *computed slice*, exact by construction; nothing stores
-a copy that could drift.
+for every source-backed unit — paragraph, sentence, block, node.
+A unit’s `original_text` is therefore a *computed slice*, exact by construction; nothing
+stores a copy that could drift.
 
 Code points are the canonical unit because they are the one offset basis every language
 runtime can reproduce exactly; byte offsets (UTF-8) and UTF-16 units (browsers) are
 derivable on demand and may be exposed by `DocGraph` as secondary coordinates, but the
-canonical `source_span` is always code points. (This is the cross-language footgun that
-W3C-style position selectors leave unresolved; the model resolves it by fiat.)
+canonical `source_span` is always code points.
+(W3C-style position selectors leave the offset basis unresolved across languages; this
+model fixes it to code points.)
 
 Documents built from synthetic content rather than a source string (e.g.
-`from_wordtoks`, or after `append_sent`) have no original source; for them
-`source_text` is the reassembled working text, and the invariant holds against that.
+`from_wordtoks`, or after `append_sent`) have no original source; for them `source_text`
+is the reassembled working text, and the invariant holds against that.
 
 ### 4.2 The document object: `FlexDoc`
 
-`FlexDoc` is the package's entry point and the owner of one parse:
+`FlexDoc` is the package’s entry point and the owner of one parse:
 
 - **Construction:** `FlexDoc.from_text(text)` retains `text` as `source_text`, isolates
   any leading frontmatter, and builds the editing view (paragraphs and sentences)
@@ -365,8 +366,8 @@ Documents built from synthetic content rather than a source string (e.g.
   `links()` (§8), `node_table()` (§4.3), `collect()` (§9), and `graph()` (§10).
 - **Offset inversion:** `paragraph_at_offset(o)` and `sentence_at_offset(o)` map an
   absolute offset back to the editing-view unit containing it (or `None` for offsets in
-  inter-unit whitespace or outside the document). Structural blocks are addressed by
-  their own spans or via `collect(overlaps=...)`.
+  inter-unit whitespace or outside the document).
+  Structural blocks are addressed by their own spans or via `collect(overlaps=...)`.
 - **Frontmatter:** `FlexDoc.frontmatter` is the verbatim leading YAML block or `None`
   (§3).
 - **Sizing:** `size(unit)` and `size_summary()` measure the document in any `TextUnit`
@@ -376,54 +377,56 @@ Documents built from synthetic content rather than a source string (e.g.
 
 A **node** is the uniform record of one parsed element, from any layer:
 
-- `id` — a string id, unique within the parse. Ids are assigned by a single
-  **contiguous preorder counter** (`n0001`, `n0002`, ...) over a fixed build order
-  (markdown block tree, then document sections, then textual paragraphs/sentences, then
-  inline elements), so two parses of the same source produce identical ids. This
-  determinism is part of the cross-language contract and is pinned by test.
-- `kind` — the element's type: the Markdown block kinds of §5, the inline kinds of §8
+- `id` — a string id, unique within the parse.
+  Ids are assigned by a single **contiguous preorder counter** (`n0001`, `n0002`, ...)
+  over a fixed build order (markdown block tree, then document sections, then textual
+  paragraphs/sentences, then inline elements), so two parses of the same source produce
+  identical ids. This determinism is part of the cross-language contract and is pinned by
+  test.
+- `kind` — the element’s type: the Markdown block kinds of §5, the inline kinds of §8
   (`link`, `code_span`, `image`, `inline_html`, `footnote_ref`), the document-layer
   `section`, and the textual-layer `sentence`.
 - `layer` — which parse dimension produced it (§3).
-- `parent` / `children` — **within-layer** containment edges (node ids). Cross-layer
-  relationships are never stored; they are offset queries (P3).
-- `source_span` — the node's exact span (§4.1), or `None` for the few elements that
-  have identity but no locatable position (e.g. an unresolvable reference link).
+- `parent` / `children` — **within-layer** containment edges (node ids).
+  Cross-layer relationships are never stored; they are offset queries (P3).
+- `source_span` — the node’s exact span (§4.1), or `None` for the few elements that have
+  identity but no locatable position (e.g. an unresolvable reference link).
 - `attrs` — typed metadata as a JSON-safe mapping (`AttrValue`: strings, numbers,
-  booleans, `None`, and lists/maps of the same). Examples: a heading's `level`, a
-  list's `tight`/`ordered`, a link's `url`/`title`, a code block's `language`.
-  JSON-safety is validated at serialization (§10); parser-internal objects never appear
-  in `attrs`.
+  booleans, `None`, and lists/maps of the same).
+  Examples: a heading’s `level`, a list’s `tight`/`ordered`, a link’s `url`/`title`, a
+  code block’s `language`. JSON-safety is validated at serialization (§10);
+  parser-internal objects never appear in `attrs`.
 
 The **node table** (`NodeTable`) is the flat, id-addressed collection of all nodes in a
 parse, plus the list of root ids per layer, over the shared `source_text`. It is a
-projection like the others — built *from* the parses, not the store they read from —
-but it is the projection queries (§9) and serialization (§10) operate on.
+projection like the others — built *from* the parses, not the store they read from — but
+it is the projection queries (§9) and serialization (§10) operate on.
 
-Each layer declares a **nesting guarantee** (§3's table): tree layers promise that a
-child's span lies within its parent's; ordered-list layers promise siblings are ordered
-and non-overlapping. These guarantees are **validated strictly when the table is
-built** — a violation raises, because it can only mean a bug in a layer builder, never
-malformed input (Error posture, rule 3).
+Each layer declares a **nesting guarantee** (§3’s table): tree layers promise that a
+child’s span lies within its parent’s; ordered-list layers promise siblings are ordered
+and non-overlapping.
+These guarantees are **validated strictly when the table is built** — a violation
+raises, because it can only mean a bug in a layer builder, never malformed input (Error
+posture, rule 3).
 
 ### 4.4 The editing view: paragraphs and sentences
 
 The editing view is the mutable face of the model (§12): the units whose text can be
 edited and reassembled.
 
-- **`Paragraph`** — one blank-line-delimited unit of the source. Carries
-  `original_text` (the verbatim slice), its `sentences`, `offsets`, a `span`, a cached
-  Markdown classification `block_type` (§5) with heading helpers (`heading_level()`,
-  `heading_title()`), typed `code_info`/`table_info`/`list_info` conveniences, and
-  `links()`.
-- **`Sentence`** — one sentence within a paragraph. `text` is the **normalized,
-  editable** content (what reassembly uses); `original_text` is the **verbatim** source
-  slice; `span` is exact when `original_text` is present. Sentence boundaries come from
-  flowmark's span-aware splitter, which never bisects a link, code span, autolink, or
-  URL, so sentence spans are exact for all content.
+- **`Paragraph`** — one blank-line-delimited unit of the source.
+  Carries `original_text` (the verbatim slice), its `sentences`, `offsets`, a `span`, a
+  cached Markdown classification `block_type` (§5) with heading helpers
+  (`heading_level()`, `heading_title()`), typed `code_info`/`table_info`/`list_info`
+  conveniences, and `links()`.
+- **`Sentence`** — one sentence within a paragraph.
+  `text` is the **normalized, editable** content (what reassembly uses); `original_text`
+  is the **verbatim** source slice; `span` is exact when `original_text` is present.
+  Sentence boundaries come from flowmark’s span-aware splitter, which never bisects a
+  link, code span, autolink, or URL, so sentence spans are exact for all content.
 - **`Offsets(doc_offset, block_offset)`** — every paragraph and sentence carries both
-  its absolute offset in the document and its offset relative to its enclosing unit
-  (the document for a paragraph, the paragraph for a sentence).
+  its absolute offset in the document and its offset relative to its enclosing unit (the
+  document for a paragraph, the paragraph for a sentence).
 - **`SentIndex(para_index, sent_index)`** — the stable address of a sentence within a
   `FlexDoc`, used by editing and diff/window machinery.
 
@@ -441,13 +444,13 @@ The textual layer accepts *any* string; there is no invalid input.
   wordtok stream so downstream alignment has stable endpoints).
 - **Line endings:** `\r\n` input is tolerated; blank-line detection and frontmatter
   delimiters treat a trailing `\r` as part of the line break.
-- **Sentence segmentation is heuristic** (P16): abbreviations or unusual punctuation
-  can mis-split. The degradation is visible, not corrupting — every sentence still
-  carries an exact verbatim span, so a "wrong" boundary is a presentation choice, never
-  a wrong offset.
-- **Custom splitters** degrade as described in §4.4: best-effort offsets, observable
-  via the missing `original_text`.
-- **No strict mode is needed at this layer:** there is nothing to reject — the layer's
+- **Sentence segmentation is heuristic** (P16): abbreviations or unusual punctuation can
+  mis-split. The degradation is visible, not corrupting — every sentence still carries an
+  exact verbatim span, so a “wrong” boundary is a presentation choice, never a wrong
+  offset.
+- **Custom splitters** degrade as described in §4.4: best-effort offsets, observable via
+  the missing `original_text`.
+- **No strict mode is needed at this layer:** there is nothing to reject — the layer’s
   output is a total function of the input string.
 
 ## 5. Block-Type Model
@@ -456,7 +459,7 @@ The textual layer accepts *any* string; there is no invalid input.
 `list` (bullet/unordered), `ordered_list`, `list_item`, `table`, `code`, `blockquote`,
 `html`, `footnote`, `thematic_break`.
 
-- **Bullet vs. ordered lists are distinct types.** marko's `List` carries `ordered`;
+- **Bullet vs. ordered lists are distinct types.** marko’s `List` carries `ordered`;
   `list` is the bullet list, `ordered_list` is enumerated, `list_item` is shared.
 - **One top-level type per block,** from its **outer** element: a blockquote wrapping a
   table classifies as `blockquote` at the top level.
@@ -480,15 +483,16 @@ typed metadata (`flexdoc.docs.block_info`): `CodeInfo` (`language`, `line_count`
 `TableInfo` (`rows`, `cols`, `cells`, `alignments`), and `ListInfo` (`ordered`, `start`,
 `max_depth`, `item_count`). It is computed once where the marko element is in hand and
 exposed on the structural `Block` (`Block.code_info`/`.table_info`/`.list_info` — the
-density-invariant source of truth) and, as a convenience carrying the editing-view density
-caveat, on `Paragraph`. The same facts are flattened into the markdown node's `attrs`, so
-they flow into `collect()`/`DocGraph`. Extraction is parser-authoritative (marko element
-attributes, never a regex over source); a table column with no alignment marker is
-`"default"`, not `None`, so `alignments` is always explicit strings of length `cols`.
+density-invariant source of truth) and, as a convenience carrying the editing-view
+density caveat, on `Paragraph`. The same facts are flattened into the markdown node’s
+`attrs`, so they flow into `collect()`/`DocGraph`. Extraction is parser-authoritative
+(marko element attributes, never a regex over source); a table column with no alignment
+marker is `"default"`, not `None`, so `alignments` is always explicit strings of length
+`cols`.
 
 ## 6. Block Views: Structural Tree and Sequential Base-Block List
 
-**Terminology.** To avoid overloading "block":
+**Terminology.** To avoid overloading “block”:
 
 - **block element** / **inline element:** the Markdown element *class* (CommonMark/mdast
   sense): block-level (heading, paragraph, blockquote, list, list item, table, code, …)
@@ -509,17 +513,17 @@ The recursive view (lazy, cached on the immutable `source_text`):
 
 - `Block(type, span, children, tight)`: `span` is trimmed so `source[start:end]` is the
   exact text; `children` holds nested blocks.
-  A `list`/`ordered_list` block's children are its `list_item`s; **containers fully
-  populate their block children** (a blockquote's or list item's nested blocks are
+  A `list`/`ordered_list` block’s children are its `list_item`s; **containers fully
+  populate their block children** (a blockquote’s or list item’s nested blocks are
   present). `tight` carries CommonMark list density on list blocks (`None` elsewhere).
 - Resolves what blank-line splitting cannot: a fenced code block stays whole even with
   internal blank lines; a list decomposes into items with nested sublists; a table
   inside a blockquote is reachable.
 
-Block boundaries and spans come straight from flowmark's parser: every block element
-carries an authoritative `element.span = (start, end)` read from marko's own source
-positions (`flowmark.markdown_ast.block_span`), so flexdoc runs no block-detection
-regex of its own and makes no block-boundary decisions.
+Block boundaries and spans come straight from flowmark’s parser: every block element
+carries an authoritative `element.span = (start, end)` read from marko’s own source
+positions (`flowmark.markdown_ast.block_span`), so flexdoc runs no block-detection regex
+of its own and makes no block-boundary decisions.
 The structure is cross-checked against marko in tests.
 
 ### Sequential block list: `FlexDoc.base_blocks() -> list[BaseBlock]`
@@ -572,65 +576,66 @@ nesting, not a violation.
 
 ### Error handling — markdown layer
 
-The Markdown parse is total: every input yields a block tree, with CommonMark's own
-recovery semantics (via marko) deciding how malformed constructs degrade. The common
-cases, all deterministic and pinned by the golden corpus (which includes a dedicated
-malformed-input document):
+The Markdown parse is total: every input yields a block tree, with CommonMark’s own
+recovery semantics (via marko) deciding how malformed constructs degrade.
+The common cases, all deterministic and pinned by the golden corpus (which includes a
+dedicated malformed-input document):
 
 - **Unclosed fenced code block:** the fence runs to end of document; everything after
-  the opening fence is one `code` block (CommonMark semantics). Visible: the block's
-  span shows exactly what was swallowed.
-- **Malformed table:** rows that do not parse as a table degrade to `paragraph`
-  blocks; a valid table region keeps its `table` kind and explicit `alignments`.
+  the opening fence is one `code` block (CommonMark semantics).
+  Visible: the block’s span shows exactly what was swallowed.
+- **Malformed table:** rows that do not parse as a table degrade to `paragraph` blocks;
+  a valid table region keeps its `table` kind and explicit `alignments`.
 - **Broken or unclosed HTML:** block-level HTML that marko cannot classify remains an
   `html` block; a single-line tag that marko reads as an inline-HTML paragraph is
-  classified `html` by an explicit markup fallback. Tags are never "repaired."
+  classified `html` by an explicit markup fallback.
+  Tags are never “repaired.”
 - **Reference links without definitions / unlocatable constructs:** identity is kept,
-  `span=None` marks the unlocatable position, and offset-scoped views exclude them
-  (rule 2: visible, not guessed).
-- **Inconsistent list markers / indentation:** CommonMark's list-interruption and
+  `span=None` marks the unlocatable position, and offset-scoped views exclude them (rule
+  2: visible, not guessed).
+- **Inconsistent list markers / indentation:** CommonMark’s list-interruption and
   lazy-continuation rules apply; the result may split or merge lists, but spans and
   types always describe what the parser actually decided.
 - **Strictness:** there is no strict mode at this layer today — CommonMark itself is
   defined to be total — but classification is fully observable, so a caller can layer
-  its own validation (e.g. "this document must contain no `html` blocks") over
+  its own validation (e.g. “this document must contain no `html` blocks”) over
   `collect()`. A uniform diagnostics pass is future work (§14).
 
 ## 7. Sections and TOC
 
-The document layer derives a heading hierarchy from the markdown layer's headings — no
+The document layer derives a heading hierarchy from the markdown layer’s headings — no
 re-parse, no stored state.
 
 ### Construction rules
 
 - **What starts a section:** exactly the **top-level structural `heading` blocks** of
-  `blocks()`. This gating is load-bearing: a `#`-prefixed line *inside a fenced code
-  block* is not a heading (the structural tree keeps the fence whole), and headings
-  nested inside blockquotes or list items are not top-level blocks, so neither starts a
-  document section.
+  `blocks()`. Gating on structural blocks is what makes the layer robust: a `#`-prefixed
+  line *inside a fenced code block* is not a heading (the structural tree keeps the
+  fence whole), and headings nested inside blockquotes or list items are not top-level
+  blocks, so neither starts a document section.
 - **Ownership:** a section owns the content from its heading up to (not including) the
-  next heading of **equal or higher** level. Content between a heading and a deeper
-  heading belongs to the shallower section directly (`content`); the deeper heading
-  starts a nested child section.
+  next heading of **equal or higher** level.
+  Content between a heading and a deeper heading belongs to the shallower section
+  directly (`content`); the deeper heading starts a nested child section.
 - **Nesting:** sections nest strictly by level using stack semantics — an incoming
   heading of level *n* closes every open section of level ≥ *n* and attaches to the
-  nearest open section of level < *n*, or becomes a root if none is open. Multiple
-  top-level headings yield multiple roots.
-- **Preamble:** content before the first heading belongs to **no** section. It remains
-  fully present in every other view (paragraphs, blocks, sizes); it is simply not
-  section-owned.
+  nearest open section of level < *n*, or becomes a root if none is open.
+  Multiple top-level headings yield multiple roots.
+- **Preamble:** content before the first heading belongs to **no** section.
+  It remains fully present in every other view (paragraphs, blocks, sizes); it is simply
+  not section-owned.
 
 ### The `Section` type
 
-- `heading` — the heading's editing-view `Paragraph`; `title` is its text without
+- `heading` — the heading’s editing-view `Paragraph`; `title` is its text without
   markers (an empty string for a bare `#`).
 - `level` — the heading level, 1–6, exactly as authored.
-- `content` — the section's **own** paragraphs (excluding the heading line and
-  excluding everything owned by child sections).
+- `content` — the section’s **own** paragraphs (excluding the heading line and excluding
+  everything owned by child sections).
 - `children` — nested `Section`s, in document order.
 - `own_paragraphs()` / `subtree_paragraphs()` — the heading plus `content`; the same
-  plus all descendants' paragraphs, in document order.
-- `blocks()` — the **structural** block tree (§6) restricted to the section's own
+  plus all descendants’ paragraphs, in document order.
+- `blocks()` — the **structural** block tree (§6) restricted to the section’s own
   content span; density-invariant like the whole-document tree, so per-section
   block-type tallies are spacing-independent.
 - `span` — `[heading start, end of last subtree paragraph)`: the full extent of the
@@ -639,8 +644,8 @@ re-parse, no stored state.
   rolled up over the subtree by default or restricted to own content; computed by the
   same machinery as `FlexDoc.size`, so every unit (including the approximate LLM
   `tokens` estimate) aggregates uniformly.
-- `links()` — links in the section's subtree, attributed by span containment; links
-  with `span=None` are excluded (they cannot be placed by offset).
+- `links()` — links in the section’s subtree, attributed by span containment; links with
+  `span=None` are excluded (they cannot be placed by offset).
 
 ### Document-level accessors
 
@@ -649,8 +654,8 @@ re-parse, no stored state.
   contract).
 - `FlexDoc.toc()` — the flat table of contents: `(level, title, span)` per heading, in
   document order, by walking the section tree.
-- `FlexDoc.section_size_tree(units=...)` — a rendered, indented size rollup per
-  section, for quick structural inspection.
+- `FlexDoc.section_size_tree(units=...)` — a rendered, indented size rollup per section,
+  for quick structural inspection.
 
 ### Error handling — document layer
 
@@ -658,29 +663,29 @@ Documents are under no obligation to be well-structured; the section layer is to
 its degradations are visible:
 
 - **No headings at all:** `sections() == []` and `toc() == []`. The document is still
-  fully usable through every other view; "no sections" is a true statement about the
+  fully usable through every other view; “no sections” is a true statement about the
   document, not a failure.
 - **Preamble-only or mostly-unstructured documents:** the preamble rule covers them —
   content simply belongs to no section, and per-section rollups cover whatever sections
   do exist.
 - **Skipped levels** (e.g. an `###` directly under a `#`): no intermediate sections are
   synthesized; the `###` nests directly under the `#`, and its `level` remains 3 as
-  authored. Authors' level choices are preserved, never "corrected."
+  authored. Authors’ level choices are preserved, never “corrected.”
 - **Out-of-order levels** (a document starting at `##`, or an `#` appearing after
   `###`): handled by the same stack rule — a shallower heading closes deeper open
-  sections and becomes a root or sibling as the rule dictates. Nothing raises.
+  sections and becomes a root or sibling as the rule dictates.
+  Nothing raises.
 - **Malformed near-headings:** `#Title` without a space, or seven-plus `#` characters,
-  are not CommonMark headings — they parse as paragraphs and therefore start no
-  section (consistent with the markdown layer's classification, which is the single
-  source of truth). A heading with no text (`#` alone) is a real heading with an empty
-  `title`.
+  are not CommonMark headings — they parse as paragraphs and therefore start no section
+  (consistent with the markdown layer’s classification, which is the single source of
+  truth). A heading with no text (`#` alone) is a real heading with an empty `title`.
 - **Setext ambiguity:** a text line underlined with `===`/`---` is a setext heading
   (level 1/2); a bare `---` with no text above is a thematic break; an opening `---` at
   offset 0 with a closing `---` line is frontmatter (§3). All three readings are
   deterministic and mutually exclusive.
-- **Duplicate titles** are legal; sections are identified by position and span, never
-  by title.
-- **Strictness:** none is imposed — but the layer's output makes validation trivial to
+- **Duplicate titles** are legal; sections are identified by position and span, never by
+  title.
+- **Strictness:** none is imposed — but the layer’s output makes validation trivial to
   express externally (e.g. assert `toc()` levels start at 1 and never skip), and a
   built-in opt-in diagnostics pass is specified future work (§14).
 
@@ -689,7 +694,7 @@ its degradations are visible:
 Inline elements (links, code spans, images, inline HTML, footnote references, …) are
 **first-class nodes** whose `parent` is their containing block, with computed
 `section`/`sentence` associations, so block↔inline relationships are node edges, and
-"links in section 3" is a scoped `collect(kinds={link})`.
+“links in section 3” is a scoped `collect(kinds={link})`.
 
 - `Link(text, url, title, span)`: identity from `flowmark.markdown_ast.extract_links`
   (reference links resolved, escapes honored, autolinks/images handled), which carries
@@ -703,19 +708,21 @@ Inline elements (links, code spans, images, inline HTML, footnote references, �
   like any inline kind (`collect(kinds={NodeKind.footnote_ref}, recursive=True)`). A
   footnote *definition* (`[^label]:`) is a `footnote` block, not a reference.
 
-**Error handling — inline elements.** Inline parsing inherits the markdown layer's
-total, lenient posture. The cases specific to this sublayer: an identity that cannot be
-located in the source keeps its identity with `span=None` and is excluded from
-offset-scoped rollups; a URL or link text that appears multiple times resolves in
-document order (a forward cursor prevents one unlocatable identity from desyncing the
-rest); escaped constructs are honored as escapes, not links. Nothing raises.
+**Error handling — inline elements.** Inline parsing inherits the markdown layer’s
+total, lenient posture.
+The cases specific to this sublayer: an identity that cannot be located in the source
+keeps its identity with `span=None` and is excluded from offset-scoped rollups; a URL or
+link text that appears multiple times resolves in document order (a forward cursor
+prevents one unlocatable identity from desyncing the rest); escaped constructs are
+honored as escapes, not links.
+Nothing raises.
 
 ## 9. Derived Views and Rollups
 
 All derived from the canonical source/offset substrate (the node table is the
-id-addressed projection used for queries); nothing stores counts. These structural/query
-views describe the parsed `source_text`; after editing, re-parse with
-`from_text(doc.reassemble())` before structural analysis.
+id-addressed projection used for queries); nothing stores counts.
+These structural/query views describe the parsed `source_text`; after editing, re-parse
+with `from_text(doc.reassemble())` before structural analysis.
 The surface is **one general query primitive, no blessed per-kind rollups**:
 
 ```python
@@ -724,18 +731,20 @@ collect(*, subtree_of=None, within=None, overlaps=None,
 ```
 
 Available as `doc.collect(...)` (and as the free `collect(table, ...)` over a node
-table). Two distinct relations select candidates. The **tree** relation `subtree_of=`
-takes a node id and restricts to that node's within-layer parent/child subtree
-(`recursive` descends it). The **interval** relations are cross-layer and offset-based,
-each accepting a node id or `(start, end)` span: `within=` keeps nodes whose span is
-contained in the region (e.g. `within=section_id` for everything inside a section);
-`overlaps=` keeps nodes whose span merely intersects the region. Supplying an interval
-relation scans the whole document, so `within=section_id` needs no `recursive=True`.
-`kinds=` selects by node kind (the typed common case); `where=` is a `Node -> bool`
-predicate escape hatch; `inline` includes inline nodes (an explicit inline `kinds` such
-as `{NodeKind.link}` implies this); `layer=` restricts to parse layers. It returns
-**nodes** (each with `span`, `attrs`, edges). **Counts, values, and groupings are
-standard Python** over the result, documented with worked examples, not separate methods:
+table). Two distinct relations select candidates.
+The **tree** relation `subtree_of=` takes a node id and restricts to that node’s
+within-layer parent/child subtree (`recursive` descends it).
+The **interval** relations are cross-layer and offset-based, each accepting a node id or
+`(start, end)` span: `within=` keeps nodes whose span is contained in the region (e.g.
+`within=section_id` for everything inside a section); `overlaps=` keeps nodes whose span
+merely intersects the region.
+Supplying an interval relation scans the whole document, so `within=section_id` needs no
+`recursive=True`. `kinds=` selects by node kind (the typed common case); `where=` is a
+`Node -> bool` predicate escape hatch; `inline` includes inline nodes (an explicit
+inline `kinds` such as `{NodeKind.link}` implies this); `layer=` restricts to parse
+layers. It returns **nodes** (each with `span`, `attrs`, edges).
+**Counts, values, and groupings are standard Python** over the result, documented with
+worked examples, not separate methods:
 
 ```python
 doc.collect(kinds={NodeKind.table}, recursive=True)        # the tables (values + spans)
@@ -754,14 +763,13 @@ is returned by `collect(kinds={table}, recursive=True)` alongside the blockquote
 That is correct for counting/gathering.
 The base-block list (§6) is a *partition*: a complete, ordered, **non-overlapping**
 cover for linear processing.
-Use `collect()` to ask "how many / which"; use `base_blocks()` to iterate the document's
+Use `collect()` to ask “how many / which”; use `base_blocks()` to iterate the document’s
 content units.
 
 ## 10. DocGraph: The Serialized Projection
 
-`DocGraph` is the JSON contract derived from `FlexDoc`, authored as Pydantic models
-that emit a JSON Schema. Boring and parser-agnostic: no marko/Python class names in
-stable fields.
+`DocGraph` is the JSON contract derived from `FlexDoc`, authored as Pydantic models that
+emit a JSON Schema. It is parser-agnostic: no marko/Python class names in stable fields.
 Shape (abbreviated):
 
 ```
@@ -800,14 +808,15 @@ A new parse dimension is one additive `Layer`; a new payload category is one add
 **Error handling — serialization.** Serialization is on the strict side of the error
 posture: `attrs` values are validated as JSON-safe at emission and violations raise
 (they indicate a builder bug, not bad input); node ids and their assignment order are
-deterministic and contract-tested so cross-language clients can reproduce them. There
-is no lenient mode for the wire format — a `DocGraph` either conforms to its schema or
-is not produced.
+deterministic and contract-tested so cross-language clients can reproduce them.
+There is no lenient mode for the wire format — a `DocGraph` either conforms to its
+schema or is not produced.
 
 ## 11. SpanRef and Annotations
 
 `SpanRef` is the one span-reference type used for addressing a piece of the document
-from source, parsed model, and rendered output. It carries two coordinated span kinds:
+from source, parsed model, and rendered output.
+It carries two coordinated span kinds:
 
 ```
 SpanRef = {
@@ -821,11 +830,11 @@ SpanRef = {
   because the quote survives edits and re-anchors while offsets shift.
   Within one parse the offset is exact (the fast path); across edits the quote recovers
   the target.
-- **Resolution.** model→source is total (a node fills both span and quote). source→model
-  is an exact offset fast path, then an exact quote search disambiguated by
+- **Resolution.** model→source is total (a node fills both span and quote).
+  source→model is an exact offset fast path, then an exact quote search disambiguated by
   prefix/suffix; `resolve()` is pure (it does not mutate the ref), and
-  `resolve_and_update()` is the explicit variant that writes the recomputed offsets back.
-  Fuzzy/edit-distance re-anchoring is deferred (not yet implemented).
+  `resolve_and_update()` is the explicit variant that writes the recomputed offsets
+  back. Fuzzy/edit-distance re-anchoring is deferred (not yet implemented).
 - **Persistence** is quote-canonical and source-grounded; offsets are an optional
   position hint (`to_persisted(include_position_hint=...)`, dropped by default) and an
   in-memory `node_id` handle is never persisted.
@@ -844,12 +853,13 @@ Chrome-style `exact`+`prefix`/`suffix` floor) so the node model, schema, and edi
 bridge are designed around it.
 
 **Error handling — references.** Resolution failure is a value, not an exception:
-`resolve()` returns `None` when the quote is absent from the source or remains
-ambiguous after prefix/suffix disambiguation, and callers branch on it (rule 2: the
-failure is visible at the call site). Stale offset hints are harmless by design — the
-quote re-anchors and `resolve_and_update()` refreshes the hint explicitly. Until fuzzy
-re-anchoring ships (§14), a quote that was itself edited resolves to `None` rather than
-to a guess.
+`resolve()` returns `None` when the quote is absent from the source or remains ambiguous
+after prefix/suffix disambiguation, and callers branch on it (rule 2: the failure is
+visible at the call site).
+Stale offset hints are harmless by design — the quote re-anchors and
+`resolve_and_update()` refreshes the hint explicitly.
+Until fuzzy re-anchoring ships (§14), a quote that was itself edited resolves to `None`
+rather than to a guess.
 
 ## 12. Editing and Serialization
 
@@ -862,7 +872,7 @@ The diff/sliding-window/wordtok machinery operates on this editing view unchange
 
 The structural node table is a pure function of the immutable `source_text` (sentence
 edits touch the editing view, not `source_text`), so it and its derived views are lazily
-cached; the operative contract is "do not reassign `source_text` after parse."
+cached; the operative contract is “do not reassign `source_text` after parse.”
 Edit by editing the `FlexDoc`/source and re-deriving `DocGraph`; an editor bridge
 resolves annotations through `SpanRef`. Render helpers emit `data-node-id` /
 `data-source-span` so a rendered selection resolves to a node and thence to source.
@@ -875,26 +885,24 @@ duplicated content, no stored counts), the node table among them; references are
 quote-canonical; additive (existing behavior preserved).
 
 Non-goals: a parallel runtime `BlockDoc`/`SectionDoc` Python model (DocGraph is a
-projection, not a competing editable model). **Naming note:** the abandoned branch that
-proposed that competing runtime model also used the name "FlexDoc"; that proposal is
-dead history, and the name was deliberately reclaimed in 2026-06 when `TextDoc` was
-renamed to `FlexDoc` as the package's single entry-point class. Today `FlexDoc` means
-only that class — the source-retaining document with its layered projections — never a
-second model. Other non-goals: blessed per-kind rollups or fixed detail levels;
-DOM/XPath/CSS selectors in `SpanRef` (plain-text-first); CommonMark/GFM
-rendering (flowmark covers normalization); stored cross-layer edges (cross-layer
-relationships are offset-containment queries, §3); exact provider-keyed token counts
-(`estimate_tokens` is a heuristic); a thread-safety layer.
+projection, not a competing editable model).
+**Naming note:** an abandoned design branch used “FlexDoc” for that competing runtime
+model; the name now refers only to the package’s entry-point class.
+Other non-goals: blessed per-kind rollups or fixed detail levels; DOM/XPath/CSS
+selectors in `SpanRef` (plain-text-first); CommonMark/GFM rendering (flowmark covers
+normalization); stored cross-layer edges (cross-layer relationships are
+offset-containment queries, §3); exact provider-keyed token counts (`estimate_tokens` is
+a heuristic); a thread-safety layer.
 
 **Later phases, not non-goals.** The **synthetic layer** (§3) and **cross-layer
-structural edits** (move/wrap/splice anchored on `SpanRef`, generalizing today's
+structural edits** (move/wrap/splice anchored on `SpanRef`, generalizing today’s
 tag-region edit helpers) are deferred phases, not excluded.
 The annotation, operation, provenance, and layout layers are likewise schema-reserved
 and built later. The hooks already in place (the `layer` field, offset-containment
 `collect()`, `SpanRef`-anchored edits) keep these a small lift rather than a redesign.
-§14 states each phase's current status and where it is tracked.
+§14 states each phase’s current status and where it is tracked.
 
-### Pitfalls and Key Decisions
+### Pitfalls and key decisions
 
 Non-obvious choices, each grounded in a principle:
 
@@ -902,8 +910,8 @@ Non-obvious choices, each grounded in a principle:
   The node table is one projection (the id-addressed, layer-tagged,
   serialization-friendly one); it is built *from* the parses, and
   `blocks()`/`sections()`/`links()` derive from the same memoized parse rather than from
-  the table's id space.
-  "Single canonical form" holds at the parse + offset space.
+  the table’s id space.
+  “Single canonical form” holds at the parse + offset space.
 - **Cross-layer overlap is expected** (P3). The same logical paragraph appears as
   distinct nodes in distinct layers (a `markdown` block node and a `textual` paragraph
   node over the same span), so a query that does not restrict `layer` returns both.
@@ -946,17 +954,17 @@ Non-obvious choices, each grounded in a principle:
   text-fragment export (§11).
 
 **Specified here, not yet implemented (each tracked in the extraction plan under
-`docs/project/specs/active/`, in the repo's issue beads, and summarized in `TODO.md`):**
+`docs/project/specs/active/`, in the repo’s issue beads, and summarized in `TODO.md`):**
 
-- **The synthetic layer** (§3). Today's implementation of marker-tag regions
+- **The synthetic layer** (§3). Today’s implementation of marker-tag regions
   (`TextNode`/`parse_divs`, currently `<div>`/`<span>`-focused) lives in the chopdiff
-  package as a standalone subsystem, not keyed into the node table. Migrating it here
-  and re-expressing regions as synthetic-layer nodes is mapped concretely in the
-  extraction plan (Stage 4): a builder pass over a configurable tag whitelist, an
-  overlap/nesting policy decision, fixtures for regions that cross block boundaries,
-  and the moved test suite. Moderate difficulty; no changes to the node table,
-  `collect()`, or the schema are expected (the `synthetic` layer value is already
-  reserved).
+  package as a standalone subsystem, not keyed into the node table.
+  Migrating it here and re-expressing regions as synthetic-layer nodes is mapped
+  concretely in the extraction plan (Stage 4): a builder pass over a configurable tag
+  whitelist, an overlap/nesting policy decision, fixtures for regions that cross block
+  boundaries, and the moved test suite.
+  Moderate difficulty; no changes to the node table, `collect()`, or the schema are
+  expected (the `synthetic` layer value is already reserved).
 - **The annotation layer** (§11): stand-off, `SpanRef`-targeted records; schema slot
   reserved.
 - **Cross-layer structural edits** (§13): operations anchored on `SpanRef`.
@@ -971,7 +979,7 @@ Non-obvious choices, each grounded in a principle:
 
 This spec stands alone; the following are background, not dependencies.
 
-- Research surveys (authored during the model's design, in chopdiff; copied here as
+- Research surveys (authored during the model’s design, in chopdiff; copied here as
   history): the cross-language document-model survey
   [`research-2026-05-29-document-model.md`](project/research/research-2026-05-29-document-model.md),
   the span-references survey
