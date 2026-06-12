@@ -25,6 +25,7 @@ from flexdoc.docs.links import Link
 from flexdoc.docs.node import LAYER_NESTING, Layer, NestingGuarantee, Node, NodeKind, NodeTable
 from flexdoc.docs.node_table import build_node_table
 from flexdoc.docs.paragraphs import Offsets, Paragraph, Sentence, SentIndex
+from flexdoc.docs.render import parse_source_span_attr, render_node_attrs, wrap_with_node_attrs
 from flexdoc.docs.search_tokens import search_tokens
 from flexdoc.docs.sections import Section
 from flexdoc.docs.sizes import TextUnit
@@ -148,4 +149,7 @@ __all__ = [
     "SpanRef",
     "resolve",
     "resolve_and_update",
+    "render_node_attrs",
+    "wrap_with_node_attrs",
+    "parse_source_span_attr",
 ]

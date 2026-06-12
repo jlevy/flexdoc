@@ -373,14 +373,23 @@ cross-layer edit phases), which the class docstring’s contract addresses.
   `__all__`. This amends Stage 5’s earlier “submodule-only” stance by maintainer
   decision.
 
-- [ ] **Requirement — define the root-level API surface** (bead `flexdoc-l0lc`, gating
-  `flexdoc-bift`): decide exactly which symbols belong at the flexdoc root beyond
-  `FlexDoc`. Candidates: `DocGraph`, `collect`, `SpanRef`, `TextUnit`, `BlockType`,
-  `NodeKind`/`Layer`. Working criteria: a symbol earns root placement only if it appears
-  in the first ten lines of typical use; wordtok/diff internals and the html helpers
-  stay submodule-only; every root addition needs a contract-test entry in
-  `tests/test_root_api.py`. Deliverable: a maintainer-approved surface list recorded
-  here (or in the Stage 3 surface spec), then implemented by bead `flexdoc-bift`.
+- [x] **Root-level API surface, defined and implemented** (beads `flexdoc-l0lc`,
+  `flexdoc-bift`; maintainer-directed 2026-06-12, designed against the two checked-out
+  downstream users in `attic/`). The root exports the working set:
+  `FlexDoc`, `DocGraph`, `Detail`, `SpanRef`, `BlockType`, `NodeKind`, `Layer`,
+  `TextUnit`. Evidence: chopdiff's imports are dominated by `FlexDoc`/`TextUnit`/
+  `BlockType`; practical-prose-style document evaluation needs textual-layer metrics
+  (`TextUnit`), `SpanRef` annotation of exact sentences, and `DocGraph` with `Detail`
+  payloads for source-linked UI rendering. Criteria held: a symbol earns root placement
+  only if it appears in the first lines of typical use. Exclusions, deliberate: unit
+  types (`Paragraph`/`Sentence`/`Section`/`Block`/`Node`) are reached from a parsed
+  doc, not imported; `resolve`/`resolve_and_update` keep module context in
+  `flexdoc.docs` (bare `resolve` at root is too generic); the free `collect` (the
+  method covers it); `DEFAULT_INCLUDE`; wordtok/diff machinery and html helpers stay
+  submodule-only. Also: the render helpers (`render_node_attrs`,
+  `wrap_with_node_attrs`, `parse_source_span_attr`) became public in `flexdoc.docs`,
+  since the source-linked UI flow the spec §12 describes depends on them.
+  `tests/test_root_api.py` pins identity and the exact surface.
 
 - [x] **Spec revision to a standalone definitive reference** (maintainer notes
   2026-06-12; beads `flexdoc-x1iw`, `flexdoc-moqm`, `flexdoc-ldo4`): all decision-record
