@@ -359,6 +359,22 @@ cross-layer edit phases), which the class docstring's contract addresses.
       list recorded here (or in the Stage 3 surface spec), then implemented by bead
       `flexdoc-bift`.
 
+- [x] **Spec revision to a standalone definitive reference** (maintainer notes
+      2026-06-12; beads `flexdoc-x1iw`, `flexdoc-moqm`, `flexdoc-ldo4`): all
+      decision-record (`DR-x`/`E9`), epic, and plan references stripped so the spec
+      defines its own terms and other plans reference *it*; a Terminology section
+      (sizes/words/approximate-LLM-token estimates first; `wordtok` defined as the
+      lower-level lexical unit); the synthetic layer redefined from first principles
+      (configured XML-style tag whitelist — hyphenated extension tags, `div`/`span`,
+      comment directives — compositional with future layers) instead of by reference
+      to divs; §4 and §7 rewritten to define their components rigorously; an "Error
+      posture" principle (lenient deterministic input, visible degradation, strict
+      internal contracts, opt-in strictness) with per-layer error-handling subsections
+      ending each layer's coverage, including the document layer's handling of
+      headingless, malformed-heading, and unstructured documents; §14 made an honest
+      implemented-vs-specified ledger, with the synthetic-layer migration mapped in
+      Stage 4 (bead `flexdoc-t5rh`) and summarized in the new `TODO.md`.
+
 Re-verified after the addendum: `make lint` clean, 307 tests green (goldens still
 unchanged), examples run, isolated-venv wheel smoke via the root import passes.
 chopdiff's Step 5 rewire gains the class rename (46 occurrences across 7 files,
@@ -441,11 +457,39 @@ forthcoming specs rather than frozen here.
 - [ ] Document the extension contract (add a `Layer`/`NodeKind`/`attrs`/analyzer); revisit
       `token_diffs` placement.
 
-## Stage 4 — fold in the synthetic layer (optional, later)
+## Stage 4 — fold in the synthetic layer (later; mapped 2026-06-12)
 
-- [ ] Re-express `divs`/`TextNode`/`parse_divs` as flexdoc's synthetic layer
-      (unified-document-model Phase 3), keyed into the node table by span. If `divs` is
-      migrated out of chopdiff, this is where it lands.
+Re-express marker-tag regions as flexdoc's synthetic layer, per the spec's
+first-principles definition (`docs/flexdoc-spec.md` §3): a configured whitelist of
+XML-style tags (custom hyphenated extension tags, `<div>`/`<span>`, comment directives)
+whose regions become nodes keyed into the node table. Tracked as bead `flexdoc-t5rh`.
+Today's implementation lives in chopdiff (`chopdiff.divs`: `TextNode`, `parse_divs`,
+chunk utilities) as a standalone subsystem not keyed into the node table.
+
+The concrete step map (moderate difficulty; no node-table/`collect()`/schema changes
+expected — the `synthetic` `Layer` value is already reserved):
+
+- [ ] Move `chopdiff.divs` into flexdoc (module move + import rewrite), with
+      `tests/divs/` following; chopdiff then imports it from flexdoc (a breaking
+      chopdiff change, foldable into a planned release).
+- [ ] Add a synthetic-layer builder pass to `build_node_table`: scan the configured tag
+      whitelist over `source_text`, emit one `Layer.synthetic` node per well-formed
+      region with tag name/attributes in `attrs`; tags outside the whitelist are inert
+      (spec §3).
+- [ ] **Decide the overlap policy** (the one open design point, spec §3 error
+      handling): regions that fail to nest either get dropped leniently (text remains,
+      no node) or the layer's `LAYER_NESTING` guarantee relaxes to `ordered_list`.
+      Whichever is chosen is then enforced by the existing build-time validation.
+- [ ] Fixtures for the hard cases: unclosed marker tags (no region; visible as inline
+      HTML), regions crossing block boundaries (cross-layer overlap queries must
+      answer correctly), nested same-tag regions, and comment-directive form.
+- [ ] Golden coverage: extend the corpus with a marker-tag document so the synthetic
+      layer's docgraph/report output is pinned like the other layers.
+
+Effort estimate: the move is mechanical; the builder pass and overlap-policy fixtures
+are the real work — on the order of one focused stage, comparable to Stage 2.5's
+mid-size items, assuming the lenient-drop policy (the guarantee-relaxation variant
+costs more because ordered-list projection of regions needs its own view decisions).
 
 ## Stage 5 — standalone cleanup and polish (final phase)
 
