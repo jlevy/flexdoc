@@ -4,7 +4,9 @@ All notable changes to flexdoc are documented here.
 This project uses [semantic versioning](https://semver.org/); while pre-1.0, breaking
 changes bump the **minor** version (see `docs/publishing.md`).
 
-## Unreleased
+## 0.1.0 (2026-06-12)
+
+First release.
 
 ### Added
 
@@ -19,6 +21,15 @@ changes bump the **minor** version (see `docs/publishing.md`).
   behavior is unchanged from the `flexdoc.*` modules that previously shipped inside the
   chopdiff wheel; this release packages them independently.
   See `docs/project/specs/active/plan-2026-06-11-flexdoc-extraction.md`.
+
+- **A deliberate root API**: the working set is importable from the package root —
+  `FlexDoc`, `DocGraph`, `Detail`, `SpanRef`, `BlockType`, `NodeKind`, `Layer`,
+  `TextUnit` — designed against the known downstream users and pinned by contract
+  tests. The render helpers for source-linked HTML (`render_node_attrs`,
+  `wrap_with_node_attrs`, `parse_source_span_attr`) are public in `flexdoc.docs`.
+
+- **DocGraph paragraph view**: `Views.paragraphs` joins `toc`/`blocks`/`links`/
+  `sentences` in the serialized projection.
 
 ### Changed (relative to the modules as shipped in chopdiff)
 
