@@ -5,8 +5,9 @@
 **Author:** Joshua Levy
 
 **Status:** Stage 1 shipped (chopdiff, PR #26 merged). Stage 2 in progress — Steps 1–3
-(extract + scaffold + verify) done in this repo; Steps 4–5 (publish + rewire chopdiff)
-pending. Stages 3–5 are forward-looking.
+(extract + scaffold + verify) done in this repo; Stage 2.5 (pre-publish design
+refinement, from the 2026-06-12 review) is next; then Steps 4–5 (publish + rewire
+chopdiff). Stages 3–5 are forward-looking.
 
 > **Repo note.** This is flexdoc's copy of the extraction plan. It was authored in
 > chopdiff (where Stage 1 happened) and now lives in the extracted package, which is the
@@ -45,6 +46,9 @@ The work is split into stages, each on its own branch (and, from Stage 2, its ow
 2. **Stage 2 — extract and publish (this repo).** Lift `src/flexdoc/` and its tests into a
    standalone package, give it its own packaging and dependency subset, publish to PyPI,
    then rewire chopdiff to depend on it (the single intended breaking release).
+   **Stage 2.5** sits between extraction and publish: the pre-publish design refinement
+   driven by the standalone review, taken now because breaking changes are free before
+   0.1.0 (chopdiff adapts once, at rewire).
 3. **Stage 3 — flexdoc as a first-class, extensible document-layer API** (later).
 4. **Stage 4 — fold in the synthetic layer** (optional, later).
 5. **Stage 5 — standalone cleanup and polish** (the immediate post-extraction tidy; see
@@ -235,11 +239,77 @@ matched closely; the deltas below are what made it flexdoc-specific and chopdiff
       from flexdoc.html import html_to_plaintext; TextDoc.from_text(...)`. The boundary is now
       structural: flexdoc has no chopdiff dependency at all.
 
-### Step 4 — publish flexdoc (pending; maintainer-gated)
+### Stage 2.5 — pre-publish design refinement (between Steps 3 and 4)
 
-- [ ] Confirm the distribution name `flexdoc` is available on PyPI (and decide the name —
-      see Open Questions). Configure the PyPI Trusted Publisher for `jlevy/flexdoc`
-      (`docs/publishing.md`).
+Driven by the standalone review
+([`senior-engineering-review-flexdoc-standalone-2026-06.md`](../../review/senior-engineering-review-flexdoc-standalone-2026-06.md)),
+which re-verified the v0.3.1 review's findings as fixed and identified the remaining
+first-release hygiene. Taken **before** 0.1.0 because this is the one window where
+breaking changes are free: nothing is published, and chopdiff adapts once at rewire
+(Step 5). The constraint is the client compatibility bar from the maintainer: the
+refined library must be at least as capable as what chopdiff ships today; renames and
+removals are fine, capability regressions are not. Every item keeps `make lint`/`make
+test` green and the golden fixtures unchanged (these are Python-surface changes, not
+parse-behavior changes).
+
+Breaking cleanups (do first, they shape the 0.1.0 surface):
+
+- [ ] **Drop the deprecated `collect()` aliases** (review F1): remove `scope` (also
+      positional) and `contains` from `flexdoc.docs.collect.collect` and the
+      `TextDoc.collect` bridge; make both fully keyword-only. Rewrite the alias tests in
+      `tests/docs/test_collect.py` to `subtree_of`/`within`; the alias-error cases go
+      away.
+- [ ] **Close the editing-view naming seam** (review F3): rename
+      `TextDoc.block_at_offset` → `paragraph_at_offset`, `iter_blocks` →
+      `iter_paragraphs`, `Section.own_blocks`/`subtree_blocks` →
+      `own_paragraphs`/`subtree_paragraphs`; rephrase `filtered()`'s docstring in
+      paragraph terms. After this, "block" always means the structural layer and
+      "paragraph" always means the blank-line editing view, matching spec §6.
+- [ ] **Settle the export surface in one pass** (review F2): export from `flexdoc.docs`
+      the typed block metadata (`CodeInfo`/`TableInfo`/`ListInfo`), the `SpanRef`
+      resolvers (`resolve`/`resolve_and_update`), and `parse_blocks`/`walk_blocks`/
+      `block_type_for`; export the missing `html_in_md` siblings (`html_p`, `html_tag`,
+      `escape_attribute`, `tag_wrapper`, `identity_wrapper`) from `flexdoc.html`; rename
+      `_DEFAULT_INCLUDE` → `DEFAULT_INCLUDE` and export it. Keep `IntervalIndex` and
+      `node_table`/`render` internals private. Update README/examples to the settled
+      imports.
+
+Non-breaking refinements:
+
+- [ ] **Split `text_doc.py`** (review F4) into editing / links / sections modules with
+      `flexdoc.docs` re-exports keeping every public import stable.
+- [ ] **Memoize `sections()`** (review F5) via the existing `_memoized_derivation`
+      infrastructure, with the same defensive-copy discipline as `blocks()`.
+- [ ] **Tighten the cross-language contract** (review F6): JSON-safe `AttrValue` alias
+      validated at `DocGraph` emission; a schema test pinning node-id assignment order;
+      note both in the spec.
+- [ ] **Enforce `LAYER_NESTING` in `build_node_table`** (review F7): cheap per-layer
+      validation so a future synthetic-layer bug fails loudly.
+
+Docs and polish (review P3 sweep):
+
+- [ ] Reframe the spec's remaining chopdiff-voiced prose (§3, §6) to flexdoc; add the
+      §13 "FlexDoc" naming disambiguation note; add one-line origin notes to the copied
+      plan specs and research briefs.
+- [ ] Document why `read_time` has no internal users (downstream convenience) and the
+      Pydantic-at-the-boundary / dataclasses-in-the-core rationale in `doc_graph.py`.
+- [ ] Targeted tests for newly exported symbols (`escape_attribute`, `html_p`/`html_tag`,
+      `visualize_wordtoks`, the `render` helpers) where coverage is thin.
+- [ ] Explicit non-actions, per the review: no wordtok sentinel redesign, no root-level
+      re-exports, no Pydantic/dataclass unification, no `DocumentSnapshot`, no offset
+      micro-optimization without a benchmark; the `frontmatter.py` swap to
+      `fmf_split_frontmatter_string` stays blocked on the upstream `frontmatter-format`
+      release + cool-off exception (maintainer sign-off).
+
+### Step 4 — publish flexdoc (pending; maintainer-gated; after Stage 2.5)
+
+- [ ] Land Stage 2.5 first, so 0.1.0's first published API is the refined one (no
+      deprecated aliases, settled exports, closed naming seam) and chopdiff's rewire
+      targets the final names in one pass.
+- [ ] Confirm the distribution name `flexdoc` is available on PyPI — verified available
+      2026-06-12 (pypi.org returns 404 for `flexdoc`); re-check at publish time. Resolve
+      the textdoc-spec §13 name collision (Stage 2.5 / Open Questions). Configure the
+      PyPI Trusted Publisher for `jlevy/flexdoc` (`docs/publishing.md`).
 - [ ] Tag and publish `flexdoc 0.1.0` (its own version line) via `publish.yml`. Publishing
       is irreversible; it is the maintainer's call to trigger.
 
@@ -333,16 +403,11 @@ standalone surface. Most can land before or alongside Stage 3.
       piecemeal at extraction time would contradict that recorded intent. Root re-exports
       are therefore part of Stage 3's "settle the public surface," where the whole API is
       designed together. Revisit there.
-- [ ] **Resolve the FlexDoc naming collision** in `docs/textdoc-spec.md` §13, which lists
-      "FlexDoc" as a *rejected competing runtime model* — distinct from the package now named
-      flexdoc. Add an explicit disambiguation note, or settle the package name (Open
-      Questions) before publishing.
-- [ ] **Trim the design-history docs to flexdoc's frame.** The copied plan specs and research
-      briefs are chopdiff-authored; add a short note at the top of each (or cross-link to
-      chopdiff) so a flexdoc reader knows their origin, and prune chopdiff-only sections that
-      no longer apply.
-- [ ] **Audit docstrings/`README` examples** for correctness against the standalone API and
-      add a couple of runnable examples specific to flexdoc's use cases.
+- [x] **Resolve the FlexDoc naming collision / trim the design-history docs** — moved into
+      Stage 2.5's docs-and-polish sweep, since both must land before 0.1.0 publishes.
+- [ ] **Audit docstrings/`README` examples** for correctness against the standalone API
+      (the import-path portion lands with Stage 2.5's export pass) and add a couple of
+      runnable examples specific to flexdoc's use cases.
 - [ ] **Revisit `token_diffs` placement** (kept in flexdoc by the `docs` cycle) and whether
       the `tests/html/...validation_and_classes` file should be renamed now that its
       div-class test is gone.
