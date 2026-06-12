@@ -147,6 +147,13 @@
           "title": "Links",
           "type": "array"
         },
+        "paragraphs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Paragraphs",
+          "type": "array"
+        },
         "sentences": {
           "items": {
             "type": "string"

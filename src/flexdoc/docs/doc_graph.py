@@ -105,6 +105,7 @@ class Views(BaseModel):
     toc: list[str] = Field(default_factory=list)
     blocks: list[str] = Field(default_factory=list)
     links: list[str] = Field(default_factory=list)
+    paragraphs: list[str] = Field(default_factory=list)
     sentences: list[str] = Field(default_factory=list)
 
 
@@ -218,6 +219,7 @@ def build_doc_graph(
     toc_ids: list[str] = []
     block_ids: list[str] = []
     link_ids: list[str] = []
+    paragraph_ids: list[str] = []
     sentence_ids: list[str] = []
 
     for nm in node_models:
@@ -229,6 +231,8 @@ def build_doc_graph(
             block_ids.append(nm.id)
         if kind == NodeKind.link.value:
             link_ids.append(nm.id)
+        if kind == NodeKind.paragraph.value and layer == Layer.textual.value:
+            paragraph_ids.append(nm.id)
         if kind == NodeKind.sentence.value and layer == Layer.textual.value:
             sentence_ids.append(nm.id)
 
@@ -244,6 +248,7 @@ def build_doc_graph(
         toc=toc_ids,
         blocks=block_ids,
         links=link_ids,
+        paragraphs=paragraph_ids,
         sentences=sentence_ids,
     )
 

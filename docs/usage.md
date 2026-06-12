@@ -79,6 +79,24 @@ links = doc.collect(kinds={NodeKind.link})
 The node table is a normalized projection, not a replacement for the source text.
 Its nodes carry source spans where they can be located.
 
+### Serialize a DocGraph
+
+Use `graph()` when a UI or service boundary needs a JSON-safe document projection. The
+textual layer adds ordered paragraph and sentence views, both as node ids over the same
+source offsets as Markdown blocks and document sections.
+
+```python
+from flexdoc.docs import Detail, Layer
+
+graph = doc.graph(
+    include=frozenset({Layer.markdown, Layer.document, Layer.textual}),
+    detail=frozenset({Detail.text, Detail.inline}),
+)
+
+paragraph_nodes = [node for node in graph.nodes if node.id in graph.views.paragraphs]
+sentence_nodes = [node for node in graph.nodes if node.id in graph.views.sentences]
+```
+
 ### Persist and Resolve Spans
 
 Use `SpanRef` when a tool needs to persist a source reference and re-resolve it after a

@@ -129,8 +129,11 @@ def test_include_textual_adds_sentences():
     graph = doc.graph(include=frozenset({Layer.markdown, Layer.document, Layer.textual}))
     layers_present = {n.layer for n in graph.nodes}
     assert "textual" in layers_present
+    paragraph_nodes = [n for n in graph.nodes if n.kind == "paragraph" and n.layer == "textual"]
     sentence_nodes = [n for n in graph.nodes if n.kind == "sentence"]
+    assert len(paragraph_nodes) > 0
     assert len(sentence_nodes) > 0
+    assert graph.views.paragraphs == [n.id for n in paragraph_nodes]
     assert len(graph.views.sentences) > 0
 
 
@@ -186,7 +189,7 @@ def test_view_node_ids_resolve_to_nodes():
         detail=frozenset({Detail.inline}),
     )
     node_ids = {n.id for n in graph.nodes}
-    for view_name in ("toc", "blocks", "links", "sentences"):
+    for view_name in ("toc", "blocks", "links", "paragraphs", "sentences"):
         view_ids = getattr(graph.views, view_name)
         for vid in view_ids:
             assert vid in node_ids, f"View '{view_name}' references node '{vid}' not in nodes"
@@ -232,6 +235,8 @@ def test_round_trip_json_serialization():
     assert restored.views.toc == graph.views.toc
     assert restored.views.blocks == graph.views.blocks
     assert restored.views.links == graph.views.links
+    assert restored.views.paragraphs == graph.views.paragraphs
+    assert restored.views.sentences == graph.views.sentences
 
 
 def test_golden_snapshot():
@@ -269,6 +274,7 @@ def test_golden_snapshot():
     assert len(data["views"]["toc"]) >= 3
     assert len(data["views"]["blocks"]) >= 5
     assert len(data["views"]["links"]) >= 1
+    assert len(data["views"]["paragraphs"]) >= 3
     assert len(data["views"]["sentences"]) >= 3
 
     # Reserved layers are empty lists.

@@ -777,7 +777,7 @@ DocGraph = {
   schema: "DocGraph/v0.1",
   source:  { format, offset_unit: "unicode_code_points", sha256, text? },
   nodes:   [ Node, ... ],                       # the canonical node table
-  views:   { toc, blocks, links, sentences },   # arrays of node ids (projections)
+  views:   { toc, blocks, links, paragraphs, sentences }, # node-id projections
   annotations: [],  layout: [],  provenance: [] # reserved layers (later phases)
 }
 ```
@@ -790,6 +790,7 @@ ladder:
 graph()                                                  # default layers, structural core
 graph(include={Layer.markdown, Layer.document})          # blocks + sections
 graph(include={Layer.markdown}, detail={Detail.text, Detail.inline})  # + node text + inline
+graph(include={Layer.markdown, Layer.document, Layer.textual})  # + paragraphs/sentences
 ```
 
 - **`include` is a set of `Layer`s:** the parse dimensions of §3: `textual`, `markdown`,
