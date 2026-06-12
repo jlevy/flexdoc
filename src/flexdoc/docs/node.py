@@ -10,6 +10,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import StrEnum
+from typing import TypeAlias
+
+AttrValue: TypeAlias = "str | int | float | bool | None | list[AttrValue] | dict[str, AttrValue]"
+"""
+JSON-safe node attribute values. `Node.attrs` is part of the cross-language
+`DocGraph` contract, so attribute values must stay within JSON's value space;
+`DocGraph` serialization validates this (`NodeModel.attrs`).
+"""
 
 
 class NodeKind(StrEnum):
@@ -93,7 +101,7 @@ class Node:
     parent: str | None
     children: list[str] = field(default_factory=list)
     source_span: tuple[int, int] | None = None
-    attrs: dict[str, object] = field(default_factory=dict)
+    attrs: dict[str, AttrValue] = field(default_factory=dict)
 
 
 @dataclass

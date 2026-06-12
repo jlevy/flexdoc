@@ -24,10 +24,19 @@ from flowmark.atomic_spans import iter_atomic_spans
 
 from flexdoc.docs.block_tree import Block
 from flexdoc.docs.interval_index import IntervalIndex
-from flexdoc.docs.node import Layer, Node, NodeKind, NodeTable
+from flexdoc.docs.node import (
+    LAYER_NESTING,
+    AttrValue,
+    Layer,
+    NestingGuarantee,
+    Node,
+    NodeKind,
+    NodeTable,
+)
 
 if TYPE_CHECKING:
-    from flexdoc.docs.text_doc import Section, TextDoc
+    from flexdoc.docs.sections import Section
+    from flexdoc.docs.text_doc import TextDoc
 
 
 # Atomic-span pattern names that map to inline NodeKinds.
@@ -66,7 +75,7 @@ def _build_markdown_nodes(
     for block in blocks:
         nid = _next_id(counter)
         child_ids.append(nid)
-        attrs: dict[str, object] = {}
+        attrs: dict[str, AttrValue] = {}
 
         # Heading level extracted directly from source text.
         if block.type.value == "heading" and block.span:
@@ -157,7 +166,7 @@ def _build_inline_nodes(
             seen_spans.add(link.span)
             nid = _next_id(counter)
             parent = index.innermost(link.span[0], Layer.markdown)
-            attrs: dict[str, object] = {"url": link.url, "text": link.text}
+            attrs: dict[str, AttrValue] = {"url": link.url, "text": link.text}
             if link.title:
                 attrs["title"] = link.title
 
@@ -184,7 +193,7 @@ def _build_inline_nodes(
         else:
             # Reference link with no exact span.
             nid = _next_id(counter)
-            ref_attrs: dict[str, object] = {"url": link.url, "text": link.text}
+            ref_attrs: dict[str, AttrValue] = {"url": link.url, "text": link.text}
             if link.title:
                 ref_attrs["title"] = link.title
             node = Node(
@@ -236,7 +245,7 @@ def _build_inline_nodes(
 
         nid = _next_id(counter)
         parent = index.innermost(span[0], Layer.markdown)
-        inline_attrs: dict[str, object] = {}
+        inline_attrs: dict[str, AttrValue] = {}
         if kind == NodeKind.code_span:
             content = atomic.text
             stripped = content.strip("`")
@@ -291,7 +300,7 @@ def _build_section_nodes(
     for sec in sections:
         nid = _next_id(counter)
         child_ids.append(nid)
-        attrs: dict[str, object] = {
+        attrs: dict[str, AttrValue] = {
             "level": sec.level,
             "title": sec.title,
         }
@@ -369,4 +378,51 @@ def build_node_table(doc: TextDoc) -> NodeTable:
     # Inline nodes (markdown layer): links, code spans, images, inline HTML.
     _build_inline_nodes(source_text, doc, nodes, counter)
 
+    _validate_layer_nesting(nodes, roots)
     return NodeTable(nodes=nodes, roots=roots, source_text=source_text)
+
+
+def _validate_layer_nesting(nodes: dict[str, Node], roots: list[str]) -> None:
+    """
+    Check each layer's declared `NestingGuarantee` (`LAYER_NESTING`) over the built
+    table: in a tree layer a child's span lies within its parent's; in an ordered-list
+    layer sibling spans (and the layer's roots) are ordered by start and
+    non-overlapping. These are builder invariants, not input validation — malformed
+    Markdown must still build (P17) — so a violation is a bug in a layer builder and
+    raises here rather than silently corrupting queries and serialization downstream.
+    """
+    for node in nodes.values():
+        if node.parent is None:
+            continue
+        parent = nodes[node.parent]
+        if LAYER_NESTING[node.layer] is not NestingGuarantee.tree:
+            continue
+        if parent.source_span is None or node.source_span is None:
+            continue
+        p_start, p_end = parent.source_span
+        c_start, c_end = node.source_span
+        if not (p_start <= c_start and c_end <= p_end):
+            raise ValueError(
+                f"layer nesting violated: {node.layer} node {node.id} span "
+                f"{node.source_span} not within parent {parent.id} span {parent.source_span}"
+            )
+
+    ordered_layers = {
+        layer for layer, g in LAYER_NESTING.items() if g is NestingGuarantee.ordered_list
+    }
+    for layer in ordered_layers:
+        layer_roots = [nodes[rid] for rid in roots if nodes[rid].layer == layer]
+        sibling_groups = [layer_roots] + [
+            [nodes[cid] for cid in n.children] for n in nodes.values() if n.layer == layer
+        ]
+        for group in sibling_groups:
+            prev_end: int | None = None
+            for sib in group:
+                if sib.source_span is None:
+                    continue
+                if prev_end is not None and sib.source_span[0] < prev_end:
+                    raise ValueError(
+                        f"ordered layer {layer} has out-of-order or overlapping sibling "
+                        f"{sib.id} at span {sib.source_span}"
+                    )
+                prev_end = sib.source_span[1]

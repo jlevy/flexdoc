@@ -31,12 +31,10 @@ INLINE_KINDS: frozenset[NodeKind] = frozenset(
 
 def collect(
     table: NodeTable,
-    scope: str | None = None,
     *,
     subtree_of: str | None = None,
     within: str | tuple[int, int] | None = None,
     overlaps: str | tuple[int, int] | None = None,
-    contains: tuple[int, int] | None = None,
     kinds: set[NodeKind] | None = None,
     where: Callable[[Node], bool] | None = None,
     recursive: bool = False,
@@ -56,10 +54,7 @@ def collect(
     nodes (or all nodes when `recursive`); supplying an interval relation scans all
     nodes, so `within=section_id` needs no `recursive=True`.
 
-    `scope` is a deprecated alias for `subtree_of`; `contains` is a deprecated,
-    span-only alias for `within` (use `within` for the node-id form). Passing an
-    alias together with its modern name raises `ValueError`. `kinds`: restrict to
-    these `NodeKind`s (None = any).
+    `kinds`: restrict to these `NodeKind`s (None = any).
     `where`: additional `Node -> bool` predicate. `inline`: include inline-kind
     nodes; an explicit `kinds` naming inline kinds (e.g. `{NodeKind.link}`) implies
     this, so the common case works without `inline=True`. `layer`: restrict to
@@ -67,16 +62,9 @@ def collect(
     layers (e.g. a `markdown` block and a `textual` paragraph), scope by `layer` to
     avoid cross-layer duplicates.
     """
-    if scope is not None and subtree_of is not None:
-        raise ValueError("pass either `subtree_of` or its deprecated alias `scope`, not both")
-    if contains is not None and within is not None:
-        raise ValueError("pass either `within` or its deprecated alias `contains`, not both")
-    subtree_of = subtree_of if subtree_of is not None else scope
-    within_ref = within if within is not None else contains
-
-    want_within = within_ref is not None
+    want_within = within is not None
     want_overlaps = overlaps is not None
-    within_region = _resolve_region(table, within_ref)
+    within_region = _resolve_region(table, within)
     overlaps_region = _resolve_region(table, overlaps)
     # A relation whose node id has no span matches nothing.
     if (want_within and within_region is None) or (want_overlaps and overlaps_region is None):

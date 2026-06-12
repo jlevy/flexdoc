@@ -1,5 +1,8 @@
 # Research: A Source-Grounded, Cross-Language Document Model
 
+*Authored in [chopdiff](https://github.com/jlevy/chopdiff) and copied here at the
+flexdoc extraction (Stage 2); kept as design history for the document model.*
+
 **Date:** 2026-05-29 (last updated 2026-05-29)
 
 **Author:** Codex and Claude (consolidated)

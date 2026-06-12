@@ -490,3 +490,21 @@ def test_tag_wrapper():
     # Test with empty content
     empty_wrapper = tag_wrapper("div")
     assert empty_wrapper("") == "<div></div>"
+
+
+def test_escape_attribute():
+    # Quotes must be escaped beyond plain HTML escaping, since the value sits inside
+    # a quoted attribute.
+    assert escape_attribute('say "hi" & <go>') == "say &quot;hi&quot; &amp; &lt;go&gt;"
+    assert escape_attribute("it's") == "it&#39;s"
+
+
+def test_html_p_and_html_tag():
+    # p (like div) pads its content by default so it renders as a Markdown block.
+    assert html_p("Hello", "note") == '<p class="note">\nHello\n</p>'
+    # html_tag covers arbitrary elements; non-padded tags render inline, and
+    # attribute values are escaped.
+    assert (
+        html_tag("section", "x", attrs={"data-v": 'a"b'})
+        == '<section data-v="a&quot;b">x</section>'
+    )

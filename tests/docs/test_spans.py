@@ -1,8 +1,9 @@
 from textwrap import dedent
 
+from flexdoc.docs import SentIndex
 from flexdoc.docs.block_types import BlockType
 from flexdoc.docs.sizes import TextUnit
-from flexdoc.docs.text_doc import SentIndex, TextDoc
+from flexdoc.docs.text_doc import TextDoc
 
 _DOC = dedent(
     """
@@ -35,13 +36,13 @@ def test_source_text_is_retained_verbatim():
     assert doc.source_text == _DOC
 
 
-def test_block_at_offset():
+def test_paragraph_at_offset():
     doc = TextDoc.from_text(_DOC)
-    assert doc.block_at_offset(0) is doc.paragraphs[0]
+    assert doc.paragraph_at_offset(0) is doc.paragraphs[0]
     inside = _DOC.index("Another paragraph")
-    assert doc.block_at_offset(inside) is doc.paragraphs[-1]
-    # An offset in the blank-line gap between blocks, and one past the end, map to nothing.
-    assert doc.block_at_offset(len(_DOC) + 5) is None
+    assert doc.paragraph_at_offset(inside) is doc.paragraphs[-1]
+    # An offset in the blank-line gap between paragraphs, and one past the end, map to nothing.
+    assert doc.paragraph_at_offset(len(_DOC) + 5) is None
 
 
 def test_sentence_at_offset():

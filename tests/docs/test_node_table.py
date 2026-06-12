@@ -357,3 +357,21 @@ def test_reference_link_no_span():
     links = table.by_kind(NodeKind.link)
     # At least one link should exist (the resolved reference link).
     assert len(links) >= 1
+
+
+def test_node_ids_are_deterministic_contiguous_preorder():
+    """
+    Id assignment is part of the cross-language DocGraph contract: a single preorder
+    counter over the fixed build order (markdown tree, then document sections, then
+    textual paragraphs/sentences, then inline nodes), yielding contiguous zero-padded
+    ids. Two parses of the same source must produce identical tables so ports can
+    reproduce ids exactly.
+    """
+    text = "# T\n\nPara with [x](https://e.com).\n\n- a\n- b\n"
+    t1 = build_node_table(TextDoc.from_text(text))
+    t2 = build_node_table(TextDoc.from_text(text))
+    assert [(n.id, n.kind, n.layer, n.source_span) for n in t1.nodes.values()] == [
+        (n.id, n.kind, n.layer, n.source_span) for n in t2.nodes.values()
+    ]
+    ids = list(t1.nodes.keys())
+    assert ids == [f"n{i:04d}" for i in range(1, len(ids) + 1)]

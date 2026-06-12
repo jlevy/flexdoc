@@ -68,7 +68,7 @@ def show_own_links(sections: list[Section]) -> None:
     """Walk the whole section tree, printing each section's own-content links (a derived
     rollup: links from the section's own paragraphs, not its subsections)."""
     for section in sections:
-        own_links = [link for para in section.own_blocks() for link in para.links()]
+        own_links = [link for para in section.own_paragraphs() for link in para.links()]
         for link in own_links:
             print(f"  {section.title}: [{link.text}]({link.url})")
         show_own_links(section.children)

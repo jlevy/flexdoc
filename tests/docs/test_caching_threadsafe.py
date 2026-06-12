@@ -15,7 +15,8 @@ from concurrent.futures import ThreadPoolExecutor
 import marko.parser as marko_parser
 
 from flexdoc.docs.block_tree import parse_blocks
-from flexdoc.docs.text_doc import TextDoc, _block_links
+from flexdoc.docs.links import block_links
+from flexdoc.docs.text_doc import TextDoc
 
 _TEXT = (
     "# Title\n\n"
@@ -34,7 +35,7 @@ def test_shared_parse_matches_independent_parses():
     assert [(b.type, b.span) for b in doc.blocks()] == [
         (b.type, b.span) for b in parse_blocks(_TEXT)
     ]
-    assert doc.links() == _block_links(_TEXT, 0)
+    assert doc.links() == block_links(_TEXT, 0)
 
 
 def test_read_order_does_not_change_results():

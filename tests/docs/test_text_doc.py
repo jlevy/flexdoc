@@ -5,8 +5,9 @@ import regex
 from prettyfmt import fmt_words
 from strif import abbrev_str
 
+from flexdoc.docs import SentIndex
 from flexdoc.docs.sizes import TextUnit
-from flexdoc.docs.text_doc import SentIndex, TextDoc
+from flexdoc.docs.text_doc import TextDoc
 from flexdoc.docs.wordtoks import (
     PARA_BR_TOK,
     is_break_or_space,

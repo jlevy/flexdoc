@@ -1,5 +1,8 @@
 # Feature: Typed Structural Metadata and Markdown-Layer Completion
 
+*Authored in [chopdiff](https://github.com/jlevy/chopdiff) and copied here at the
+flexdoc extraction (Stage 2); kept as design history for the document model.*
+
 **Date:** 2026-06-11 (last updated 2026-06-11)
 
 **Author:** Joshua Levy

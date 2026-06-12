@@ -75,10 +75,10 @@ def main() -> None:
 
     print("\n--- Exact spans and offset lookup ---")
     offset = _SAMPLE.index("dependency-light")
-    block = doc.block_at_offset(offset)
+    para = doc.paragraph_at_offset(offset)
     sent_index = doc.sentence_at_offset(offset)
-    assert block is not None and sent_index is not None
-    print(f"  offset {offset} is in block {block.original_text[:30]!r}...")
+    assert para is not None and sent_index is not None
+    print(f"  offset {offset} is in paragraph {para.original_text[:30]!r}...")
     print(f"  and in sentence {doc.get_sent(sent_index).text!r}")
 
     print("\n--- Total words across paragraph blocks only ---")

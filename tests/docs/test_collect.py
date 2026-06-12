@@ -115,8 +115,8 @@ def test_collect_single_link_minimal_doc():
     assert len(links) == 1
 
 
-def test_scope_restricts_to_subtree():
-    """Scoped collect restricts results to the given node's subtree."""
+def test_subtree_of_restricts_to_subtree():
+    """`subtree_of` restricts results to the given node's subtree."""
     _, table = _doc_and_table()
     # Find the blockquote node.
     bqs = [n for n in table.nodes.values() if n.kind == NodeKind.blockquote]
@@ -124,7 +124,7 @@ def test_scope_restricts_to_subtree():
     bq = bqs[0]
 
     # Scoped recursive collect should find the table inside the blockquote.
-    scoped = collect(table, scope=bq.id, recursive=True)
+    scoped = collect(table, subtree_of=bq.id, recursive=True)
     table_nodes = [n for n in scoped if n.kind == NodeKind.table]
     assert len(table_nodes) >= 1
 
@@ -148,9 +148,9 @@ def test_where_predicate():
         assert h.attrs.get("level") == 2
 
 
-def test_contains_cross_layer_query():
+def test_within_cross_layer_query():
     """
-    `contains` restricts results to nodes whose source_span falls within the
+    `within` restricts results to nodes whose source_span falls within the
     given span, enabling cross-layer queries.
     """
     _, table = _doc_and_table()
@@ -167,7 +167,7 @@ def test_contains_cross_layer_query():
     contained = collect(
         table,
         recursive=True,
-        contains=sec.source_span,
+        within=sec.source_span,
     )
     # All results must have spans within the section.
     for n in contained:
@@ -180,9 +180,9 @@ def test_contains_cross_layer_query():
     assert len(md_nodes) >= 1
 
 
-def test_contains_finds_inline_links_in_span():
+def test_within_finds_inline_links_in_span():
     """
-    `contains` with `inline=True` can find inline links within a given text region.
+    `within` with `inline=True` can find inline links within a given text region.
     """
     _, table = _doc_and_table()
     # Find the span of "Section One" content (before "## Section Two").
@@ -195,7 +195,7 @@ def test_contains_finds_inline_links_in_span():
         recursive=True,
         inline=True,
         kinds={NodeKind.link},
-        contains=(0, sec_two_start),
+        within=(0, sec_two_start),
     )
     # "link one" should be found; "link two" should not (it's in section two).
     urls = [n.attrs.get("url") for n in links]
@@ -246,13 +246,13 @@ def test_textdoc_collect_convenience():
     assert all(n.kind == NodeKind.table for n in tables)
 
 
-def test_textdoc_collect_with_scope():
-    """TextDoc.collect() works with scope parameter."""
+def test_textdoc_collect_with_subtree_of():
+    """TextDoc.collect() works with the `subtree_of` relation."""
     doc = TextDoc.from_text(_RICH_DOC)
     nt = doc.node_table()
     bqs = [n for n in nt.nodes.values() if n.kind == NodeKind.blockquote]
     assert len(bqs) >= 1
-    scoped = doc.collect(scope=bqs[0].id, recursive=True)
+    scoped = doc.collect(subtree_of=bqs[0].id, recursive=True)
     table_nodes = [n for n in scoped if n.kind == NodeKind.table]
     assert len(table_nodes) >= 1
 
@@ -318,23 +318,7 @@ def test_within_node_id_scopes_cross_layer_without_recursive():
         if n.kind == NodeKind.section and n.attrs.get("title") == "Section Two"
     )
     links = doc.collect(within=sec_two.id, kinds={NodeKind.link})
-    assert {n.attrs.get("url") for n in links} == {"https://two.example.com"}
-
-
-def test_contains_is_deprecated_alias_for_within():
-    doc = TextDoc.from_text(_RICH_DOC)
-    section_one = doc.sections()[0]
-    via_within = doc.collect(within=section_one.span, kinds={NodeKind.link}, recursive=True)
-    via_contains = doc.collect(contains=section_one.span, kinds={NodeKind.link}, recursive=True)
-    assert [n.id for n in via_within] == [n.id for n in via_contains]
-
-
-def test_subtree_of_is_alias_for_scope():
-    doc = TextDoc.from_text(_RICH_DOC)
-    bq = next(n for n in doc.node_table().nodes.values() if n.kind == NodeKind.blockquote)
-    via_scope = doc.collect(scope=bq.id, recursive=True)
-    via_subtree = doc.collect(subtree_of=bq.id, recursive=True)
-    assert [n.id for n in via_scope] == [n.id for n in via_subtree]
+    assert [n.attrs.get("url") for n in links] == ["https://two.example.com"]
 
 
 def test_overlaps_matches_only_intersecting_spans():
@@ -350,25 +334,6 @@ def test_overlaps_matches_only_intersecting_spans():
     # A region wholly inside the heading does not reach the paragraph.
     heading_only = doc.collect(overlaps=(0, 3), layer={Layer.markdown}, recursive=True)
     assert all(n.kind != NodeKind.paragraph for n in heading_only)
-
-
-def test_conflicting_alias_pairs_raise():
-    """Passing a deprecated alias together with its modern name is a ValueError, not
-    silent precedence."""
-    doc = TextDoc.from_text(_RICH_DOC)
-    rid = doc.node_table().roots[0]
-    try:
-        doc.collect(scope=rid, subtree_of=rid)
-    except ValueError:
-        pass
-    else:
-        raise AssertionError("expected ValueError for scope + subtree_of")
-    try:
-        doc.collect(contains=(0, 5), within=(0, 5))
-    except ValueError:
-        pass
-    else:
-        raise AssertionError("expected ValueError for contains + within")
 
 
 def test_textdoc_base_blocks_matches_free_function():

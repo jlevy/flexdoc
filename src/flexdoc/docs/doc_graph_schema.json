@@ -1,10 +1,13 @@
 {
   "$defs": {
+    "JsonValue": {},
     "NodeModel": {
       "description": "Serialization model for a single node. Mirrors the runtime `Node` dataclass\nwith JSON-friendly field types. `source_span` is a `{start, end}` object\n(or null for unlocatable nodes like reference links).",
       "properties": {
         "attrs": {
-          "additionalProperties": true,
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
           "title": "Attrs",
           "type": "object"
         },

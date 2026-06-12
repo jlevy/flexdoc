@@ -6,55 +6,45 @@ from collections import defaultdict
 from collections.abc import Callable, Generator, Iterable, Iterator
 from copy import deepcopy
 from dataclasses import dataclass, field
-from functools import cached_property, wraps
-from typing import NamedTuple, TypeAlias, TypeVar, cast
+from functools import wraps
+from typing import TypeVar, cast
 
 import regex
-from flowmark import flowmark_markdown, split_sentences_regex
-from flowmark.atomic_spans import iter_atomic_spans, split_sentences_with_spans
-from flowmark.markdown_ast import extract_links
+from flowmark import flowmark_markdown
 from funlog import tally_calls
-from marko.block import BlankLine, Document, Heading, SetextHeading
+from marko.block import Document
 from typing_extensions import override
 
 from flexdoc.docs.base_blocks import BaseBlock, base_blocks
-from flexdoc.docs.block_info import (
-    CodeInfo,
-    ListInfo,
-    TableInfo,
-    code_info_for,
-    list_info_for,
-    table_info_for,
-)
 from flexdoc.docs.block_tree import Block, parse_blocks
-from flexdoc.docs.block_types import BlockType, block_type_for
+from flexdoc.docs.block_types import BlockType
 from flexdoc.docs.collect import collect as _collect
-from flexdoc.docs.doc_graph import _DEFAULT_INCLUDE, Detail, DocGraph, build_doc_graph
+from flexdoc.docs.doc_graph import DEFAULT_INCLUDE, Detail, DocGraph, build_doc_graph
 from flexdoc.docs.frontmatter import split_frontmatter
+from flexdoc.docs.links import Link, block_links
 from flexdoc.docs.node import Layer, Node, NodeKind, NodeTable
 from flexdoc.docs.node_table import build_node_table
-from flexdoc.docs.sizes import TextUnit, size, size_in_bytes
+from flexdoc.docs.paragraphs import (
+    Offsets,
+    Paragraph,
+    Sentence,
+    SentenceMapping,
+    SentIndex,
+    Splitter,
+    WordtokMapping,
+    default_sentence_splitter,
+)
+from flexdoc.docs.sections import Section
+from flexdoc.docs.sizes import TextUnit, size_in_bytes
 from flexdoc.docs.wordtoks import (
     BOF_TOK,
     EOF_TOK,
     PARA_BR_STR,
     PARA_BR_TOK,
     SENT_BR_STR,
-    SENT_BR_TOK,
-    is_break_or_space,
-    is_header_tag,
-    is_tag,
-    is_word,
     join_wordtoks,
-    wordtokenize,
 )
 from flexdoc.util.token_estimate import estimate_tokens
-
-SYMBOL_PARA = "¶"
-
-SYMBOL_SENT = "S"
-
-FOOTNOTE_DEF_REGEX = regex.compile(r"^\[\^[^\]]+\]:")
 
 _PARA_BREAK_REGEX = regex.compile(r"(?:[ \t\r]*\n){2,}[ \t\r]*")
 r"""
@@ -62,445 +52,6 @@ A paragraph break: a run of whitespace containing two or more newlines (a blank
 line). Blank lines that contain only spaces, tabs, or `\r` still count, and any
 number of consecutive blank lines collapse into a single break.
 """
-
-Splitter: TypeAlias = Callable[[str], list[str]]
-
-default_sentence_splitter: Splitter = split_sentences_regex
-"""
-The default sentence splitter. Can be replaced with a more advanced splitter like
-Spacy. We default to the regex splitter because it's usable (in English), eliminates
-the need for a dependency on Spacy, and is much faster than Spacy.
-"""
-
-
-def is_markdown_header(markdown: str) -> bool:
-    """
-    Is the start of this content a Markdown header?
-    """
-    return regex.match(r"^#+ ", markdown) is not None
-
-
-class _BlockInfo(NamedTuple):
-    """A paragraph's classification from one parse: its `BlockType` and, for headings,
-    the level and title, plus typed code/table/list metadata for the matching kinds.
-    Caches the small derived values, not the marko `Document`."""
-
-    block_type: BlockType
-    heading_level: int | None
-    heading_title: str | None
-    code_info: CodeInfo | None = None
-    table_info: TableInfo | None = None
-    list_info: ListInfo | None = None
-
-
-def _inline_text(element: object) -> str:
-    """Concatenate the plain text of an inline (or heading) element subtree."""
-    children = getattr(element, "children", None)
-    if isinstance(children, str):
-        return children
-    if isinstance(children, list):
-        return "".join(_inline_text(child) for child in children)  # pyright: ignore[reportUnknownArgumentType]
-    return ""
-
-
-@dataclass(frozen=True, order=True)
-class SentIndex:
-    """
-    Point to a sentence in a `TextDoc`.
-    """
-
-    para_index: int
-    sent_index: int
-
-    @override
-    def __str__(self):
-        return f"{SYMBOL_PARA}{self.para_index},{SYMBOL_SENT}{self.sent_index}"
-
-
-WordtokMapping: TypeAlias = dict[int, SentIndex]
-"""A mapping from wordtok index to sentences in a TextDoc."""
-
-SentenceMapping: TypeAlias = dict[SentIndex, list[int]]
-"""A mapping from sentence index to wordtoks in a TextDoc."""
-
-
-@dataclass(frozen=True)
-class Offsets:
-    """
-    Character offsets of a parsed element, with the same shape for paragraphs,
-    sentences, and any future parsed units.
-
-    - `doc_offset`: absolute offset in the document.
-    - `block_offset`: offset relative to the start of the enclosing block — the
-      document for a paragraph (so it equals `doc_offset`), or the paragraph for a
-      sentence.
-    """
-
-    doc_offset: int
-    block_offset: int
-
-
-@dataclass(frozen=True)
-class Link:
-    """
-    A link found in a document. `text`, `url`, and `title` are the parsed identity
-    (reference links resolved, autolinks and bare URLs included), via flowmark's
-    `markdown_ast.extract_links`. `span` is the link's absolute `[start, end)` offsets in
-    the source when they could be recovered: inline links, autolinks (`<url>`), bare URLs,
-    and reference links whose bracketed use is locatable all get a span. `span` is `None`
-    only when the construct cannot be located in the source.
-    """
-
-    text: str
-    url: str
-    title: str | None
-    span: tuple[int, int] | None
-
-
-def _block_links(block_text: str, doc_offset: int, *, parsed: Document | None = None) -> list[Link]:
-    """
-    Links in a text region. Identity comes from `extract_links` (always correct,
-    including reference links resolved against definitions anywhere in the region);
-    spans are recovered by aligning, in document order, with the bracketed link atomic
-    spans from `iter_atomic_spans` (`markdown_link`), then a forward literal search for
-    autolinks and bare URLs (which flowmark does not emit as link atomics). Identities
-    that still cannot be located keep their identity but get `span=None`.
-
-    A forward character cursor (`char_cursor`) advances past each located span so that
-    bracketed matches, autolinks, bare URLs, and repeated URLs resolve in document order
-    without one no-span identity desyncing the next.
-
-    `parsed` is the marko parse of `block_text`; pass it to reuse a shared parse (the
-    caller guarantees it is the parse of exactly this `block_text`), else it is parsed
-    here.
-    """
-    identities = extract_links(
-        parsed if parsed is not None else flowmark_markdown().parse(block_text)
-    )
-    # Only `markdown_link` atomics are bracketed `[...]` link constructs; autolinks come
-    # through as `html_open_tag` and bare URLs are not atomic, so both are handled by the
-    # literal fallback below.
-    link_spans = [
-        span
-        for span in iter_atomic_spans(block_text)
-        if span.is_atomic and span.name == "markdown_link"
-    ]
-    used: set[int] = set()
-    result: list[Link] = []
-    scan_start = 0
-    char_cursor = 0
-    for idn in identities:
-        located: tuple[int, int] | None = None
-
-        # Bracketed links: match the next unused `markdown_link` atomic by URL (inline)
-        # or by link text (reference links, where the URL is in a separate definition).
-        for j in range(scan_start, len(link_spans)):
-            if j in used:
-                continue
-            sp = link_spans[j]
-            if (idn.url and idn.url in sp.text) or (
-                idn.text and idn.text in sp.text and sp.text.startswith("[")
-            ):
-                located = (sp.start, sp.end)
-                used.add(j)
-                scan_start = j + 1
-                break
-
-        # Autolinks / bare URLs: locate the verbatim URL forward from the cursor; include
-        # the surrounding angle brackets when present (an autolink `<url>`).
-        if located is None and idn.url:
-            idx = block_text.find(idn.url, char_cursor)
-            if idx >= 0:
-                start, end = idx, idx + len(idn.url)
-                if (
-                    start > 0
-                    and block_text[start - 1] == "<"
-                    and end < len(block_text)
-                    and block_text[end] == ">"
-                ):
-                    start, end = start - 1, end + 1
-                located = (start, end)
-
-        if located is not None:
-            char_cursor = max(char_cursor, located[1])
-            result.append(
-                Link(
-                    idn.text, idn.url, idn.title, (doc_offset + located[0], doc_offset + located[1])
-                )
-            )
-        else:
-            result.append(Link(idn.text, idn.url, idn.title, None))
-    return result
-
-
-@dataclass
-class Sentence:
-    """
-    A sentence in a `TextDoc`. `text` is the editable content (used by
-    `reassemble()`); `offsets` is a fixed reference to the source set at parse time
-    and is not updated by edits. Offsets are exact when the sentence is a verbatim
-    slice of the paragraph (prose); for content where the splitter normalizes
-    whitespace (e.g. tables), the offset is a best-effort position. See `TextDoc`
-    for the full contract.
-    """
-
-    text: str
-    offsets: Offsets
-    original_text: str | None = None
-
-    @property
-    def span(self) -> tuple[int, int]:
-        """
-        Absolute `[start, end)` character offsets of this sentence in the document.
-        Exact when `original_text` (the verbatim source slice) is set — the default
-        splitter sets it via flowmark's offset-preserving splitter, so
-        `source_text[start:end] == original_text`. Falls back to `len(text)` for
-        sentences produced by a custom (non-span-aware) splitter or by editing.
-        """
-        length = len(self.original_text if self.original_text is not None else self.text)
-        return self.offsets.doc_offset, self.offsets.doc_offset + length
-
-    def size(self, unit: TextUnit) -> int:
-        return size(self.text, unit)
-
-    def as_wordtoks(self) -> list[str]:
-        return wordtokenize(self.text)
-
-    def is_markup(self) -> bool:
-        """
-        Is this sentence all markup, e.g. a <span> or <div> tag or some other content with no words?
-        """
-        wordtoks = self.as_wordtoks()
-        is_all_markup = all(is_tag(wordtok) or is_break_or_space(wordtok) for wordtok in wordtoks)
-        if is_all_markup:
-            return True
-        is_markup_no_words = (
-            len(wordtoks) > 2
-            and is_tag(wordtoks[0])
-            and is_tag(wordtoks[-1])
-            and all(not is_word(wordtok) for wordtok in wordtoks[1:-1])
-        )
-        if is_markup_no_words:
-            return True
-        return False
-
-    @override
-    def __str__(self):
-        return repr(self.text)
-
-
-@dataclass
-class Paragraph:
-    """
-    A paragraph (one blank-line-separated block) in a `TextDoc`.
-
-    `original_text` and `offsets` are fixed references to the source as parsed and
-    are not updated by edits; `sentences` holds the editable content used by
-    `reassemble()`. `block_type` is derived from `original_text` and cached, so it
-    assumes `original_text` is not reassigned after construction. See `TextDoc` for
-    the full contract.
-    """
-
-    original_text: str
-    sentences: list[Sentence]
-    offsets: Offsets
-
-    @property
-    def end_offset(self) -> int:
-        """Absolute end offset (exclusive) of this paragraph in the document."""
-        return self.offsets.doc_offset + len(self.original_text)
-
-    @property
-    def span(self) -> tuple[int, int]:
-        """
-        Absolute `[start, end)` character offsets of this paragraph in the document,
-        such that `source_text[start:end] == original_text`.
-        """
-        return self.offsets.doc_offset, self.end_offset
-
-    @classmethod
-    @tally_calls(level="warning", min_total_runtime=5)
-    def from_text(
-        cls,
-        text: str,
-        doc_offset: int = 0,
-        sentence_splitter: Splitter = default_sentence_splitter,
-    ) -> Paragraph:
-        # TODO: Lazily compute sentences for better performance.
-        sentences: list[Sentence] = []
-        if sentence_splitter is default_sentence_splitter:
-            # Default path: flowmark's offset-preserving, atomic-aware splitter gives
-            # exact verbatim spans (never bisecting a link/code span). Keep
-            # `Sentence.text` whitespace-normalized (as the regex splitter produced)
-            # for backward-compatible wordtok/diff/reassemble behavior; `original_text`
-            # holds the verbatim slice so `span` is exact.
-            for sent_span in split_sentences_with_spans(text):
-                normalized = " ".join(sent_span.text.split())
-                sentences.append(
-                    Sentence(
-                        normalized,
-                        Offsets(
-                            doc_offset=doc_offset + sent_span.start, block_offset=sent_span.start
-                        ),
-                        original_text=sent_span.text,
-                    )
-                )
-        else:
-            # Custom splitter (returns plain strings): locate each sentence by search;
-            # offsets are best-effort where the splitter normalized whitespace.
-            cursor = 0
-            for sent_str in sentence_splitter(text):
-                idx = text.find(sent_str, cursor)
-                if idx < 0:
-                    idx = cursor
-                sentences.append(
-                    Sentence(sent_str, Offsets(doc_offset=doc_offset + idx, block_offset=idx))
-                )
-                cursor = idx + len(sent_str)
-        return cls(
-            original_text=text,
-            sentences=sentences,
-            offsets=Offsets(doc_offset=doc_offset, block_offset=doc_offset),
-        )
-
-    def reassemble(self) -> str:
-        return SENT_BR_STR.join(sent.text for sent in self.sentences)
-
-    def replace_str(self, old: str, new: str):
-        for sent in self.sentences:
-            sent.text = sent.text.replace(old, new)
-
-    def sent_iter(self, reverse: bool = False) -> Iterable[tuple[int, Sentence]]:
-        enum_sents = list(enumerate(self.sentences))
-        return reversed(enum_sents) if reverse else enum_sents
-
-    def size(self, unit: TextUnit) -> int:
-        if unit == TextUnit.lines:
-            return len(self.original_text.splitlines())
-        if unit == TextUnit.paragraphs:
-            return 1
-        if unit == TextUnit.sentences:
-            return len(self.sentences)
-
-        if unit == TextUnit.tokens:
-            return estimate_tokens(self.reassemble())
-
-        base_size = sum(sent.size(unit) for sent in self.sentences)
-        if unit == TextUnit.bytes:
-            return base_size + (len(self.sentences) - 1) * size_in_bytes(SENT_BR_STR)
-        if unit == TextUnit.chars:
-            return base_size + (len(self.sentences) - 1) * len(SENT_BR_STR)
-        if unit == TextUnit.words:
-            return base_size
-        if unit == TextUnit.wordtoks:
-            return base_size + (len(self.sentences) - 1)
-
-        raise ValueError(f"Unsupported unit for Paragraph: {unit}")
-
-    def as_wordtok_to_sent(self) -> Generator[tuple[str, int], None, None]:
-        last_sent_index = len(self.sentences) - 1
-        for sent_index, sent in enumerate(self.sentences):
-            for wordtok in sent.as_wordtoks():
-                yield wordtok, sent_index
-            if sent_index != last_sent_index:
-                yield SENT_BR_TOK, sent_index
-
-    def as_wordtoks(self) -> Generator[str, None, None]:
-        for wordtok, _ in self.as_wordtok_to_sent():
-            yield wordtok
-
-    def is_markup(self) -> bool:
-        """
-        Is this paragraph all markup, e.g. a <div> tag as a paragraph by itself?
-        """
-        return all(sent.is_markup() for sent in self.sentences)
-
-    def is_header(self) -> bool:
-        """
-        Is this paragraph a Markdown or HTML header tag?
-        """
-        first_wordtok = next(self.as_wordtoks(), None)
-        is_html_header = first_wordtok and is_tag(first_wordtok) and is_header_tag(first_wordtok)
-        return is_html_header or is_markdown_header(self.original_text)
-
-    def is_footnote_def(self) -> bool:
-        """
-        Is this paragraph a Markdown footnote definition block (e.g. "[^id]: text")?
-        """
-        if len(self.sentences) == 0:
-            return False
-        initial_text = self.sentences[0].text
-        return FOOTNOTE_DEF_REGEX.match(initial_text) is not None
-
-    @cached_property
-    def _block_info(self) -> _BlockInfo:
-        """
-        Classify this paragraph and extract heading level/title from a single parse of
-        `original_text` (which does not change after parsing). Cached; the marko document
-        is not retained. See `BlockType` for blank-line-splitting caveats.
-        """
-        text = self.original_text.strip()
-        if not text:
-            return _BlockInfo(BlockType.paragraph, None, None)
-        parsed = flowmark_markdown().parse(text)
-        element = next((el for el in parsed.children if not isinstance(el, BlankLine)), None)
-        block_type = block_type_for(element) if element is not None else BlockType.paragraph
-        # marko treats a single-line HTML tag as an inline-HTML paragraph rather than
-        # an HTML block, so fall back to flexdoc's own markup check for those.
-        if block_type == BlockType.paragraph and self.is_markup():
-            block_type = BlockType.html
-        code_info = code_info_for(element) if element is not None else None
-        table_info = table_info_for(element) if element is not None else None
-        list_info = list_info_for(element) if element is not None else None
-        if isinstance(element, (Heading, SetextHeading)):
-            return _BlockInfo(block_type, element.level, _inline_text(element).strip())
-        return _BlockInfo(block_type, None, None, code_info, table_info, list_info)
-
-    @property
-    def block_type(self) -> BlockType:
-        """This paragraph's Markdown block kind (see `_block_info`)."""
-        return self._block_info.block_type
-
-    def heading_level(self) -> int | None:
-        """The Markdown heading level (1-6) if this block is a heading, else None."""
-        return self._block_info.heading_level
-
-    def heading_title(self) -> str | None:
-        """The heading text without `#` markers if this block is a heading, else None."""
-        return self._block_info.heading_title
-
-    @property
-    def code_info(self) -> CodeInfo | None:
-        """
-        Typed code metadata (`language`, `line_count`) if this paragraph is a code block,
-        else `None`. Density caveat (as for `block_type`): this is the editing view, split
-        on blank lines, so a fenced code block containing a blank line is several
-        paragraphs; the density-invariant source of truth is `Block.code_info` from
-        `TextDoc.blocks()`.
-        """
-        return self._block_info.code_info
-
-    @property
-    def table_info(self) -> TableInfo | None:
-        """
-        Typed table metadata (`rows`, `cols`, `cells`, `alignments`) if this paragraph is
-        a table, else `None`. Editing-view density caveat applies; see `code_info`.
-        """
-        return self._block_info.table_info
-
-    @property
-    def list_info(self) -> ListInfo | None:
-        """
-        Typed list metadata (`ordered`, `start`, `max_depth`, `item_count`) if this
-        paragraph is a list, else `None`. Editing-view density caveat applies: a loose
-        list is one paragraph per item, so the whole-list view is `Block.list_info` from
-        `TextDoc.blocks()`. See `code_info`.
-        """
-        return self._block_info.list_info
-
-    def links(self) -> list[Link]:
-        """Links in this block, in order (identity always; absolute span when recoverable)."""
-        return _block_links(self.original_text, self.offsets.doc_offset)
 
 
 _DerivedT = TypeVar("_DerivedT")
@@ -573,13 +124,13 @@ class TextDoc:
       blocks. To get offsets/classification for edited content, re-parse with
       `TextDoc.from_text(doc.reassemble())`.
 
-    - `filtered()` returns an independent deep copy; `iter_blocks()` and the
+    - `filtered()` returns an independent deep copy; `iter_paragraphs()` and the
       `paragraphs`/`sentences` lists expose this document's live objects.
 
     - `source_text` is the document text the offsets index into. For a parsed doc it is
       the unmodified input; `sub_doc`/`sub_paras`/`filtered` carry the same `source_text`
       (their offsets still point into it). Docs built from synthetic content
-      (`from_wordtoks`) set it to the reassembled text. `block_at_offset` /
+      (`from_wordtoks`) set it to the reassembled text. `paragraph_at_offset` /
       `sentence_at_offset` map an absolute offset back to the unit that contains it.
 
     - Read-time thread-safety. The derived views — `blocks()`, `links()`, `sections()`,
@@ -587,8 +138,9 @@ class TextDoc:
       are read-only with respect to your data: they are pure, deterministic functions of
       `source_text` and never mutate paragraphs or sentences. The *only* state change
       during such a read is idempotent population of internal caches. The document-level
-      caches (the shared marko parse, the block tree, the link list, the node table) are
-      filled under a per-instance reentrant lock, so concurrent readers compute each at
+      caches (the shared marko parse, the block tree, the link list, the section tree,
+      the node table) are filled under a per-instance reentrant lock, so concurrent
+      readers compute each at
       most once and all observe the same value. A few per-element values (e.g.
       `Paragraph.block_type`) are memoized with `cached_property`, which is not lock-
       guarded but is equally idempotent and deterministic — a pure function of that
@@ -616,6 +168,9 @@ class TextDoc:
     )
     _cached_blocks: list[Block] | None = field(default=None, init=False, compare=False, repr=False)
     _cached_links: list[Link] | None = field(default=None, init=False, compare=False, repr=False)
+    _cached_sections: list[Section] | None = field(
+        default=None, init=False, compare=False, repr=False
+    )
 
     @override
     def __getstate__(self) -> dict[str, object]:
@@ -633,6 +188,7 @@ class TextDoc:
         self._cached_node_table = None
         self._cached_blocks = None
         self._cached_links = None
+        self._cached_sections = None
 
     @_memoized_derivation("_cached_parsed")
     def _parsed(self) -> Document:
@@ -733,11 +289,12 @@ class TextDoc:
             for sent_index, sent in para.sent_iter(reverse=reverse):
                 yield SentIndex(para_index, sent_index), sent
 
-    def block_at_offset(self, offset: int) -> Paragraph | None:
+    def paragraph_at_offset(self, offset: int) -> Paragraph | None:
         """
         The paragraph whose span contains `offset` (an absolute character offset into
-        the source), or `None` if `offset` falls in inter-block whitespace or outside
-        the document.
+        the source), or `None` if `offset` falls in inter-paragraph whitespace or
+        outside the document. (For the structural layer, query `blocks()` spans or use
+        `collect(overlaps=...)`.)
         """
         for para in self.paragraphs:
             start, end = para.span
@@ -773,7 +330,15 @@ class TextDoc:
         paragraph splitter isolates from inside a fenced code block is not mistaken for a
         section heading, and headings nested in blockquotes or list items (which are not
         top-level blocks) do not start document sections.
+
+        Computed once and cached (see the class contract on read-time caching). Returns
+        a fresh shallow copy of the cached root list each call; the `Section` objects
+        themselves are shared and must be treated as read-only.
         """
+        return list(self._section_list())
+
+    @_memoized_derivation("_cached_sections")
+    def _section_list(self) -> list[Section]:
         source_text = self.source_text or self.reassemble()
         # Start offsets of top-level structural heading blocks, sorted for bisect lookup.
         heading_starts = sorted(
@@ -811,7 +376,7 @@ class TextDoc:
 
     @_memoized_derivation("_cached_links")
     def _link_list(self) -> list[Link]:
-        return _block_links(self.source_text or self.reassemble(), 0, parsed=self._parsed())
+        return block_links(self.source_text or self.reassemble(), 0, parsed=self._parsed())
 
     def links(self) -> list[Link]:
         """
@@ -1013,16 +578,17 @@ class TextDoc:
             source_text=self.source_text,
         )
 
-    def iter_blocks(
+    def iter_paragraphs(
         self,
         *,
         include: set[BlockType] | None = None,
         exclude: set[BlockType] | None = None,
     ) -> Iterator[Paragraph]:
         """
-        Iterate over blocks (paragraphs), optionally filtering by `BlockType`.
+        Iterate over this document's paragraphs (the blank-line editing view),
+        optionally filtering by each paragraph's `BlockType` classification.
         `include` keeps only the given types; `exclude` drops the given types. If
-        both are given, a block must be in `include` and not in `exclude`.
+        both are given, a paragraph must be in `include` and not in `exclude`.
 
         Yields this document's own `Paragraph` objects (not copies), so in-place
         edits such as `replace_str` affect this document. Use `filtered` for an
@@ -1043,17 +609,17 @@ class TextDoc:
         exclude: set[BlockType] | None = None,
     ) -> TextDoc:
         """
-        Return a new sub-document containing only the blocks matching the given
+        Return a new sub-document containing only the paragraphs matching the given
         `BlockType` filter, e.g.
         `doc.filtered(include={BlockType.paragraph}).size(TextUnit.words)` gives
-        the total words across all paragraph blocks.
+        the total words across all prose paragraphs.
 
-        The returned document deep-copies the matched blocks, so it is independent
-        of this document: editing one does not affect the other. (Use `iter_blocks`
-        to edit this document's blocks in place.)
+        The returned document deep-copies the matched paragraphs, so it is independent
+        of this document: editing one does not affect the other. (Use `iter_paragraphs`
+        to edit this document's paragraphs in place.)
         """
         return TextDoc(
-            [deepcopy(para) for para in self.iter_blocks(include=include, exclude=exclude)],
+            [deepcopy(para) for para in self.iter_paragraphs(include=include, exclude=exclude)],
             source_text=self.source_text,
         )
 
@@ -1160,12 +726,10 @@ class TextDoc:
 
     def collect(
         self,
-        scope: str | None = None,
         *,
         subtree_of: str | None = None,
         within: str | tuple[int, int] | None = None,
         overlaps: str | tuple[int, int] | None = None,
-        contains: tuple[int, int] | None = None,
         kinds: set[NodeKind] | None = None,
         where: Callable[[Node], bool] | None = None,
         recursive: bool = False,
@@ -1178,11 +742,9 @@ class TextDoc:
         """
         return _collect(
             self.node_table(),
-            scope,
             subtree_of=subtree_of,
             within=within,
             overlaps=overlaps,
-            contains=contains,
             kinds=kinds,
             where=where,
             recursive=recursive,
@@ -1202,111 +764,9 @@ class TextDoc:
         payload richness (see `Detail`). See `flexdoc.docs.doc_graph` for the
         full contract.
         """
-        effective_include = include if include is not None else _DEFAULT_INCLUDE
+        effective_include = include if include is not None else DEFAULT_INCLUDE
         return build_doc_graph(self.node_table(), include=effective_include, detail=detail)
 
     @override
     def __str__(self):
         return f"TextDoc({self.size_summary()})"
-
-
-@dataclass
-class Section:
-    """
-    A document section: a heading plus the content it owns, with nested subsections.
-
-    `content` are this section's own content paragraphs (excluding the heading line and
-    any subsections); `children` are nested `Section`s. Built by `TextDoc.sections()`.
-    Sizes are rolled up by reusing `TextDoc.size` over the section's paragraphs, so every
-    `TextUnit` aggregates uniformly.
-
-    Two views of the same content, both derived (nothing stored as counts):
-
-    - the *editing* view — `content`, `own_blocks()`, `subtree_blocks()` — returns the
-      blank-line `Paragraph`s, matching the document's paragraph view;
-    - the *structural* view — `blocks()` — returns the density-invariant structural
-      `Block` tree scoped to this section.
-    """
-
-    heading: Paragraph
-    level: int
-    content: list[Paragraph]
-    children: list[Section]
-    source_text: str = ""
-    _doc: TextDoc | None = field(default=None, compare=False, repr=False)
-
-    def _all_blocks(self) -> list[Block]:
-        """The whole-document structural parse, shared via the owning doc's cache when
-        available (standalone sections fall back to a direct parse)."""
-        if self._doc is not None:
-            return self._doc.blocks()
-        return parse_blocks(self.source_text)
-
-    def _all_links(self) -> list[Link]:
-        """The whole-document link list, shared via the owning doc's cache when
-        available (standalone sections fall back to a direct parse)."""
-        if self._doc is not None:
-            return self._doc.links()
-        return _block_links(self.source_text, 0)
-
-    @property
-    def title(self) -> str:
-        return self.heading.heading_title() or ""
-
-    def own_blocks(self) -> list[Paragraph]:
-        """The heading plus this section's own content paragraphs (no subsections)."""
-        return [self.heading, *self.content]
-
-    def blocks(self) -> list[Block]:
-        """
-        The structural block tree (see `TextDoc.blocks`) restricted to this section's
-        own content — the heading and the blocks it owns, excluding subsections. Spans
-        are document-absolute, and the slice is density-invariant like the whole-document
-        tree, so per-section block-type tallies are spacing-independent.
-        """
-        own = self.own_blocks()
-        start, end = own[0].span[0], own[-1].span[1]
-        return [
-            block for block in self._all_blocks() if start <= block.span[0] and block.span[1] <= end
-        ]
-
-    def subtree_blocks(self) -> list[Paragraph]:
-        """All blocks of this section and its subsections, in document order."""
-        result = self.own_blocks()
-        for child in self.children:
-            result.extend(child.subtree_blocks())
-        return result
-
-    @property
-    def span(self) -> tuple[int, int]:
-        """`[start, end)` covering the heading through the end of the last subtree block."""
-        blocks = self.subtree_blocks()
-        return blocks[0].span[0], blocks[-1].span[1]
-
-    def size(self, unit: TextUnit, subtree: bool = True) -> int:
-        """
-        Size in `unit`, rolled up over the whole subtree by default (`subtree=True`) or
-        the section's own content only (`subtree=False`). Reuses `TextDoc.size`.
-        """
-        blocks = self.subtree_blocks() if subtree else self.own_blocks()
-        return TextDoc(blocks).size(unit)
-
-    def size_summary(self, subtree: bool = True) -> str:
-        blocks = self.subtree_blocks() if subtree else self.own_blocks()
-        return TextDoc(blocks).size_summary()
-
-    def links(self) -> list[Link]:
-        """
-        All links in this section's subtree, in document order. Derived from a
-        document-level parse of `source_text` (so reference links resolve across
-        blocks) and filtered to links whose span falls within the section's span.
-        Links with `span=None` (e.g. reference definitions with no recoverable
-        inline span) are omitted because they cannot be attributed to a section
-        by offset alone.
-        """
-        sec_start, sec_end = self.span
-        return [
-            link
-            for link in self._all_links()
-            if link.span is not None and sec_start <= link.span[0] and link.span[1] <= sec_end
-        ]

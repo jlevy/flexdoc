@@ -61,16 +61,16 @@ def test_block_type_classification():
     ]
 
 
-def test_iter_blocks_include_exclude():
+def test_iter_paragraphs_include_exclude():
     doc = TextDoc.from_text(DOC)
 
-    paras = list(doc.iter_blocks(include={BlockType.paragraph}))
+    paras = list(doc.iter_paragraphs(include={BlockType.paragraph}))
     assert len(paras) == 3
 
-    text_blocks = list(doc.iter_blocks(include={BlockType.paragraph, BlockType.list}))
+    text_blocks = list(doc.iter_paragraphs(include={BlockType.paragraph, BlockType.list}))
     assert len(text_blocks) == 4
 
-    no_headings_tables = list(doc.iter_blocks(exclude={BlockType.heading, BlockType.table}))
+    no_headings_tables = list(doc.iter_paragraphs(exclude={BlockType.heading, BlockType.table}))
     assert all(p.block_type not in {BlockType.heading, BlockType.table} for p in no_headings_tables)
     assert len(no_headings_tables) == 6
 

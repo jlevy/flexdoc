@@ -1,8 +1,9 @@
 # flake8: noqa: F401
 
 from flexdoc.docs.base_blocks import BaseBlock, base_blocks
-from flexdoc.docs.block_tree import Block
-from flexdoc.docs.block_types import BlockType
+from flexdoc.docs.block_info import CodeInfo, ListInfo, TableInfo
+from flexdoc.docs.block_tree import Block, parse_blocks, walk_blocks
+from flexdoc.docs.block_types import BlockType, block_type_for
 from flexdoc.docs.collect import collect
 from flexdoc.docs.debug import (
     doc_graph_yaml,
@@ -11,6 +12,7 @@ from flexdoc.docs.debug import (
     dump_views,
 )
 from flexdoc.docs.doc_graph import (
+    DEFAULT_INCLUDE,
     Detail,
     DocGraph,
     NodeModel,
@@ -18,20 +20,15 @@ from flexdoc.docs.doc_graph import (
     Views,
     build_doc_graph,
 )
+from flexdoc.docs.links import Link
 from flexdoc.docs.node import LAYER_NESTING, Layer, NestingGuarantee, Node, NodeKind, NodeTable
 from flexdoc.docs.node_table import build_node_table
+from flexdoc.docs.paragraphs import Offsets, Paragraph, Sentence, SentIndex
 from flexdoc.docs.search_tokens import search_tokens
+from flexdoc.docs.sections import Section
 from flexdoc.docs.sizes import TextUnit
-from flexdoc.docs.span_ref import SpanRef
-from flexdoc.docs.text_doc import (
-    Link,
-    Offsets,
-    Paragraph,
-    Section,
-    Sentence,
-    SentIndex,
-    TextDoc,
-)
+from flexdoc.docs.span_ref import SpanRef, resolve, resolve_and_update
+from flexdoc.docs.text_doc import TextDoc
 from flexdoc.docs.token_diffs import (
     DIFF_FILTER_NONE,
     DiffFilter,
@@ -74,6 +71,7 @@ from flexdoc.docs.wordtoks import (
 )
 
 __all__ = [
+    "DEFAULT_INCLUDE",
     "Detail",
     "DocGraph",
     "NodeModel",
@@ -84,6 +82,12 @@ __all__ = [
     "TextUnit",
     "Block",
     "BlockType",
+    "block_type_for",
+    "parse_blocks",
+    "walk_blocks",
+    "CodeInfo",
+    "ListInfo",
+    "TableInfo",
     "Offsets",
     "Link",
     "Paragraph",
@@ -142,4 +146,6 @@ __all__ = [
     "NodeTable",
     "build_node_table",
     "SpanRef",
+    "resolve",
+    "resolve_and_update",
 ]

@@ -6,6 +6,11 @@ that derives it from a `TextDoc`.
 It is a derived, read-only snapshot: the Python core is `TextDoc`; edits go through
 `TextDoc`/source and re-derive. Authored as Pydantic models (DR-3) that emit a
 JSON Schema.
+
+This module is deliberately the only place the model uses Pydantic: validation and
+schema emission pay their way exactly at the serialization boundary, while the hot
+in-memory model (`Node`, `Block`, `SpanRef`, the editing view) stays plain dataclasses
+with no validation overhead. The split is intentional, not drift.
 """
 
 from __future__ import annotations
@@ -16,7 +21,7 @@ from io import StringIO
 from typing import Literal
 
 from frontmatter_format import new_yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, JsonValue
 
 from flexdoc.docs.collect import INLINE_KINDS
 from flexdoc.docs.node import Layer, Node, NodeKind, NodeTable
@@ -86,7 +91,9 @@ class NodeModel(BaseModel):
     parent: str | None = None
     children: list[str] = Field(default_factory=list)
     source_span: SourceSpan | None = None
-    attrs: dict[str, object] = Field(default_factory=dict)
+    # JSON's value space, validated at serialization: attrs are part of the frozen
+    # cross-language DocGraph contract (see `flexdoc.docs.node.AttrValue`).
+    attrs: dict[str, JsonValue] = Field(default_factory=dict)
     text: str | None = None
 
 
@@ -135,13 +142,13 @@ class DocGraph(BaseModel):
 
 
 # Default layers included when none are specified.
-_DEFAULT_INCLUDE: frozenset[Layer] = frozenset({Layer.markdown, Layer.document})
+DEFAULT_INCLUDE: frozenset[Layer] = frozenset({Layer.markdown, Layer.document})
 
 
 def build_doc_graph(
     table: NodeTable,
     *,
-    include: frozenset[Layer] = _DEFAULT_INCLUDE,
+    include: frozenset[Layer] = DEFAULT_INCLUDE,
     detail: frozenset[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
 ) -> DocGraph:
     """

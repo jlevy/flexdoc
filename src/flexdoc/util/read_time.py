@@ -1,5 +1,8 @@
 """
 Reading-time estimates from a word count.
+
+Nothing inside flexdoc uses this; it is kept as a small convenience for downstream
+consumers that already have flexdoc word counts (`TextUnit.words`) in hand.
 """
 
 from __future__ import annotations

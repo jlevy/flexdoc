@@ -4,10 +4,11 @@
 
 **Author:** Joshua Levy
 
-**Status:** Stage 1 shipped (chopdiff, PR #26 merged). Stage 2 in progress — Steps 1–3
-(extract + scaffold + verify) done in this repo; Stage 2.5 (pre-publish design
-refinement, from the 2026-06-12 review) is next; then Steps 4–5 (publish + rewire
-chopdiff). Stages 3–5 are forward-looking.
+**Status:** Stage 1 shipped (chopdiff, PR #26 merged). Stage 2 Steps 1–3 (extract +
+scaffold + verify) and Stage 2.5 (pre-publish design refinement, from the 2026-06-12
+review) are done in this repo, tracked as beads `flexdoc-7yfb/gvzk/3xhq/hqi1/32s0/
+6a5i/6off/tfg8/mbdt` (all closed). Steps 4–5 (publish + rewire chopdiff) are pending.
+Stages 3–5 are forward-looking.
 
 > **Repo note.** This is flexdoc's copy of the extraction plan. It was authored in
 > chopdiff (where Stage 1 happened) and now lives in the extracted package, which is the
@@ -252,54 +253,70 @@ removals are fine, capability regressions are not. Every item keeps `make lint`/
 test` green and the golden fixtures unchanged (these are Python-surface changes, not
 parse-behavior changes).
 
-Breaking cleanups (do first, they shape the 0.1.0 surface):
+Breaking cleanups (done first, they shape the 0.1.0 surface):
 
-- [ ] **Drop the deprecated `collect()` aliases** (review F1): remove `scope` (also
-      positional) and `contains` from `flexdoc.docs.collect.collect` and the
-      `TextDoc.collect` bridge; make both fully keyword-only. Rewrite the alias tests in
-      `tests/docs/test_collect.py` to `subtree_of`/`within`; the alias-error cases go
-      away.
-- [ ] **Close the editing-view naming seam** (review F3): rename
-      `TextDoc.block_at_offset` → `paragraph_at_offset`, `iter_blocks` →
-      `iter_paragraphs`, `Section.own_blocks`/`subtree_blocks` →
-      `own_paragraphs`/`subtree_paragraphs`; rephrase `filtered()`'s docstring in
-      paragraph terms. After this, "block" always means the structural layer and
-      "paragraph" always means the blank-line editing view, matching spec §6.
-- [ ] **Settle the export surface in one pass** (review F2): export from `flexdoc.docs`
+- [x] **Drop the deprecated `collect()` aliases** (review F1): `scope` (also positional)
+      and `contains` removed from `flexdoc.docs.collect.collect` and the
+      `TextDoc.collect` bridge; both fully keyword-only. Alias tests rewritten to
+      `subtree_of`/`within`; the alias-error cases removed.
+- [x] **Close the editing-view naming seam** (review F3): `TextDoc.block_at_offset` →
+      `paragraph_at_offset`, `iter_blocks` → `iter_paragraphs`,
+      `Section.own_blocks`/`subtree_blocks` → `own_paragraphs`/`subtree_paragraphs`;
+      `filtered()` docstring rephrased in paragraph terms; spec/example references
+      updated. "Block" now always means the structural layer, "paragraph" the blank-line
+      editing view, matching spec §6. chopdiff's own code was verified to use none of
+      the renamed/removed surfaces, so the Step 5 rewire is unaffected.
+- [x] **Settle the export surface in one pass** (review F2): `flexdoc.docs` now exports
       the typed block metadata (`CodeInfo`/`TableInfo`/`ListInfo`), the `SpanRef`
-      resolvers (`resolve`/`resolve_and_update`), and `parse_blocks`/`walk_blocks`/
-      `block_type_for`; export the missing `html_in_md` siblings (`html_p`, `html_tag`,
-      `escape_attribute`, `tag_wrapper`, `identity_wrapper`) from `flexdoc.html`; rename
-      `_DEFAULT_INCLUDE` → `DEFAULT_INCLUDE` and export it. Keep `IntervalIndex` and
-      `node_table`/`render` internals private. Update README/examples to the settled
-      imports.
+      resolvers (`resolve`/`resolve_and_update`), `parse_blocks`/`walk_blocks`/
+      `block_type_for`, and the renamed `DEFAULT_INCLUDE`; `flexdoc.html` exports the
+      missing `html_in_md` siblings (`html_p`, `html_tag`, `escape_attribute`,
+      `tag_wrapper`, `identity_wrapper`). `IntervalIndex` and `node_table`/`render`
+      internals stay private. README needed no changes (its imports were already
+      package-surface). Discovered during the split: `_block_links` is a cross-module
+      primitive, so it was promoted to public `block_links` in `flexdoc.docs.links`
+      rather than crossing module boundaries underscore-named.
 
-Non-breaking refinements:
+Non-breaking refinements (done):
 
-- [ ] **Split `text_doc.py`** (review F4) into editing / links / sections modules with
-      `flexdoc.docs` re-exports keeping every public import stable.
-- [ ] **Memoize `sections()`** (review F5) via the existing `_memoized_derivation`
-      infrastructure, with the same defensive-copy discipline as `blocks()`.
-- [ ] **Tighten the cross-language contract** (review F6): JSON-safe `AttrValue` alias
-      validated at `DocGraph` emission; a schema test pinning node-id assignment order;
-      note both in the spec.
-- [ ] **Enforce `LAYER_NESTING` in `build_node_table`** (review F7): cheap per-layer
-      validation so a future synthetic-layer bug fails loudly.
+- [x] **Split `text_doc.py`** (review F4): 1312 → 788 lines. Editing units moved to
+      `paragraphs.py` (`Paragraph`, `Sentence`, `Offsets`, `SentIndex`, splitter hook),
+      link extraction to `links.py` (`Link`, `block_links`), `Section` to `sections.py`;
+      `text_doc.py` keeps `TextDoc` and the caching infrastructure. The `flexdoc.docs`
+      package surface is unchanged; `flexdoc.docs.text_doc` still resolves `TextDoc`
+      (canonical) and the names it itself uses.
+- [x] **Memoize `sections()`** (review F5) via `_memoized_derivation`
+      (`_cached_sections`), returning a fresh shallow copy per call like `blocks()`.
+- [x] **Tighten the cross-language contract** (review F6): `AttrValue` JSON-safe alias
+      on `Node.attrs`; `NodeModel.attrs` validated as `pydantic.JsonValue` at `DocGraph`
+      emission (committed JSON Schema regenerated); a determinism test pins contiguous
+      preorder node-id assignment across rebuilds.
+- [x] **Enforce `LAYER_NESTING` in `build_node_table`** (review F7): tree layers check
+      child-span-within-parent, ordered layers check sibling order/non-overlap; the
+      whole golden corpus passes with validation on.
 
-Docs and polish (review P3 sweep):
+Docs and polish (review P3 sweep, done):
 
-- [ ] Reframe the spec's remaining chopdiff-voiced prose (§3, §6) to flexdoc; add the
-      §13 "FlexDoc" naming disambiguation note; add one-line origin notes to the copied
-      plan specs and research briefs.
-- [ ] Document why `read_time` has no internal users (downstream convenience) and the
-      Pydantic-at-the-boundary / dataclasses-in-the-core rationale in `doc_graph.py`.
-- [ ] Targeted tests for newly exported symbols (`escape_attribute`, `html_p`/`html_tag`,
-      `visualize_wordtoks`, the `render` helpers) where coverage is thin.
-- [ ] Explicit non-actions, per the review: no wordtok sentinel redesign, no root-level
+- [x] Spec reframed to flexdoc voice (§3, §6, §8), the stale deprecated-alias note in §9
+      removed, the §13 "FlexDoc" naming disambiguation added, and the §15 source-module
+      list updated for the split; one-line origin notes added to the four copied plan
+      specs and three research briefs.
+- [x] `read_time` documented as a downstream convenience (no internal users); the
+      Pydantic-at-the-boundary / dataclasses-in-the-core rationale recorded in
+      `doc_graph.py`'s module docstring.
+- [x] Targeted inline tests added for `escape_attribute` and `html_p`/`html_tag`
+      (pinning the p/div default-padding behavior); `render` helpers already had inline
+      tests; `visualize_wordtoks` left untested (debug printer, a trivial test adds no
+      coverage).
+- [x] Explicit non-actions, per the review: no wordtok sentinel redesign, no root-level
       re-exports, no Pydantic/dataclass unification, no `DocumentSnapshot`, no offset
       micro-optimization without a benchmark; the `frontmatter.py` swap to
       `fmf_split_frontmatter_string` stays blocked on the upstream `frontmatter-format`
       release + cool-off exception (maintainer sign-off).
+
+Verified after the stage: `make lint` clean, 305 tests green (goldens unchanged),
+examples run, `uv build` + isolated-venv wheel smoke test exercising the new API
+(`paragraph_at_offset`, settled exports) passes.
 
 ### Step 4 — publish flexdoc (pending; maintainer-gated; after Stage 2.5)
 

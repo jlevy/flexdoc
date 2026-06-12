@@ -1,4 +1,5 @@
-from flexdoc.docs.text_doc import SentIndex, TextDoc
+from flexdoc.docs import SentIndex
+from flexdoc.docs.text_doc import TextDoc
 from flexdoc.docs.wordtoks import BOF_TOK, EOF_TOK
 
 

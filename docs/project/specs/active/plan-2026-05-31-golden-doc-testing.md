@@ -1,5 +1,8 @@
 # Feature: Golden-Document Testing and a Reusable Doc-Model Debug Dumper
 
+*Authored in [chopdiff](https://github.com/jlevy/chopdiff) and copied here at the
+flexdoc extraction (Stage 2); kept as design history for the document model.*
+
 **Date:** 2026-05-31 (last updated 2026-05-31)
 
 **Author:** Joshua Levy
