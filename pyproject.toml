@@ -38,26 +38,38 @@ classifiers = [
 
 # ---- Main dependencies ----
 
+# The document-layer subset, partitioned from chopdiff at the FlexDoc extraction.
+# `simplemma` is intentionally absent: lemmatization lives in `chopdiff.util`, not the
+# document model. See docs/project/specs/active/plan-2026-06-11-flexdoc-extraction.md.
 dependencies = [
+    "prettyfmt>=0.3.0",
+    "flowmark>=0.7.1",
+    "marko>=2.2.2",
+    "strif>=3.1.0",
+    "funlog>=0.2.1",
+    "cydifflib>=1.2.0",
+    "regex>=2024.11.6",
+    "selectolax>=0.3.32",
+    "pydantic>=2.13.4",
+    "frontmatter-format>=0.3.0",
+    "typing-extensions>=4.12.2",
 ]
-
-
-# ---- Dev dependencies ----
 
 [dependency-groups]
 dev = [
     "pytest>=9.0.3",
     "pytest-sugar>=1.1.1",
-    "ruff>=0.15.15",
+    "ruff>=0.15.12",
     "codespell>=2.4.2",
     "rich>=15.0.0",
-    "basedpyright>=1.39.6",
+    "basedpyright>=1.39.3",
     "funlog>=0.2.1",
 ]
-
-[project.scripts]
-# Add script entry points here:
-flexdoc = "flexdoc:main"
+# Supply-chain audit tooling, kept out of the default dev install. CI runs it via
+# `uv run --group audit pip-audit`. See SUPPLY-CHAIN-SECURITY.md.
+audit = [
+    "pip-audit>=2.7.0",
+]
 
 
 # ---- Build system ----
@@ -87,11 +99,23 @@ packages = ["src/flexdoc"]
 
 # ---- Settings ----
 
+# Supply-chain hardening: enforce a 14-day cool-off on dependency resolution.
+# uv applies this cutoff at lock, sync, and run time, so dev and CI all install
+# the same vetted versions and never silently pull a just-published release.
+# See SUPPLY-CHAIN-SECURITY.md. To upgrade, bump this to (today - 14 days) and
+# re-run `make upgrade`. Kept in sync with chopdiff's cutoff so the two packages
+# resolve the same shared dependencies.
 [tool.uv]
-# Fail fast on old uv versions rather than misbehave. 0.9 is the floor where
-# UV_EXCLUDE_NEWER accepts a relative duration like "14 days" (used in CI for the
-# supply-chain cool-off; see docs/development.md).
-required-version = ">=0.9"
+exclude-newer = "2026-05-11T00:00:00Z"
+
+# Cool-off exceptions (reviewed and recorded in SUPPLY-CHAIN-SECURITY.md):
+# - strif 3.1.0: first-party, zero-dependency package, full source diff reviewed.
+# - flowmark 0.7.1: first-party package (maintainer-reviewed), block-span API.
+# - idna 3.15: fixes CVE-2026-45409 reported against the in-window 3.14 (audit group only).
+[tool.uv.exclude-newer-package]
+strif = "2026-05-24T00:00:00Z"
+flowmark = "2026-05-30T00:00:00Z"
+idna = "2026-05-13T00:00:00Z"
 
 [tool.ruff]
 # Set as desired, typically 88 (black standard) or 100 (wide).
@@ -118,6 +142,7 @@ ignore = [
     "E501", # https://docs.astral.sh/ruff/rules/line-too-long/
     "E402", # https://docs.astral.sh/ruff/rules/module-import-not-at-top-of-file/
     "E731", # https://docs.astral.sh/ruff/rules/lambda-assignment/
+    "B904",
     # We use both ruff formatter and linter so some rules should always be disabled.
     # See: https://docs.astral.sh/ruff/formatter/#conflicting-lint-rules
     "W191", # https://docs.astral.sh/ruff/rules/tab-indentation/
@@ -155,16 +180,19 @@ reportAny = false
 reportExplicitAny = false
 reportImplicitStringConcatenation = false
 reportUnreachable = false
+reportUnknownMemberType = false
 # reportPrivateImportUsage = false
 # reportPrivateLocalImportUsage = false
 # reportMissingImports = false
 # reportUnnecessaryIsInstance = false
-# reportUnknownVariableType = false
+reportUnknownVariableType = false
 # reportUnknownArgumentType = false
+reportUnannotatedClassAttribute = false
+reportUnknownLambdaType = false
+reportPrivateUsage = false
 
 [tool.codespell]
-# Add here as needed:
-# ignore-words-list = "foo,bar"
+ignore-words-list = "Numbe"
 # skip = "foo.py,bar.py"
 
 [tool.pytest.ini_options]
