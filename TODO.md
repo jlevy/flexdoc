@@ -7,12 +7,6 @@ has the full detail; this file is the summary.
 
 ## Open Work
 
-- **Define the root-level public API surface** (`flexdoc-l0lc`, gates `flexdoc-bift`).
-  Which symbols beyond `FlexDoc` belong at the package root.
-  A concrete proposal (add `DocGraph`, `SpanRef`, `BlockType`, `NodeKind`, `Layer`,
-  `TextUnit`; exclude unit types, wordtok/diff machinery, and html helpers) is pending
-  maintainer review.
-- **Implement the settled root surface** (`flexdoc-bift`; blocked by the above).
 - **Synthetic layer: migrate `TextNode`/`parse_divs` from chopdiff into the node table**
   (`flexdoc-t5rh`). Concretely mapped in the extraction plan, Stage 4, including the
   open overlap-policy decision.
