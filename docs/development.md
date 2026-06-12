@@ -44,8 +44,8 @@ make clean
 make upgrade
 
 # To run tests by hand:
-uv run pytest   # all tests
-uv run pytest -s src/module/some_file.py  # one test, showing outputs
+uv run --frozen pytest   # all tests
+uv run --frozen pytest -s src/module/some_file.py  # one test, showing outputs
 
 # Build and install current dev executables, to let you use your dev copies
 # as local tools:
@@ -91,8 +91,8 @@ Its key defaults:
 
 - **Cool-off period:** Don’t install or upgrade to a release less than 14 days old
   (absent a documented exception); most malicious publishes are caught within days.
-  For uv, set `UV_EXCLUDE_NEWER` to a cool-off window (recent uv accepts a relative
-  duration like `"14 days"`); this project’s CI workflows set it automatically.
+  This project records the uv cutoff in `pyproject.toml` and commits the resulting
+  `uv.lock`; validation runs with frozen lockfile semantics.
 
 - **Vet before adding:** Confirm the package is actually needed and its name is spelled
   correctly (typosquats are common), and prefer a little first-party code over a new

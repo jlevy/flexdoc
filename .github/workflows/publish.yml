@@ -13,14 +13,15 @@ jobs:
       contents: read
     steps:
       - name: Checkout (official GitHub action)
-        uses: actions/checkout@v6
+        # actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           # Important for versioning plugins:
           fetch-depth: 0
 
       - name: Install uv (official Astral action)
-        # Pinned to a full, immutable version tag (see note in ci.yml).
-        uses: astral-sh/setup-uv@v8.1.0
+        # astral-sh/setup-uv@v8.1.0
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
           version: "0.11.12"
           enable-cache: true
@@ -35,7 +36,7 @@ jobs:
         run: uv sync --all-extras --locked
 
       - name: Run tests
-        run: uv run pytest
+        run: uv run --frozen pytest
 
       - name: Build package
         run: uv build

@@ -10,7 +10,7 @@ changes bump the **minor** version (see `docs/publishing.md`).
 
 - **Initial flexdoc package**, extracted from
   [chopdiff](https://github.com/jlevy/chopdiff) as its own standalone distribution. This
-  is the document/markdown layer — `TextDoc`, paragraphs/sentences, the block tree and
+  is the document/markdown layer — `FlexDoc`, paragraphs/sentences, the block tree and
   block types, sections, the node table, `collect()`, `DocGraph`, `SpanRef`, token
   diffs/mappings, word tokenization, html-in-md, and read-time/token estimation — with no
   dependency on chopdiff's diff and windowed-transform machinery.

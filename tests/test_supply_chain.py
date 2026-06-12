@@ -30,8 +30,12 @@ def test_cool_off_cutoff_matches_lockfile() -> None:
 
 
 def test_cool_off_exceptions_are_documented() -> None:
-    exceptions = _uv_config().get("exclude-newer-package", {})
-    assert isinstance(exceptions, dict)
+    config_exceptions = _uv_config().get("exclude-newer-package", {})
+    lock_exceptions = tomllib.loads(_LOCK.read_text())["options"].get("exclude-newer-package", {})
+    assert isinstance(config_exceptions, dict)
+    assert isinstance(lock_exceptions, dict)
+    assert config_exceptions == lock_exceptions
+
     marker = _MARKER.read_text()
-    undocumented = [pkg for pkg in exceptions if pkg not in marker]
+    undocumented = [pkg for pkg in config_exceptions if pkg not in marker]
     assert not undocumented

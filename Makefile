@@ -12,14 +12,14 @@ install:
 	uv sync --all-extras
 
 lint:
-	uv run python devtools/lint.py
+	uv run --frozen python devtools/lint.py
 
 # Check-only lint, matching CI (does not modify files).
 lint-check:
-	uv run python devtools/lint.py --check
+	uv run --frozen python devtools/lint.py --check
 
 test:
-	uv run pytest
+	uv run --frozen pytest
 
 upgrade:
 	uv sync --upgrade --all-extras --dev

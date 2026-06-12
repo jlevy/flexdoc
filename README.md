@@ -45,7 +45,9 @@ print(doc.reassemble())
 print(doc.size_summary())
 ```
 
-See [examples/](examples/) for worked scripts (run any with `uv run examples/<name>.py`).
+See [usage.md](docs/usage.md) for the main workflows and [examples/](examples/) for
+worked scripts. From a repository checkout, run examples with
+`uv run python examples/<name>.py`.
 
 ## Project Docs
 

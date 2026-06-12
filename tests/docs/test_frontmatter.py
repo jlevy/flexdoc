@@ -10,6 +10,8 @@ from __future__ import annotations
 from textwrap import dedent
 
 from flexdoc.docs import FlexDoc
+from flexdoc.docs.debug import doc_report_data
+from flexdoc.docs.node import NodeKind
 from flexdoc.docs.sizes import TextUnit
 
 _FM = "---\ntitle: Hello\ntags: [a, b]\n---\n\n"
@@ -77,3 +79,44 @@ def test_body_blocks_unperturbed_by_frontmatter():
     assert [b.type for b in with_fm] == [b.type for b in body_only]
     # Same structure, spans shifted by exactly the frontmatter length.
     assert [b.span for b in with_fm] == [(s + co, e + co) for s, e in (b.span for b in body_only)]
+
+
+def test_frontmatter_links_are_not_content_links():
+    fm = "---\ntitle: [Meta](https://meta.example)\n[ref]: https://front.example\n---\n\n"
+    body = (
+        "See [Body](https://body.example), [Unresolved][ref], and [Resolved][bodyref].\n\n"
+        "[bodyref]: https://bodyref.example\n"
+    )
+    doc = FlexDoc.from_text(fm + body)
+
+    links = doc.links()
+    assert {link.url for link in links} == {
+        "https://body.example",
+        "https://bodyref.example",
+    }
+    assert all(link.span is None or link.span[0] >= len(fm) for link in links)
+
+    table = doc.node_table()
+    link_nodes = [n for n in table.nodes.values() if n.kind == NodeKind.link]
+    urls: set[str] = set()
+    for node in link_nodes:
+        url = node.attrs["url"]
+        assert isinstance(url, str)
+        urls.add(url)
+    assert urls == {
+        "https://body.example",
+        "https://bodyref.example",
+    }
+    assert all(n.source_span is None or n.source_span[0] >= len(fm) for n in link_nodes)
+
+
+def test_doc_report_base_blocks_exclude_frontmatter():
+    doc = FlexDoc.from_text(_FM + _BODY)
+    report = doc_report_data(doc)
+    rows = report["base_blocks"]["blocks"]
+    texts = [row["text"] for row in rows]
+    assert texts
+    assert "---" not in texts
+    assert all("title: Hello" not in text for text in texts)
+    assert report["base_blocks"]["cover_ok"]
+    assert report["base_blocks"]["uncovered_nonspace"] == 0

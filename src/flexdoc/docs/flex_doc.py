@@ -380,7 +380,11 @@ class FlexDoc:
 
     @_memoized_derivation("_cached_links")
     def _link_list(self) -> list[Link]:
-        return block_links(self.source_text or self.reassemble(), 0, parsed=self._parsed())
+        source_text = self.source_text or self.reassemble()
+        content_offset = self._content_offset()
+        if content_offset:
+            return block_links(source_text[content_offset:], content_offset)
+        return block_links(source_text, 0, parsed=self._parsed())
 
     def links(self) -> list[Link]:
         """

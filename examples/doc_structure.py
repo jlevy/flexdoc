@@ -1,14 +1,8 @@
-# /// script
-# requires-python = ">=3.11"
-# dependencies = [
-#     "flexdoc",
-# ]
-# ///
 """
 Show flexdoc's document-structure features: the section hierarchy with rolled-up
 size stats, the flat table of contents, and exact source spans / offset lookups.
 
-Run with: `uv run examples/doc_structure.py`
+Run from the repository checkout with: `uv run python examples/doc_structure.py`
 """
 
 from textwrap import dedent

@@ -25,7 +25,6 @@ from pathlib import Path
 from frontmatter_format import fmf_read
 
 from flexdoc.docs import FlexDoc
-from flexdoc.docs.base_blocks import base_blocks
 from flexdoc.docs.debug import doc_graph_yaml, doc_report, doc_report_data
 
 _HERE = Path(__file__).parent
@@ -110,7 +109,7 @@ def test_model_invariants():
         # Base-block partition: ordered, pairwise non-overlapping, and covering every
         # non-whitespace character exactly once (P13) — the documented contract, not just
         # "some block touches each char".
-        spans = [b.block.span for b in base_blocks(source, item_partition_depth=depth)]
+        spans = [b.block.span for b in td.base_blocks(item_partition_depth=depth)]
         assert spans == sorted(spans), f"{where}: base blocks not in source order"
         for i in range(len(spans) - 1):
             assert spans[i][1] <= spans[i + 1][0], f"{where}: base-block spans overlap at {i}"
@@ -118,7 +117,8 @@ def test_model_invariants():
         for s, e in spans:
             for i in range(s, e):
                 cover[i] = cover.get(i, 0) + 1
-        for i, ch in enumerate(source):
+        content_offset = td._content_offset()
+        for i, ch in enumerate(source[content_offset:], start=content_offset):
             if not ch.isspace():
                 assert cover.get(i, 0) == 1, (
                     f"{where}: char {i} ({ch!r}) covered {cover.get(i, 0)}x"

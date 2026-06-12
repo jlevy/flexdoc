@@ -1,10 +1,3 @@
-# /// script
-# requires-python = ">=3.13"
-# dependencies = [
-#     "flexdoc",
-#     "flowmark",
-# ]
-# ///
 import logging
 from textwrap import dedent
 

@@ -26,7 +26,6 @@ from typing import Any
 
 from strif import atomic_output_file
 
-from flexdoc.docs.base_blocks import base_blocks
 from flexdoc.docs.doc_graph import clean_yaml
 from flexdoc.docs.flex_doc import FlexDoc
 from flexdoc.docs.node import NodeKind
@@ -48,12 +47,15 @@ def doc_report_data(doc: FlexDoc, *, item_partition_depth: int = 6) -> dict[str,
     """
     source_text = doc.source_text or doc.reassemble()
 
-    # Base-block partition with a live complete-cover check.
-    bbs = base_blocks(source_text, item_partition_depth=item_partition_depth)
+    # Base-block partition with a live complete-cover check over content regions.
+    bbs = doc.base_blocks(item_partition_depth=item_partition_depth)
     covered: set[int] = set()
     for bb in bbs:
         covered.update(range(bb.block.span[0], bb.block.span[1]))
-    uncovered = {i for i in range(len(source_text)) if not source_text[i].isspace()} - covered
+    content_offset = doc._content_offset()
+    uncovered = {
+        i for i in range(content_offset, len(source_text)) if not source_text[i].isspace()
+    } - covered
     base_block_rows = [
         {
             "depth": bb.depth,

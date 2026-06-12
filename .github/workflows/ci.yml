@@ -32,7 +32,8 @@ jobs:
       # https://docs.astral.sh/uv/guides/integration/github/
 
       - name: Checkout (official GitHub action)
-        uses: actions/checkout@v6
+        # actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           # Important for versioning plugins:
           fetch-depth: 0
@@ -42,10 +43,8 @@ jobs:
         run: cmake --version
 
       - name: Install uv (official Astral action)
-        # Pinned to a full, immutable version tag. As of v8, setup-uv no longer
-        # publishes floating major/minor tags (e.g. `@v8`), so bump this exact
-        # version when updating.
-        uses: astral-sh/setup-uv@v8.1.0
+        # astral-sh/setup-uv@v8.1.0
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
           # Update this as needed:
           version: "0.11.12"
@@ -70,22 +69,24 @@ jobs:
 
       - name: Run linting
         # Check-only mode so CI fails on unformatted code instead of fixing it.
-        run: uv run python devtools/lint.py --check
+        run: uv run --frozen python devtools/lint.py --check
 
       - name: Run tests
-        run: uv run pytest
+        run: uv run --frozen pytest
 
   # Supply-chain audit gate. See SUPPLY-CHAIN-SECURITY.md.
   audit:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (official GitHub action)
-        uses: actions/checkout@v6
+        # actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           fetch-depth: 0
 
       - name: Install uv (official Astral action)
-        uses: astral-sh/setup-uv@v8.1.0
+        # astral-sh/setup-uv@v8.1.0
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
           version: "0.11.12"
           enable-cache: true
@@ -98,7 +99,7 @@ jobs:
       # cool-off. Remove it once the cutoff advances past pip 26.1.2's release. See
       # SUPPLY-CHAIN-SECURITY.md (Audit-Gate Ignores).
       - name: Audit dependencies for known vulnerabilities
-        run: uv run --locked --group audit pip-audit --ignore-vuln PYSEC-2026-196
+        run: uv run --frozen --group audit pip-audit --ignore-vuln PYSEC-2026-196
 
   # Packaging check: the flexdoc wheel must import cleanly from an isolated install, not
   # just from the source tree. Guards against missing package data or accidental reliance
@@ -107,13 +108,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (official GitHub action)
-        uses: actions/checkout@v6
+        # actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           # Needed for the dynamic-versioning build backend (reads git tags).
           fetch-depth: 0
 
       - name: Install uv (official Astral action)
-        uses: astral-sh/setup-uv@v8.1.0
+        # astral-sh/setup-uv@v8.1.0
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
         with:
           version: "0.11.12"
           enable-cache: true

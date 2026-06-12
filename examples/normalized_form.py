@@ -1,9 +1,3 @@
-# /// script
-# requires-python = ">=3.11"
-# dependencies = [
-#     "flexdoc",
-# ]
-# ///
 """
 Exercise flexdoc's normalized-form views over a single document: the section tree,
 per-section structural block slices, link rollups per section, and density-invariant
@@ -13,7 +7,7 @@ Everything printed here is a *calculated view* over one parse — flexdoc stores
 counts. The structural block tree is density-invariant, so tight and loose spacing of
 the same list produce identical tallies.
 
-Run with: `uv run examples/normalized_form.py`
+Run from the repository checkout with: `uv run python examples/normalized_form.py`
 """
 
 from collections import Counter
