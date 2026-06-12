@@ -19,7 +19,7 @@ _SAMPLE = dedent(
     """
     # Introduction
 
-    Chopdiff parses text into paragraphs and sentences. It tracks exact offsets.
+    Flexdoc parses text into paragraphs and sentences. It tracks exact offsets.
 
     ## Goals
 

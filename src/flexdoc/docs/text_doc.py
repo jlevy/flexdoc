@@ -446,7 +446,7 @@ class Paragraph:
         element = next((el for el in parsed.children if not isinstance(el, BlankLine)), None)
         block_type = block_type_for(element) if element is not None else BlockType.paragraph
         # marko treats a single-line HTML tag as an inline-HTML paragraph rather than
-        # an HTML block, so fall back to chopdiff's own markup check for those.
+        # an HTML block, so fall back to flexdoc's own markup check for those.
         if block_type == BlockType.paragraph and self.is_markup():
             block_type = BlockType.html
         code_info = code_info_for(element) if element is not None else None

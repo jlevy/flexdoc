@@ -320,23 +320,19 @@ flexdoc clean *as its own package*, separate from Stage 3's larger forward desig
 these change the public model's behavior; they remove chopdiff-era residue and tighten the
 standalone surface. Most can land before or alongside Stage 3.
 
-- [ ] **Purge stale `chopdiff` references in flexdoc prose** (catalogued during the
-      extraction; all cosmetic, none functional):
-      - `src/flexdoc/docs/text_doc.py:449` — comment "fall back to chopdiff's own markup
-        check"; reword to describe the check in flexdoc's own terms.
-      - `src/flexdoc/docs/block_tree.py:12` — docstring "chopdiff makes no block-boundary
-        decisions of its own"; reframe (flexdoc reads flowmark's authoritative block spans).
-      - `tests/docs/test_block_types.py:329` — comment "chopdiff references the backing text
-        by offset"; reword to "flexdoc".
-      - `examples/doc_structure.py:22` — sample document text "Chopdiff parses text…";
-        neutralize the demo prose.
-      Follow the project comment rules: only touch these as a deliberate cleanup pass, and do
-      not change surrounding logic.
-- [ ] **Decide flexdoc's top-level public surface.** Currently `flexdoc/__init__.py` exposes
-      no root API by design and defers convenience re-exports. Decide whether to add curated
-      root-level re-exports (e.g. `TextDoc`, `collect`, `SpanRef`) now that the package
-      stands alone, or keep the submodule-only stance. (Overlaps Stage 3's "settle the public
-      surface"; do the minimal, non-breaking version here.)
+- [x] **Purge stale `chopdiff` references in flexdoc prose** (catalogued during the
+      extraction; all were cosmetic, none functional): the `text_doc.py` markup-check
+      comment, the `block_tree.py` block-boundary docstring, the `test_block_types.py`
+      offset comment, and the `doc_structure.py` sample prose now say flexdoc. The one
+      remaining mention — `flexdoc/__init__.py` noting that chopdiff builds on flexdoc — is
+      deliberate, describing the package relationship.
+- [x] **Decide flexdoc's top-level public surface (resolved for Stage 2: keep
+      submodule-only).** `flexdoc/__init__.py` exposes no root API by design and its
+      docstring defers convenience re-exports "so the top-level API is designed once rather
+      than piecemeal" — adding curated re-exports (e.g. `TextDoc`, `collect`, `SpanRef`)
+      piecemeal at extraction time would contradict that recorded intent. Root re-exports
+      are therefore part of Stage 3's "settle the public surface," where the whole API is
+      designed together. Revisit there.
 - [ ] **Resolve the FlexDoc naming collision** in `docs/textdoc-spec.md` §13, which lists
       "FlexDoc" as a *rejected competing runtime model* — distinct from the package now named
       flexdoc. Add an explicit disambiguation note, or settle the package name (Open

@@ -326,7 +326,7 @@ def test_nested_blocks_classify_by_outer_type():
 
 
 def test_block_offsets_reference_the_source_document():
-    # chopdiff references the backing text by offset; each block's doc_offset
+    # flexdoc references the backing text by offset; each block's doc_offset
     # indexes the source back to its own content.
     doc = TextDoc.from_text(RICH_DOC)
     for p in doc.paragraphs:

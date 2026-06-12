@@ -9,7 +9,7 @@ nested sublists regardless of item spacing.
 Block boundaries and spans come straight from flowmark's parser: every block element
 produced by `flowmark_markdown().parse(text)` carries an authoritative
 `element.span = (start, end)` read from marko's own parser state (see
-`flowmark.markdown_ast.block_span`). chopdiff makes no block-boundary decisions of its
+`flowmark.markdown_ast.block_span`). flexdoc makes no block-boundary decisions of its
 own, so there is no regex scanner and no per-line heuristic.
 
 Containers (lists, list items, blockquotes) fully populate their block children
