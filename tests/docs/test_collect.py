@@ -1,5 +1,5 @@
 """
-Tests for the `collect()` query primitive and `TextDoc.collect()` convenience.
+Tests for the `collect()` query primitive and `FlexDoc.collect()` convenience.
 """
 
 from __future__ import annotations
@@ -7,10 +7,10 @@ from __future__ import annotations
 from collections import Counter
 from textwrap import dedent
 
+from flexdoc.docs import FlexDoc
 from flexdoc.docs.collect import collect
 from flexdoc.docs.node import Layer, NodeKind, NodeTable
 from flexdoc.docs.node_table import build_node_table
-from flexdoc.docs.text_doc import TextDoc
 
 # A rich document with nested structure: headings, a blockquote containing a table,
 # a list with a nested code block, inline links, and code spans.
@@ -39,8 +39,8 @@ _RICH_DOC = dedent("""
 """).strip()
 
 
-def _doc_and_table() -> tuple[TextDoc, NodeTable]:
-    doc = TextDoc.from_text(_RICH_DOC)
+def _doc_and_table() -> tuple[FlexDoc, NodeTable]:
+    doc = FlexDoc.from_text(_RICH_DOC)
     table = build_node_table(doc)
     return doc, table
 
@@ -110,7 +110,7 @@ def test_inline_excluded_by_default_without_explicit_kind():
 
 def test_collect_single_link_minimal_doc():
     """The common case from the review: kinds={link} on a tiny doc returns the one link."""
-    doc = TextDoc.from_text("[x](https://example.com)")
+    doc = FlexDoc.from_text("[x](https://example.com)")
     links = doc.collect(kinds={NodeKind.link}, recursive=True)
     assert len(links) == 1
 
@@ -239,16 +239,16 @@ def test_deterministic_document_order():
 
 
 def test_textdoc_collect_convenience():
-    """TextDoc.collect() is a convenience that delegates to collect() over node_table()."""
-    doc = TextDoc.from_text(_RICH_DOC)
+    """FlexDoc.collect() is a convenience that delegates to collect() over node_table()."""
+    doc = FlexDoc.from_text(_RICH_DOC)
     tables = doc.collect(kinds={NodeKind.table}, recursive=True)
     assert len(tables) >= 1
     assert all(n.kind == NodeKind.table for n in tables)
 
 
 def test_textdoc_collect_with_subtree_of():
-    """TextDoc.collect() works with the `subtree_of` relation."""
-    doc = TextDoc.from_text(_RICH_DOC)
+    """FlexDoc.collect() works with the `subtree_of` relation."""
+    doc = FlexDoc.from_text(_RICH_DOC)
     nt = doc.node_table()
     bqs = [n for n in nt.nodes.values() if n.kind == NodeKind.blockquote]
     assert len(bqs) >= 1
@@ -259,7 +259,7 @@ def test_textdoc_collect_with_subtree_of():
 
 def test_code_spans_inline():
     """Code spans are inline; an explicit kinds={code_span} returns them without inline=True."""
-    doc = TextDoc.from_text(_RICH_DOC)
+    doc = FlexDoc.from_text(_RICH_DOC)
     spans = doc.collect(kinds={NodeKind.code_span}, recursive=True)
     assert len(spans) >= 1
 
@@ -267,7 +267,7 @@ def test_code_spans_inline():
 def test_collect_layer_filters_cross_layer_duplicates():
     """A bare paragraph kind appears in both markdown and textual layers; `layer=`
     selects one, eliminating cross-layer duplicate spans."""
-    td = TextDoc.from_text("A short paragraph.\n\nAnother paragraph.\n")
+    td = FlexDoc.from_text("A short paragraph.\n\nAnother paragraph.\n")
 
     both = td.collect(kinds={NodeKind.paragraph}, recursive=True)
     md_only = td.collect(kinds={NodeKind.paragraph}, recursive=True, layer={Layer.markdown})
@@ -286,14 +286,14 @@ def test_collect_layer_filters_cross_layer_duplicates():
 def test_collect_layer_does_not_silently_drop_sections():
     """The default (no `layer`) must still surface document-layer sections; restricting
     to markdown is what hides them (the deliberate, explicit choice)."""
-    td = TextDoc.from_text("# Title\n\nBody paragraph.\n")
+    td = FlexDoc.from_text("# Title\n\nBody paragraph.\n")
     assert td.collect(kinds={NodeKind.section}, recursive=True)  # default: found
     assert td.collect(kinds={NodeKind.section}, recursive=True, layer={Layer.markdown}) == []
 
 
 def test_doc_collect_links_in_section_matches_spec_example():
     """The spec §9 recipe: doc.collect(within=section.span, kinds={link})."""
-    doc = TextDoc.from_text(_RICH_DOC)
+    doc = FlexDoc.from_text(_RICH_DOC)
     section_one = doc.sections()[0]
     section_two = section_one.children[0]
 
@@ -310,7 +310,7 @@ def test_doc_collect_links_in_section_matches_spec_example():
 def test_within_node_id_scopes_cross_layer_without_recursive():
     """`within=section_id` gathers cross-layer matches inside the section's span and
     needs no `recursive=True`."""
-    doc = TextDoc.from_text(_RICH_DOC)
+    doc = FlexDoc.from_text(_RICH_DOC)
     table = doc.node_table()
     sec_two = next(
         n
@@ -323,7 +323,7 @@ def test_within_node_id_scopes_cross_layer_without_recursive():
 
 def test_overlaps_matches_only_intersecting_spans():
     """`overlaps` keeps nodes whose span intersects the region (not just containment)."""
-    doc = TextDoc.from_text("# Title\n\nBody paragraph here.")
+    doc = FlexDoc.from_text("# Title\n\nBody paragraph here.")
     # "# Title" is 0:7; the body paragraph starts at 9. A region straddling the gap
     # intersects both blocks.
     straddle = doc.collect(overlaps=(5, 12), layer={Layer.markdown}, recursive=True)
@@ -340,7 +340,7 @@ def test_textdoc_base_blocks_matches_free_function():
     from flexdoc.docs.base_blocks import base_blocks as base_blocks_fn
 
     text = "- one\n  - a\n  - b\n- two\n"
-    td = TextDoc.from_text(text)
+    td = FlexDoc.from_text(text)
     method = td.base_blocks()
     fn = base_blocks_fn(text)
     assert [(b.block.span, b.depth) for b in method] == [(b.block.span, b.depth) for b in fn]

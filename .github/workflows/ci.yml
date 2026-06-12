@@ -126,4 +126,4 @@ jobs:
           uv venv /tmp/wheelsmoke
           VENV_PY=/tmp/wheelsmoke/bin/python
           uv pip install --python "$VENV_PY" dist/*.whl
-          "$VENV_PY" -c "import flexdoc; from flexdoc.docs import TextDoc; from flexdoc.html import html_to_plaintext; print('wheel imports OK:', flexdoc.__name__, TextDoc.__name__)"
+          "$VENV_PY" -c "from flexdoc import FlexDoc; from flexdoc.docs import FlexDoc as FlexDoc2; from flexdoc.html import html_to_plaintext; assert FlexDoc is FlexDoc2; print('wheel imports OK:', FlexDoc.__name__)"

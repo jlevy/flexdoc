@@ -8,11 +8,11 @@ from __future__ import annotations
 
 from textwrap import dedent
 
+from flexdoc.docs import FlexDoc
 from flexdoc.docs.block_info import CodeInfo, ListInfo, TableInfo
 from flexdoc.docs.block_tree import Block
 from flexdoc.docs.block_types import BlockType
 from flexdoc.docs.node import NodeKind
-from flexdoc.docs.text_doc import TextDoc
 
 DOC = dedent("""
     # Title
@@ -44,7 +44,7 @@ def _find(blocks: list[Block], btype: BlockType) -> Block | None:
 
 
 def test_block_typed_metadata():
-    blocks = TextDoc.from_text(DOC).blocks()
+    blocks = FlexDoc.from_text(DOC).blocks()
 
     code = _find(blocks, BlockType.code)
     assert code is not None
@@ -64,13 +64,13 @@ def test_block_typed_metadata():
 
 def test_paragraph_metadata_matches_block_for_tight_single_block():
     # A single fenced code block is one Block and one covering Paragraph; both agree.
-    para = TextDoc.from_text("```python\nx = 1\ny = 2\n```").paragraphs[0]
+    para = FlexDoc.from_text("```python\nx = 1\ny = 2\n```").paragraphs[0]
     assert para.code_info == CodeInfo("python", 2)
     assert para.table_info is None and para.list_info is None
 
 
 def test_metadata_flows_into_node_attrs():
-    table = TextDoc.from_text(DOC).node_table()
+    table = FlexDoc.from_text(DOC).node_table()
 
     code = table.by_kind(NodeKind.code)[0]
     assert code.attrs["language"] == "python"

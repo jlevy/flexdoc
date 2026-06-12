@@ -1,9 +1,9 @@
 from textwrap import dedent
 
-from flexdoc.docs.text_doc import TextDoc
+from flexdoc.docs import FlexDoc
 
 
-def _assert_offsets_round_trip(text: str, doc: TextDoc) -> None:
+def _assert_offsets_round_trip(text: str, doc: FlexDoc) -> None:
     """
     Paragraph offsets must reference `text` exactly. Sentence `doc_offset` is always
     `paragraph.doc_offset + block_offset`; the slice round-trips when the sentence is
@@ -26,11 +26,11 @@ def _assert_offsets_round_trip(text: str, doc: TextDoc) -> None:
 
 def test_paragraph_and_sentence_offsets_reference_original_text():
     text = "Intro para. Second sentence.\n\nSecond para. It has two sentences."
-    _assert_offsets_round_trip(text, TextDoc.from_text(text))
+    _assert_offsets_round_trip(text, FlexDoc.from_text(text))
 
 
 def test_irregular_inter_sentence_spacing():
-    doc = TextDoc.from_text("First sentence here.  Second one follows.")
+    doc = FlexDoc.from_text("First sentence here.  Second one follows.")
     para = doc.paragraphs[0]
     assert len(para.sentences) == 2
     _assert_offsets_round_trip("First sentence here.  Second one follows.", doc)
@@ -39,7 +39,7 @@ def test_irregular_inter_sentence_spacing():
 def test_offsets_are_into_unstripped_input():
     # No doc-level strip: offsets point past leading whitespace to the content.
     text = "\n\n   Indented start. Next.\n"
-    doc = TextDoc.from_text(text)
+    doc = FlexDoc.from_text(text)
     p = doc.paragraphs[0]
     assert p.original_text == "Indented start. Next."
     assert text[p.offsets.doc_offset :].startswith("Indented start.")
@@ -53,7 +53,7 @@ def test_offsets_are_into_unstripped_input():
 def test_three_or_more_newlines_collapse_to_one_break():
     for n in range(2, 7):
         text = "First para." + ("\n" * n) + "Second para."
-        doc = TextDoc.from_text(text)
+        doc = FlexDoc.from_text(text)
         assert [p.original_text for p in doc.paragraphs] == ["First para.", "Second para."]
         _assert_offsets_round_trip(text, doc)
 
@@ -61,7 +61,7 @@ def test_three_or_more_newlines_collapse_to_one_break():
 def test_whitespace_only_blank_line_is_a_break():
     # A blank line containing a space/tab still separates paragraphs.
     text = "First para.\n \nSecond para.\n\t\nThird para."
-    doc = TextDoc.from_text(text)
+    doc = FlexDoc.from_text(text)
     assert [p.original_text for p in doc.paragraphs] == [
         "First para.",
         "Second para.",
@@ -72,7 +72,7 @@ def test_whitespace_only_blank_line_is_a_break():
 
 def test_single_newline_is_not_a_break():
     text = "Line one continues\nonto line two."
-    doc = TextDoc.from_text(text)
+    doc = FlexDoc.from_text(text)
     assert len(doc.paragraphs) == 1
 
 
@@ -83,13 +83,13 @@ def test_leading_and_trailing_whitespace():
         "   \n\n  Only para.  \n\n   ",
         "Only para.",
     ]:
-        doc = TextDoc.from_text(text)
+        doc = FlexDoc.from_text(text)
         assert [p.original_text for p in doc.paragraphs] == ["Only para."]
         _assert_offsets_round_trip(text, doc)
 
 
 def test_whitespace_only_document_has_no_paragraphs():
-    assert TextDoc.from_text("   \n\n  \t\n").paragraphs == []
+    assert FlexDoc.from_text("   \n\n  \t\n").paragraphs == []
 
 
 def test_multiline_block_offset_round_trips():
@@ -102,6 +102,6 @@ def test_multiline_block_offset_round_trips():
         | x     | y     |
         """
     ).strip()
-    doc = TextDoc.from_text(text)
+    doc = FlexDoc.from_text(text)
     assert len(doc.paragraphs) == 2
     _assert_offsets_round_trip(text, doc)

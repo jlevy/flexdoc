@@ -1,18 +1,32 @@
 """
 flexdoc is a source-grounded, layered document model for Markdown and text: parse to a
-`TextDoc`/`DocGraph`, query structure across layers with `collect()`, and anchor spans
-and edits with `SpanRef`. It is a standalone library (chopdiff builds its diff and
-windowed-transform layer on top of it). It has no root-level public API by design; import
-from the submodules, which carry the explicit public surfaces:
+`FlexDoc`, query its structure across independent layers with `collect()`, serialize it
+as a `DocGraph`, and anchor spans and edits with `SpanRef` so they survive reparse. It
+is a standalone library (chopdiff builds its diff and windowed-transform layer on top
+of it).
 
-- `flexdoc.docs` — `TextDoc`, `Paragraph`, `Sentence`, `Section`, `Block`, `BlockType`,
+The primary entry point is exported here at the root:
+
+```
+from flexdoc import FlexDoc
+
+doc = FlexDoc.from_text(markdown_text)
+```
+
+The full public surfaces live in the submodules:
+
+- `flexdoc.docs` — `FlexDoc`, `Paragraph`, `Sentence`, `Section`, `Block`, `BlockType`,
   the node table, `collect()`, `DocGraph`, `SpanRef`, token diffs/mappings, and word-token
   utilities.
 - `flexdoc.html` — html-in-md, html/plaintext conversion, HTML tag helpers, the content
   extractor, and timestamp extraction.
 - `flexdoc.util` — read-time and token-count estimation.
 
-Root-level convenience re-exports may be added once the public-API surface (see
-`docs/project/specs/active/plan-2026-05-29-unified-document-model.md`) is settled, so the
-top-level API is designed once rather than piecemeal.
+Further root-level re-exports are added deliberately, not piecemeal: the root surface
+definition is tracked as its own design task (beads `flexdoc-l0lc`/`flexdoc-bift`; see
+`docs/project/specs/active/plan-2026-06-11-flexdoc-extraction.md`).
 """
+
+from flexdoc.docs import FlexDoc
+
+__all__ = ["FlexDoc"]

@@ -7,10 +7,10 @@ from __future__ import annotations
 
 from textwrap import dedent
 
+from flexdoc.docs import FlexDoc
 from flexdoc.docs.interval_index import IntervalIndex
 from flexdoc.docs.node import Layer, NodeKind
 from flexdoc.docs.node_table import build_node_table
-from flexdoc.docs.text_doc import TextDoc
 
 _DOC = dedent("""
     # Top
@@ -26,7 +26,7 @@ _DOC = dedent("""
 def test_innermost_picks_narrowest_nested_span():
     """For nested markdown spans, innermost returns the deepest (narrowest) container,
     and the kind filter selects a specific enclosing kind."""
-    table = build_node_table(TextDoc.from_text(_DOC))
+    table = build_node_table(FlexDoc.from_text(_DOC))
     index = IntervalIndex.from_nodes(table.nodes)
     link_off = _DOC.index("https://example.com")
 
@@ -45,7 +45,7 @@ def test_innermost_picks_narrowest_nested_span():
 
 
 def test_innermost_kind_filter_selects_section_and_sentence():
-    table = build_node_table(TextDoc.from_text(_DOC))
+    table = build_node_table(FlexDoc.from_text(_DOC))
     index = IntervalIndex.from_nodes(table.nodes)
     link_off = _DOC.index("https://example.com")
 
@@ -70,7 +70,7 @@ def test_innermost_matches_bruteforce_minwidth_scan():
         "- item one\n- item two with [two](https://example.com/2)\n  - nested\n\n"
         "Final sentence."
     )
-    table = build_node_table(TextDoc.from_text(rich))
+    table = build_node_table(FlexDoc.from_text(rich))
     index = IntervalIndex.from_nodes(table.nodes)
 
     def min_containing_width(offset: int, layer: Layer, kind: NodeKind | None) -> int | None:
@@ -103,7 +103,7 @@ def test_innermost_matches_bruteforce_minwidth_scan():
 
 
 def test_innermost_returns_none_outside_any_span():
-    table = build_node_table(TextDoc.from_text(_DOC))
+    table = build_node_table(FlexDoc.from_text(_DOC))
     index = IntervalIndex.from_nodes(table.nodes)
     # An offset past the end of the document is contained by nothing.
     assert index.innermost(len(_DOC) + 100, Layer.markdown) is None

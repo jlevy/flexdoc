@@ -8,10 +8,10 @@ from __future__ import annotations
 import dataclasses
 from textwrap import dedent
 
+from flexdoc.docs import FlexDoc
 from flexdoc.docs.node import Layer, NodeKind
 from flexdoc.docs.node_table import build_node_table
 from flexdoc.docs.span_ref import SpanRef, resolve, resolve_and_update
-from flexdoc.docs.text_doc import TextDoc
 
 _DOC_TEXT = dedent("""
     # Introduction
@@ -32,7 +32,7 @@ _DOC_TEXT = dedent("""
 
 def test_node_to_spanref_roundtrip():
     """Node -> SpanRef -> resolve returns the original span."""
-    doc = TextDoc.from_text(_DOC_TEXT)
+    doc = FlexDoc.from_text(_DOC_TEXT)
     table = build_node_table(doc)
 
     # Pick a heading node with a span.
@@ -49,7 +49,7 @@ def test_node_to_spanref_roundtrip():
 
 def test_resolve_after_prepending_text():
     """After prepending text (offsets shift), resolve still finds the span by quote."""
-    doc = TextDoc.from_text(_DOC_TEXT)
+    doc = FlexDoc.from_text(_DOC_TEXT)
     table = build_node_table(doc)
 
     # Pick the table node.
@@ -76,7 +76,7 @@ def test_resolve_after_prepending_text():
 
 def test_to_persisted_has_no_offsets_but_still_resolves():
     """to_persisted() drops offsets; the persisted form still resolves via quote."""
-    doc = TextDoc.from_text(_DOC_TEXT)
+    doc = FlexDoc.from_text(_DOC_TEXT)
     table = build_node_table(doc)
 
     # Pick a paragraph node.
@@ -194,7 +194,7 @@ def test_to_persisted_can_keep_position_hint():
 
 def test_resolve_survives_reparse():
     """A SpanRef built from one parse resolves correctly after a reparse."""
-    doc1 = TextDoc.from_text(_DOC_TEXT)
+    doc1 = FlexDoc.from_text(_DOC_TEXT)
     table1 = build_node_table(doc1)
 
     # Build ref from first parse.
@@ -203,7 +203,7 @@ def test_resolve_survives_reparse():
     ref = SpanRef.from_node(heading, table1.source_text)
 
     # Reparse the same text.
-    doc2 = TextDoc.from_text(_DOC_TEXT)
+    doc2 = FlexDoc.from_text(_DOC_TEXT)
     table2 = build_node_table(doc2)
 
     # Resolve against the reparsed source.

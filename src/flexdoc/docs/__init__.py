@@ -20,6 +20,7 @@ from flexdoc.docs.doc_graph import (
     Views,
     build_doc_graph,
 )
+from flexdoc.docs.flex_doc import FlexDoc
 from flexdoc.docs.links import Link
 from flexdoc.docs.node import LAYER_NESTING, Layer, NestingGuarantee, Node, NodeKind, NodeTable
 from flexdoc.docs.node_table import build_node_table
@@ -28,7 +29,6 @@ from flexdoc.docs.search_tokens import search_tokens
 from flexdoc.docs.sections import Section
 from flexdoc.docs.sizes import TextUnit
 from flexdoc.docs.span_ref import SpanRef, resolve, resolve_and_update
-from flexdoc.docs.text_doc import TextDoc
 from flexdoc.docs.token_diffs import (
     DIFF_FILTER_NONE,
     DiffFilter,
@@ -94,7 +94,7 @@ __all__ = [
     "Section",
     "Sentence",
     "SentIndex",
-    "TextDoc",
+    "FlexDoc",
     "DIFF_FILTER_NONE",
     "DiffFilter",
     "DiffOp",

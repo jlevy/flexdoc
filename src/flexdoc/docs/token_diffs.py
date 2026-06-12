@@ -10,7 +10,7 @@ import cydifflib as difflib
 from funlog import log_calls, tally_calls
 from typing_extensions import override
 
-from flexdoc.docs.text_doc import TextDoc
+from flexdoc.docs.flex_doc import FlexDoc
 
 log = logging.getLogger(__name__)
 
@@ -230,7 +230,7 @@ class TokenDiff:
         return self.as_diff_str()
 
 
-def diff_docs(doc1: TextDoc, doc2: TextDoc) -> TokenDiff:
+def diff_docs(doc1: FlexDoc, doc2: FlexDoc) -> TokenDiff:
     """
     Calculate the LCS-style diff between two documents based on words.
     """

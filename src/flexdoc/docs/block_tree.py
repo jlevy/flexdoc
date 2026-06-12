@@ -1,7 +1,7 @@
 """
 Structural block tree for a Markdown document, with exact source spans.
 
-This is the opt-in, whole-document structural view (`TextDoc.blocks()`) that resolves
+This is the opt-in, whole-document structural view (`FlexDoc.blocks()`) that resolves
 what blank-line paragraph splitting cannot: it keeps a fenced code block whole even when
 it contains blank lines, and it decomposes a list into individual `list_item`s with
 nested sublists regardless of item spacing.

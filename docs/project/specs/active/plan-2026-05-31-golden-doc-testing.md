@@ -181,7 +181,7 @@ See Open Decisions for runtime-vs-extra placement.
 ## References
 
 - Golden-testing guideline: `tbd guidelines golden-testing-guidelines`
-- Doc-model design of record: `docs/textdoc-spec.md`
+- Doc-model design of record: `docs/flexdoc-spec.md`
 - Doc-model refinements plan: `plan-2026-05-31-doc-model-refinements.md`
 - `frontmatter-format`: https://github.com/jlevy/frontmatter-format (source in `attic/`)
 - Supply-chain policy: `SUPPLY-CHAIN-SECURITY.md`

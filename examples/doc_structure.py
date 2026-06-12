@@ -13,7 +13,7 @@ Run with: `uv run examples/doc_structure.py`
 
 from textwrap import dedent
 
-from flexdoc.docs import Block, BlockType, TextDoc, TextUnit
+from flexdoc.docs import Block, BlockType, FlexDoc, TextUnit
 
 _SAMPLE = dedent(
     """
@@ -58,7 +58,7 @@ _BLOCK_SAMPLE = dedent(
 
 
 def main() -> None:
-    doc = TextDoc.from_text(_SAMPLE)
+    doc = FlexDoc.from_text(_SAMPLE)
 
     print("--- Section size tree (words + sentences, rolled up) ---")
     print(doc.section_size_tree(units=(TextUnit.words, TextUnit.sentences)))
@@ -88,7 +88,7 @@ def main() -> None:
     )
 
     print("\n--- Structural block tree (whole-document view) ---")
-    block_doc = TextDoc.from_text(_BLOCK_SAMPLE)
+    block_doc = FlexDoc.from_text(_BLOCK_SAMPLE)
 
     def show_blocks(blocks: list[Block], depth: int = 0) -> None:
         for block in blocks:

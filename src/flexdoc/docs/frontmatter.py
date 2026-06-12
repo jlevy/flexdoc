@@ -2,7 +2,7 @@
 Detection of leading YAML frontmatter, at the string level.
 
 `frontmatter-format` (the library) is file-based — every `fmf_*` function takes a path —
-so it cannot parse an in-memory string and is unusable in `TextDoc.from_text(str)`. This
+so it cannot parse an in-memory string and is unusable in `FlexDoc.from_text(str)`. This
 module detects the leading `---`-delimited block itself, matching `frontmatter-format`'s
 `FmStyle.yaml` delimiters (an opening `---` line and a closing `---` line), without any
 file I/O.

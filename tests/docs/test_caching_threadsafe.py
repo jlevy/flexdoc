@@ -1,5 +1,5 @@
 """
-Read-time caching contract for `TextDoc`: derivations are pure functions of the
+Read-time caching contract for `FlexDoc`: derivations are pure functions of the
 immutable source, cache population is the only state change during a read, and that
 population is idempotent, deterministic, and thread-safe (computed at most once even
 under concurrent access).
@@ -14,9 +14,9 @@ from concurrent.futures import ThreadPoolExecutor
 
 import marko.parser as marko_parser
 
+from flexdoc.docs import FlexDoc
 from flexdoc.docs.block_tree import parse_blocks
 from flexdoc.docs.links import block_links
-from flexdoc.docs.text_doc import TextDoc
 
 _TEXT = (
     "# Title\n\n"
@@ -31,7 +31,7 @@ _TEXT = (
 
 def test_shared_parse_matches_independent_parses():
     """blocks() and links() derived from the one shared parse equal independent parses."""
-    doc = TextDoc.from_text(_TEXT)
+    doc = FlexDoc.from_text(_TEXT)
     assert [(b.type, b.span) for b in doc.blocks()] == [
         (b.type, b.span) for b in parse_blocks(_TEXT)
     ]
@@ -40,11 +40,11 @@ def test_shared_parse_matches_independent_parses():
 
 def test_read_order_does_not_change_results():
     """Deriving links before blocks gives the same values as blocks before links."""
-    d1 = TextDoc.from_text(_TEXT)
+    d1 = FlexDoc.from_text(_TEXT)
     b1 = [(b.type, b.span) for b in d1.blocks()]
     l1 = d1.links()
 
-    d2 = TextDoc.from_text(_TEXT)
+    d2 = FlexDoc.from_text(_TEXT)
     l2 = d2.links()
     b2 = [(b.type, b.span) for b in d2.blocks()]
 
@@ -53,7 +53,7 @@ def test_read_order_does_not_change_results():
 
 
 def test_caches_are_identity_stable_but_public_views_are_copies():
-    doc = TextDoc.from_text(_TEXT)
+    doc = FlexDoc.from_text(_TEXT)
     assert doc.node_table() is doc.node_table()
     assert doc._parsed() is doc._parsed()
     # Public blocks() returns a fresh list each call (so callers cannot poison the cache)
@@ -66,7 +66,7 @@ def test_caches_are_identity_stable_but_public_views_are_copies():
 def test_concurrent_reads_parse_once_and_return_one_table():
     """Under concurrent first access, the document is fully parsed exactly once and every
     reader observes the same cached node table."""
-    doc = TextDoc.from_text(_TEXT)
+    doc = FlexDoc.from_text(_TEXT)
     assert len(_TEXT) > 2000  # ensures the full-doc parse is distinguishable by length
 
     original_parse = marko_parser.Parser.parse
@@ -95,10 +95,10 @@ def test_concurrent_reads_parse_once_and_return_one_table():
 
 
 def test_textdoc_deepcopy_and_pickle_cold_and_warm():
-    """The per-instance lock must not break value semantics: TextDoc stays deep-copyable
+    """The per-instance lock must not break value semantics: FlexDoc stays deep-copyable
     and picklable, both before and after its caches are warmed (caches/lock are dropped
     and re-derived on the copy)."""
-    doc = TextDoc.from_text(_TEXT)
+    doc = FlexDoc.from_text(_TEXT)
 
     # Cold: no caches warmed yet.
     assert copy.deepcopy(doc) == doc

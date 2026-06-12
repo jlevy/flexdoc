@@ -9,6 +9,7 @@ import json
 from pathlib import Path
 from textwrap import dedent
 
+from flexdoc.docs import FlexDoc
 from flexdoc.docs.doc_graph import (
     Detail,
     DocGraph,
@@ -17,7 +18,6 @@ from flexdoc.docs.doc_graph import (
     Views,
 )
 from flexdoc.docs.node import Layer
-from flexdoc.docs.text_doc import TextDoc
 
 SCHEMA_PATH = (
     Path(__file__).resolve().parent.parent.parent / "src/flexdoc/docs/doc_graph_schema.json"
@@ -50,8 +50,8 @@ SAMPLE_DOC = dedent("""
 """).strip()
 
 
-def _make_doc() -> TextDoc:
-    return TextDoc.from_text(SAMPLE_DOC)
+def _make_doc() -> FlexDoc:
+    return FlexDoc.from_text(SAMPLE_DOC)
 
 
 def test_doc_graph_model_validates():
@@ -309,7 +309,7 @@ def test_include_markdown_only():
 
 def test_empty_document():
     """An empty document produces a valid DocGraph with no nodes."""
-    doc = TextDoc.from_text("")
+    doc = FlexDoc.from_text("")
     graph = doc.graph()
     assert graph.schema_ == "DocGraph/v0.1"
     assert len(graph.nodes) == 0

@@ -1,10 +1,10 @@
 """
 Pydantic v2 schema for the DocGraph serialized projection and the builder
-that derives it from a `TextDoc`.
+that derives it from a `FlexDoc`.
 
-`DocGraph` is the language-neutral JSON contract described in textdoc-spec section 10.
-It is a derived, read-only snapshot: the Python core is `TextDoc`; edits go through
-`TextDoc`/source and re-derive. Authored as Pydantic models (DR-3) that emit a
+`DocGraph` is the language-neutral JSON contract described in flexdoc-spec section 10.
+It is a derived, read-only snapshot: the Python core is `FlexDoc`; edits go through
+`FlexDoc`/source and re-derive. Authored as Pydantic models (DR-3) that emit a
 JSON Schema.
 
 This module is deliberately the only place the model uses Pydantic: validation and
@@ -110,7 +110,7 @@ class Views(BaseModel):
 
 class DocGraph(BaseModel):
     """
-    The DocGraph serialized projection (textdoc-spec section 10). A single,
+    The DocGraph serialized projection (flexdoc-spec section 10). A single,
     source-anchored JSON object from which any view (block tree, section tree,
     inline index) and any rollup is derivable.
 

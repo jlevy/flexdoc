@@ -5,9 +5,8 @@ import regex
 from prettyfmt import fmt_words
 from strif import abbrev_str
 
-from flexdoc.docs import SentIndex
+from flexdoc.docs import FlexDoc, SentIndex
 from flexdoc.docs.sizes import TextUnit
-from flexdoc.docs.text_doc import TextDoc
 from flexdoc.docs.wordtoks import (
     PARA_BR_TOK,
     is_break_or_space,
@@ -69,7 +68,7 @@ _med_test_doc = dedent(
 
 def test_document_parse_reassemble():
     text = _med_test_doc
-    doc = TextDoc.from_text(text)
+    doc = FlexDoc.from_text(text)
 
     print("\n---Original:")
     pprint(text)
@@ -92,7 +91,7 @@ def test_document_parse_reassemble():
 
 def test_markup_detection():
     text = _med_test_doc
-    doc = TextDoc.from_text(text)
+    doc = FlexDoc.from_text(text)
 
     print("Paragraph markup and header detection:")
     result: list[str] = []
@@ -186,7 +185,7 @@ _simple_test_doc = dedent(
 
 def test_doc_sizes():
     text = _med_test_doc
-    doc = TextDoc.from_text(text)
+    doc = FlexDoc.from_text(text)
     print("\n---Sizes:")
     size_summary = doc.size_summary()
     print(size_summary)
@@ -195,7 +194,7 @@ def test_doc_sizes():
 
 
 def test_seek_doc():
-    doc = TextDoc.from_text(_simple_test_doc)
+    doc = FlexDoc.from_text(_simple_test_doc)
 
     offset = 1
     sent_index, sent_offset = doc.seek_to_sent(offset, TextUnit.bytes)
@@ -242,7 +241,7 @@ _short_test_doc = dedent(
 
 
 def test_sub_doc():
-    doc = TextDoc.from_text(_short_test_doc)
+    doc = FlexDoc.from_text(_short_test_doc)
 
     sub_doc_start = SentIndex(1, 1)
     sub_doc_end = SentIndex(2, 1)
@@ -255,7 +254,7 @@ def test_sub_doc():
         Paragraph three lorem ipsum. Sentence 3a lorem ipsum.
         """
     ).strip()
-    expected_sub_doc = TextDoc.from_text(expected_text)
+    expected_sub_doc = FlexDoc.from_text(expected_text)
 
     print("---Original:")
     pprint(doc)
@@ -277,7 +276,7 @@ def test_sub_doc():
 
 
 def test_tokenization():
-    doc = TextDoc.from_text(_short_test_doc)
+    doc = FlexDoc.from_text(_short_test_doc)
     wordtoks = list(doc.as_wordtoks())
 
     print("\n---Tokens:")
@@ -292,7 +291,7 @@ def test_tokenization():
 
 
 def test_wordtok_mappings():
-    doc = TextDoc.from_text(_short_test_doc)
+    doc = FlexDoc.from_text(_short_test_doc)
 
     print("\n---Mapping:")
     wordtok_mapping, sent_mapping = doc.wordtok_mappings()
@@ -364,7 +363,7 @@ def test_wordtokization():
 
 
 def test_html_tokenization():
-    doc = TextDoc.from_text(_sentence_test_html)
+    doc = FlexDoc.from_text(_sentence_test_html)
     wordtoks = list(doc.as_wordtoks())
 
     print("\n---HTML Tokens:")
@@ -409,7 +408,7 @@ def test_html_tokenization():
 
 
 def test_token_estimate():
-    doc = TextDoc.from_text(_med_test_doc)
+    doc = FlexDoc.from_text(_med_test_doc)
 
     n = doc.size(TextUnit.tokens)
     print("--Estimated tokens:")
@@ -422,7 +421,7 @@ def test_token_estimate():
 
 
 def test_is_footnote_def_detection():
-    doc = TextDoc.from_text(
+    doc = FlexDoc.from_text(
         dedent(
             """
             Title.
@@ -443,7 +442,7 @@ def test_is_footnote_def_detection():
 def test_set_sent_preserves_original_source_span():
     """set_sent keeps the replaced sentence's span pointing at the original source slice,
     even when the replacement text has a different length (the documented contract)."""
-    doc = TextDoc.from_text("Hello world.")
+    doc = FlexDoc.from_text("Hello world.")
     idx = SentIndex(0, 0)
     before = doc.get_sent(idx).span
 

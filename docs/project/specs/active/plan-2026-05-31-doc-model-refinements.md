@@ -28,7 +28,7 @@ thought come last, each traceable to the principle it serves.
 - **Make the principles explicit and grounded.** Restate the design as a small spine of
   foundational principles with the capability and pragmatic principles derived from
   them, so every later decision cites a principle.
-- **Remove documentation drift.** Bring `docs/textdoc-spec.md` into exact agreement with
+- **Remove documentation drift.** Bring `docs/flexdoc-spec.md` into exact agreement with
   the implemented API (method vs.
   free function, return types, caching claims, the true canonical substrate).
 - **Fix the obvious defects.** The `base_blocks()` cover-invariant bug and the
@@ -54,7 +54,7 @@ Context for the review and its findings:
 
 - The model spans `node.py`, `node_table.py`, `block_tree.py`, `base_blocks.py`,
   `collect.py`, `span_ref.py`, `doc_graph.py`, `render.py`, and the heavily extended
-  `text_doc.py`, with `docs/textdoc-spec.md` as the design of record.
+  `text_doc.py`, with `docs/flexdoc-spec.md` as the design of record.
 - The spec’s §2 Goals reads as a flat list.
   The review found a **spine** of five foundational principles (shared offset space;
   source-canonical projection; layered parsing with offset-containment; mechanism over
@@ -83,7 +83,7 @@ Context for the review and its findings:
 
 ### The principles (the deliverable of Phase 1)
 
-A three-tier set, to be added to `docs/textdoc-spec.md` as a new “Principles” section
+A three-tier set, to be added to `docs/flexdoc-spec.md` as a new “Principles” section
 ahead of §2 and cross-referenced from the goals.
 
 **Tier 1 — Foundational (the spine):**
@@ -151,7 +151,7 @@ To be captured as a short “Pitfalls and decisions” note in the spec:
 
 | Area | Files |
 | --- | --- |
-| Spec / principles | `docs/textdoc-spec.md` |
+| Spec / principles | `docs/flexdoc-spec.md` |
 | Base-block cover fix | `src/chopdiff/docs/base_blocks.py`, `tests/docs/test_base_blocks.py` |
 | Caching / parse cost | `src/chopdiff/docs/text_doc.py` |
 | Layer-aware `collect()` | `src/chopdiff/docs/collect.py`, `src/chopdiff/docs/text_doc.py`, tests |
@@ -178,7 +178,7 @@ To be captured as a short “Pitfalls and decisions” note in the spec:
 Documentation-only; no code behavior change.
 Lands the grounded principles and removes every drift the review found.
 
-- [x] Add a “Principles” section (Tier 1–3, P1–P18) to `docs/textdoc-spec.md` ahead of
+- [x] Add a “Principles” section (Tier 1–3, P1–P18) to `docs/flexdoc-spec.md` ahead of
   §2, and cross-reference the existing goals to the principle each derives from.
 - [x] Add the “Pitfalls and decisions” note (list above) to the spec.
 - [x] Correct §3 wording: state that the shared offset space is the canonical substrate
@@ -274,7 +274,7 @@ choice are recorded here.
 
 ## References
 
-- Design of record: `docs/textdoc-spec.md`
+- Design of record: `docs/flexdoc-spec.md`
 - Unified document model plan: `plan-2026-05-29-unified-document-model.md`
 - Research: `research-2026-05-29-document-model.md`,
   `research-2026-05-30-multilayer-parsing.md`, `research-2026-05-30-span-references.md`

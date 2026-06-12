@@ -40,7 +40,7 @@ Tracked by epic `chopdiff-8q8q`.
 > (the `SpanRef` design), and
 > [`research-2026-05-30-multilayer-parsing.md`](../../research/research-2026-05-30-multilayer-parsing.md)
 > (the layered-parsing lens, E9), and the design of record
-> [`docs/textdoc-spec.md`](../../../textdoc-spec.md). This plan **subsumes** the archived
+> [`docs/flexdoc-spec.md`](../../../flexdoc-spec.md). This plan **subsumes** the archived
 > [`plan-2026-05-29-multilevel-block-tallies.md`](../archive/plan-2026-05-29-multilevel-block-tallies.md):
 > multi-level tallies become one feature of the unified model (their decisions are folded
 > in here).
@@ -783,10 +783,10 @@ refined** once v1 is in use; `SpanRef` v1 is deliberately scoped to the Chrome-s
 ## Implementation Plan
 
 All decisions are settled, so we **update the design of record first** (Phase 0) and then
-implement against it, keeping `docs/textdoc-spec.md` the single current, comprehensive,
+implement against it, keeping `docs/flexdoc-spec.md` the single current, comprehensive,
 concise design doc for the document model.
 
-### Phase 0: make `docs/textdoc-spec.md` current (do first)
+### Phase 0: make `docs/flexdoc-spec.md` current (do first)
 
 Fold the settled DocGraph design into the design of record before writing code, so the
 implementation is built against current docs. The DocGraph/`collect`/`SpanRef` edits are
@@ -821,7 +821,7 @@ updates" below for the per-section detail):
       unlimited; `0` lists unsplit); blockquotes always atomic. Invariant: ordered,
       non-overlapping, complete cover whose reassembly reproduces the document (exact except
       normalized paragraph-break whitespace; exact via offsets). A base block is a block
-      node; the base-block *list* is the partition. (textdoc-spec §6.)
+      node; the base-block *list* is the partition. (flexdoc-spec §6.)
 - [x] Model inline items as nodes with `parent` block and computed `section`/`sentence`.
 - [x] **Tag every node with its `layer`** (textual / markdown / document) and record each
       layer's **nesting guarantee** (tree vs ordered list). Reserve the `synthetic` layer
@@ -895,9 +895,9 @@ separation** and lands in the flexdoc repo (it builds on the synthetic layer and
       and refine `SpanRef`/annotations once v1 is in use, as DR-6 anticipates.
 - [ ] `provenance` (source-map-style generated↔original) and `layout` overlays as needed.
 
-## Design-of-Record Updates (`docs/textdoc-spec.md`)
+## Design-of-Record Updates (`docs/flexdoc-spec.md`)
 
-Phase 0 makes `docs/textdoc-spec.md` the single current, comprehensive, concise design doc.
+Phase 0 makes `docs/flexdoc-spec.md` the single current, comprehensive, concise design doc.
 Per-section edits (the design doc carries the prose; this maps what changes):
 
 - **§1 Purpose / §2 Goals:** add that the serialized normalized-form contract is
@@ -972,7 +972,7 @@ item (migration: `Counter(n.kind for n in doc.graph().collect(...))`).
   [`plan-2026-05-29-multilevel-block-tallies.md`](../archive/plan-2026-05-29-multilevel-block-tallies.md)
   (multi-level tallies = the rollup feature of phase 1; kept in `archive/` for its detailed
   nested-block/caching axis analysis).
-- **Updates `docs/textdoc-spec.md`** (the design of record) **first**, in Phase 0; see
+- **Updates `docs/flexdoc-spec.md`** (the design of record) **first**, in Phase 0; see
   "Design-of-record updates," so implementation is built against current docs.
 - Independent of `plan-2026-05-26-robustness-hardening.md`.
 

@@ -1,7 +1,6 @@
 from textwrap import dedent
 
-from flexdoc.docs import SentIndex
-from flexdoc.docs.text_doc import TextDoc
+from flexdoc.docs import FlexDoc, SentIndex
 from flexdoc.docs.token_diffs import DiffStats, diff_wordtoks, find_best_alignment
 
 _short_text1 = dedent(
@@ -36,8 +35,8 @@ _short_text3 = dedent(
 
 
 def test_lcs_diff_wordtoks():
-    wordtoks1 = list(TextDoc.from_text(_short_text1).as_wordtoks())
-    wordtoks2 = list(TextDoc.from_text(_short_text2).as_wordtoks())
+    wordtoks1 = list(FlexDoc.from_text(_short_text1).as_wordtoks())
+    wordtoks2 = list(FlexDoc.from_text(_short_text2).as_wordtoks())
 
     diff = diff_wordtoks(wordtoks1, wordtoks2)
 
@@ -71,8 +70,8 @@ def test_lcs_diff_wordtoks():
 
 
 def test_apply_to():
-    wordtoks1 = list(TextDoc.from_text(_short_text1).as_wordtoks())
-    wordtoks2 = list(TextDoc.from_text(_short_text2).as_wordtoks())
+    wordtoks1 = list(FlexDoc.from_text(_short_text1).as_wordtoks())
+    wordtoks2 = list(FlexDoc.from_text(_short_text2).as_wordtoks())
 
     diff = diff_wordtoks(wordtoks1, wordtoks2)
 
@@ -94,8 +93,8 @@ def test_apply_to():
 
 
 def test_find_best_alignment():
-    wordtoks1 = list(TextDoc.from_text(_short_text1).as_wordtoks())
-    wordtoks2 = list(TextDoc.from_text(_short_text1).sub_doc(SentIndex(1, 1)).as_wordtoks())
+    wordtoks1 = list(FlexDoc.from_text(_short_text1).as_wordtoks())
+    wordtoks2 = list(FlexDoc.from_text(_short_text1).sub_doc(SentIndex(1, 1)).as_wordtoks())
     wordtoks3 = wordtoks2 + ["Extra", "wordtoks", "at", "the", "end"]
     wordtoks4 = list(wordtoks3)
     wordtoks4[0] = "X"

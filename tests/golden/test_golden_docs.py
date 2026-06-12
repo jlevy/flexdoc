@@ -24,9 +24,9 @@ from pathlib import Path
 
 from frontmatter_format import fmf_read
 
+from flexdoc.docs import FlexDoc
 from flexdoc.docs.base_blocks import base_blocks
 from flexdoc.docs.debug import doc_graph_yaml, doc_report, doc_report_data
-from flexdoc.docs.text_doc import TextDoc
 
 _HERE = Path(__file__).parent
 _DOCS_DIR = _HERE / "documents"
@@ -48,7 +48,7 @@ def _load(path: Path) -> tuple[str, int]:
 
 
 def _artifacts(content: str, depth: int) -> dict[str, str]:
-    td = TextDoc.from_text(content)
+    td = FlexDoc.from_text(content)
     return {
         "report.yaml": doc_report(td, item_partition_depth=depth),
         "docgraph.yaml": doc_graph_yaml(td),
@@ -102,7 +102,7 @@ def test_model_invariants():
 
     for path in docs:
         content, depth = _load(path)
-        td = TextDoc.from_text(content)
+        td = FlexDoc.from_text(content)
         source = td.source_text or td.reassemble()
         data = doc_report_data(td, item_partition_depth=depth)
         where = path.stem
@@ -152,5 +152,5 @@ def test_model_invariants():
         # view normalizes, e.g. multi-line reference definitions). Re-parsing and
         # re-reassembling that normalized text must be a fixed point.
         normalized = td.reassemble()
-        renormalized = TextDoc.from_text(normalized).reassemble()
+        renormalized = FlexDoc.from_text(normalized).reassemble()
         assert normalized == renormalized, f"{where}: reassemble() is not idempotent"

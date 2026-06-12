@@ -1,7 +1,7 @@
 """
 The blank-line editing view: `Paragraph` and `Sentence` units with exact source
 offsets (`Offsets`, `SentIndex`), per-paragraph `BlockType` classification, and the
-sentence-splitter hook. These are the units `TextDoc` edits and reassembles; the
+sentence-splitter hook. These are the units `FlexDoc` edits and reassembles; the
 structural layer lives in `flexdoc.docs.block_tree`.
 """
 
@@ -91,7 +91,7 @@ def _inline_text(element: object) -> str:
 @dataclass(frozen=True, order=True)
 class SentIndex:
     """
-    Point to a sentence in a `TextDoc`.
+    Point to a sentence in a `FlexDoc`.
     """
 
     para_index: int
@@ -103,10 +103,10 @@ class SentIndex:
 
 
 WordtokMapping: TypeAlias = dict[int, SentIndex]
-"""A mapping from wordtok index to sentences in a TextDoc."""
+"""A mapping from wordtok index to sentences in a FlexDoc."""
 
 SentenceMapping: TypeAlias = dict[SentIndex, list[int]]
-"""A mapping from sentence index to wordtoks in a TextDoc."""
+"""A mapping from sentence index to wordtoks in a FlexDoc."""
 
 
 @dataclass(frozen=True)
@@ -128,11 +128,11 @@ class Offsets:
 @dataclass
 class Sentence:
     """
-    A sentence in a `TextDoc`. `text` is the editable content (used by
+    A sentence in a `FlexDoc`. `text` is the editable content (used by
     `reassemble()`); `offsets` is a fixed reference to the source set at parse time
     and is not updated by edits. Offsets are exact when the sentence is a verbatim
     slice of the paragraph (prose); for content where the splitter normalizes
-    whitespace (e.g. tables), the offset is a best-effort position. See `TextDoc`
+    whitespace (e.g. tables), the offset is a best-effort position. See `FlexDoc`
     for the full contract.
     """
 
@@ -184,12 +184,12 @@ class Sentence:
 @dataclass
 class Paragraph:
     """
-    A paragraph (one blank-line-separated block) in a `TextDoc`.
+    A paragraph (one blank-line-separated block) in a `FlexDoc`.
 
     `original_text` and `offsets` are fixed references to the source as parsed and
     are not updated by edits; `sentences` holds the editable content used by
     `reassemble()`. `block_type` is derived from `original_text` and cached, so it
-    assumes `original_text` is not reassigned after construction. See `TextDoc` for
+    assumes `original_text` is not reassigned after construction. See `FlexDoc` for
     the full contract.
     """
 
@@ -368,7 +368,7 @@ class Paragraph:
         else `None`. Density caveat (as for `block_type`): this is the editing view, split
         on blank lines, so a fenced code block containing a blank line is several
         paragraphs; the density-invariant source of truth is `Block.code_info` from
-        `TextDoc.blocks()`.
+        `FlexDoc.blocks()`.
         """
         return self._block_info.code_info
 
@@ -386,7 +386,7 @@ class Paragraph:
         Typed list metadata (`ordered`, `start`, `max_depth`, `item_count`) if this
         paragraph is a list, else `None`. Editing-view density caveat applies: a loose
         list is one paragraph per item, so the whole-list view is `Block.list_info` from
-        `TextDoc.blocks()`. See `code_info`.
+        `FlexDoc.blocks()`. See `code_info`.
         """
         return self._block_info.list_info
 

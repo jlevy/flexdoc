@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from textwrap import dedent
 
+from flexdoc.docs import FlexDoc
 from flexdoc.docs.node import Layer, NodeKind
 from flexdoc.docs.node_table import build_node_table
-from flexdoc.docs.text_doc import TextDoc
 
 # A document with nested structure: headings, sections, paragraphs, a
 # blockquote with nested content, a list, inline links, code spans, and
@@ -36,7 +36,7 @@ _NESTED_DOC = dedent("""
 
 
 def _build(text: str | None = None):
-    doc = TextDoc.from_text(text or _NESTED_DOC)
+    doc = FlexDoc.from_text(text or _NESTED_DOC)
     return doc, build_node_table(doc)
 
 
@@ -203,20 +203,20 @@ def test_children_of_accessor():
     assert all(c.kind == NodeKind.list_item for c in children)
 
 
-# -- Bead 4: lazy cache on TextDoc --
+# -- Bead 4: lazy cache on FlexDoc --
 
 
 def test_node_table_cached_on_textdoc():
-    """TextDoc.node_table() returns the same object on repeated calls."""
-    doc = TextDoc.from_text(_NESTED_DOC)
+    """FlexDoc.node_table() returns the same object on repeated calls."""
+    doc = FlexDoc.from_text(_NESTED_DOC)
     t1 = doc.node_table()
     t2 = doc.node_table()
     assert t1 is t2
 
 
 def test_node_table_matches_build():
-    """TextDoc.node_table() result matches a fresh build_node_table()."""
-    doc = TextDoc.from_text(_NESTED_DOC)
+    """FlexDoc.node_table() result matches a fresh build_node_table()."""
+    doc = FlexDoc.from_text(_NESTED_DOC)
     cached = doc.node_table()
     fresh = build_node_table(doc)
     assert set(cached.nodes.keys()) == set(fresh.nodes.keys())
@@ -352,7 +352,7 @@ def test_reference_link_no_span():
 
         [1]: https://ref.example.com
     """).strip()
-    doc = TextDoc.from_text(text)
+    doc = FlexDoc.from_text(text)
     table = build_node_table(doc)
     links = table.by_kind(NodeKind.link)
     # At least one link should exist (the resolved reference link).
@@ -368,8 +368,8 @@ def test_node_ids_are_deterministic_contiguous_preorder():
     reproduce ids exactly.
     """
     text = "# T\n\nPara with [x](https://e.com).\n\n- a\n- b\n"
-    t1 = build_node_table(TextDoc.from_text(text))
-    t2 = build_node_table(TextDoc.from_text(text))
+    t1 = build_node_table(FlexDoc.from_text(text))
+    t2 = build_node_table(FlexDoc.from_text(text))
     assert [(n.id, n.kind, n.layer, n.source_span) for n in t1.nodes.values()] == [
         (n.id, n.kind, n.layer, n.source_span) for n in t2.nodes.values()
     ]

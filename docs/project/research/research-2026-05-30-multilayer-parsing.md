@@ -562,7 +562,7 @@ Local:
 - [Cross-language document-model survey](research-2026-05-29-document-model.md)
 - [Span-reference research](research-2026-05-30-span-references.md)
 - [Unified document model plan](../specs/active/plan-2026-05-29-unified-document-model.md)
-- [TextDoc + DocGraph design spec](../../textdoc-spec.md)
+- [TextDoc + DocGraph design spec](../../flexdoc-spec.md)
 - [TextDoc](../../../src/chopdiff/docs/text_doc.py)
 - [TextNode](../../../src/chopdiff/divs/text_node.py)
 

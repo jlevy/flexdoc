@@ -19,7 +19,7 @@ Run with: `uv run examples/normalized_form.py`
 from collections import Counter
 from textwrap import dedent
 
-from flexdoc.docs import Block, BlockType, Section, TextDoc
+from flexdoc.docs import Block, BlockType, FlexDoc, Section
 
 _SAMPLE = dedent(
     """
@@ -51,7 +51,7 @@ _SAMPLE = dedent(
 
     ```python
     # density does not change the tally
-    doc = TextDoc.from_text(text)
+    doc = FlexDoc.from_text(text)
     ```
     """
 ).strip()
@@ -82,7 +82,7 @@ def count_descending(blocks: list[Block], counter: Counter[BlockType]) -> None:
 
 
 def main() -> None:
-    doc = TextDoc.from_text(_SAMPLE)
+    doc = FlexDoc.from_text(_SAMPLE)
 
     print("--- Section tree with per-section block-type slices (headings dropped) ---")
     show_section_tree(doc.sections())
@@ -101,8 +101,8 @@ def main() -> None:
         print(f"  {block_type.value}: {n}")
 
     print("\n--- Density invariance: tight vs. loose list, identical tallies ---")
-    tight = TextDoc.from_text("- a\n- b\n- c")
-    loose = TextDoc.from_text("- a\n\n- b\n\n- c")
+    tight = FlexDoc.from_text("- a\n- b\n- c")
+    loose = FlexDoc.from_text("- a\n\n- b\n\n- c")
     tight_deep: Counter[BlockType] = Counter()
     loose_deep: Counter[BlockType] = Counter()
     count_descending(tight.blocks(), tight_deep)

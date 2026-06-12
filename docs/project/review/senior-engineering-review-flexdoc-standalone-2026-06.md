@@ -5,7 +5,7 @@
 **Scope:** the extracted standalone flexdoc package at Stage 2 of
 [`plan-2026-06-11-flexdoc-extraction.md`](../specs/active/plan-2026-06-11-flexdoc-extraction.md):
 all of `src/flexdoc/` (`docs/`, `html/`, `util/`), the design of record
-([`docs/textdoc-spec.md`](../../textdoc-spec.md)), the test suite, and packaging.
+([`docs/flexdoc-spec.md`](../../flexdoc-spec.md)), the test suite, and packaging.
 Builds on the v0.3.1 review (in chopdiff,
 `docs/project/review/senior-engineering-review-doc-model-v0.3.1.md`); findings settled
 there are re-verified here, not re-argued.
@@ -182,7 +182,7 @@ synthetic layer lands (extraction plan Stage 4).
   inline tests only). Add targeted tests opportunistically when F2 settles what is
   public; none blocks release.
 - **Docs still chopdiff-framed in places.** Spec §3/§6 say "chopdiff parses…"
-  (`textdoc-spec.md:193,334`); §13's non-goal lists "FlexDoc" as a *rejected
+  (`flexdoc-spec.md:193,334`); §13's non-goal lists "FlexDoc" as a *rejected
   runtime model name*, colliding with the package name — needs the disambiguation
   note (already a Stage 5 item). The copied plan specs and research briefs should get
   one-line origin notes.

@@ -1,7 +1,7 @@
-# TextDoc and DocGraph: Design Specification
+# FlexDoc and DocGraph: Design Specification
 
 **Status:** Definitive front-to-back design of the document model (the `flexdoc`
-package): the `TextDoc` Python core and the `DocGraph` serialized projection.
+package): the `FlexDoc` Python core and the `DocGraph` serialized projection.
 The design is settled (decision records DR-1..DR-6 in
 [`plan-2026-05-29-unified-document-model.md`](project/specs/active/plan-2026-05-29-unified-document-model.md));
 see §14 for what is implemented versus in progress.
@@ -27,11 +27,11 @@ mapping. This model is both, anchored to one retained source string.
 
 Two surfaces, one design:
 
-- **`TextDoc`** is the **Python core:** the in-process object for parsing, analysis,
+- **`FlexDoc`** is the **Python core:** the in-process object for parsing, analysis,
   rollups, transforms, and editable reassembly.
 - **`DocGraph`** is the **serialized, language-neutral projection** of the same content:
   a JSON contract for frontends, cross-language clients, and annotations.
-  It is derived from `TextDoc`, not a competing model (DR-2).
+  It is derived from `FlexDoc`, not a competing model (DR-2).
 
 ## 2. Principles and Goals
 
@@ -156,7 +156,7 @@ id and span — and is what the serialized contract and cross-layer queries are 
 
 A leading YAML frontmatter block (`---`-delimited) is a **non-content region**: it is
 excluded from the node table, the block/section views, and the editing view (and so from
-every size/prose count), and exposed verbatim via `TextDoc.frontmatter`. `source_text`
+every size/prose count), and exposed verbatim via `FlexDoc.frontmatter`. `source_text`
 retains it, so spans stay absolute and the document still round-trips.
 
 Why a node table and not a single tree: a document has several hierarchies that overlap
@@ -234,7 +234,7 @@ for the framing and prior art.
 
 ## 4. Core Types, Nodes, and Offsets
 
-- `TextDoc`: retains `source_text`; owns the `Paragraph` list (editing view) and the
+- `FlexDoc`: retains `source_text`; owns the `Paragraph` list (editing view) and the
   derived, lazily-cached node table and views.
 - `Node`: `id` (stable within a parse), `kind` (a `BlockType` or an inline kind),
   `layer` (the parse dimension it belongs to, textual / markdown / document / synthetic;
@@ -253,7 +253,7 @@ for the framing and prior art.
   expose derived `byte_span`/`utf16_span` for byte- or browser-oriented consumers, but
   the canonical `source_span` is code points (the cross-language footgun the W3C
   position selector left unresolved).
-- `TextDoc.paragraph_at_offset(o)` / `sentence_at_offset(o)` invert spans (editing-view
+- `FlexDoc.paragraph_at_offset(o)` / `sentence_at_offset(o)` invert spans (editing-view
   units; structural blocks are addressed by their own spans).
 
 Invariant: `source_text[unit.span[0]:unit.span[1]] == unit.original_text` for every
@@ -317,7 +317,7 @@ These are two views over the same shared parse, for two different jobs (and they
 not be conflated; see §9: the tree supports *queries* that may overlap; the base-block
 list is a *partition* with a cover invariant).
 
-### Structural block tree: `TextDoc.blocks() -> list[Block]`
+### Structural block tree: `FlexDoc.blocks() -> list[Block]`
 
 The recursive view (lazy, cached on the immutable `source_text`):
 
@@ -336,11 +336,11 @@ positions (`flowmark.markdown_ast.block_span`), so flexdoc runs no block-detecti
 regex of its own and makes no block-boundary decisions.
 The structure is cross-checked against marko in tests.
 
-### Sequential block list: `TextDoc.base_blocks() -> list[BaseBlock]`
+### Sequential block list: `FlexDoc.base_blocks() -> list[BaseBlock]`
 
 A **base block** is a `BaseBlock` wrapping a block node (`Block`) with a `depth`; the
 **base-block list** is a *partition* of the document: the ordered sequence of base
-blocks, each carrying its `depth`. `TextDoc.base_blocks()` is a thin method over the
+blocks, each carrying its `depth`. `FlexDoc.base_blocks()` is a thin method over the
 `flexdoc.docs.base_blocks.base_blocks(text, *, item_partition_depth=6)` free function
 (the partition lives in its own module, distinct from the recursive tree in
 `block_tree.py`). It is the view for block-by-block pipelines and outline UIs that
@@ -391,9 +391,9 @@ A derived hierarchy over heading nodes, no re-parse:
 - `Section`: heading, `level`, the content it owns (up to the next heading of level ≤
   this), child `Section`s. Content/span/sizes are computed; `Section.blocks()` is the
   block tree scoped to the section.
-- `TextDoc.sections()` → tree; `toc()` → flat `(level, title, span)`.
-- Sizes reuse `TextDoc.size`: `Section.size(unit, subtree=True|False)`,
-  `size_summary()`, `TextDoc.section_size_tree(units=…)`. Every `TextUnit` rolls up
+- `FlexDoc.sections()` → tree; `toc()` → flat `(level, title, span)`.
+- Sizes reuse `FlexDoc.size`: `Section.size(unit, subtree=True|False)`,
+  `size_summary()`, `FlexDoc.section_size_tree(units=…)`. Every `TextUnit` rolls up
   uniformly.
 
 ## 8. Inline Elements and Links
@@ -464,7 +464,7 @@ content units.
 
 ## 10. DocGraph: The Serialized Projection
 
-`DocGraph` is the JSON contract derived from `TextDoc` (DR-1, DR-2), authored as
+`DocGraph` is the JSON contract derived from `FlexDoc` (DR-1, DR-2), authored as
 Pydantic models that emit a JSON Schema (DR-3). Boring and parser-agnostic: no
 marko/Python class names in stable fields.
 Shape (abbreviated):
@@ -479,7 +479,7 @@ DocGraph = {
 }
 ```
 
-`TextDoc.graph(*, include=..., detail=...)` builds/serializes it.
+`FlexDoc.graph(*, include=..., detail=...)` builds/serializes it.
 **What is built and serialized is controlled by two composable axes**, not a fixed
 ladder (DR-5):
 
@@ -553,14 +553,14 @@ citations) in
 `Sentence.text` is the editable content: edits change what `reassemble()` produces while
 the fixed source references (`original_text`, `offsets`, cached `block_type`) keep
 describing the original.
-So `TextDoc` doubles as an editable model: modify units, then `reassemble()` to
+So `FlexDoc` doubles as an editable model: modify units, then `reassemble()` to
 serialize a new document (optionally normalized by flowmark).
 The diff/sliding-window/wordtok machinery operates on this editing view unchanged.
 
 The structural node table is a pure function of the immutable `source_text` (sentence
 edits touch the editing view, not `source_text`), so it and its derived views are lazily
 cached; the operative contract is “do not reassign `source_text` after parse.”
-Edit by editing the `TextDoc`/source and re-deriving `DocGraph`; an editor bridge
+Edit by editing the `FlexDoc`/source and re-deriving `DocGraph`; an editor bridge
 resolves annotations through `SpanRef`. Render helpers emit `data-node-id` /
 `data-source-span` so a rendered selection resolves to a node and thence to source.
 
@@ -571,11 +571,13 @@ substrate (P1); node ids stable within a parse; derived views over one shared pa
 duplicated content, no stored counts), the node table among them; references are
 quote-canonical; additive (existing behavior preserved).
 
-Non-goals: a parallel runtime `BlockDoc`/`SectionDoc`/`FlexDoc` Python model (DocGraph
-is a projection, not a competing editable model — note this rejected *runtime model*
-from an abandoned branch merely shares a name with the **flexdoc package**, which is
-the home of `TextDoc`/`DocGraph`, not that second model); blessed per-kind rollups or
-fixed detail levels; DOM/XPath/CSS selectors in `SpanRef` (plain-text-first); CommonMark/GFM
+Non-goals: a parallel runtime `BlockDoc`/`SectionDoc` Python model (DocGraph is a
+projection, not a competing editable model). **Naming note:** the abandoned branch that
+proposed that competing runtime model also used the name "FlexDoc"; that proposal is
+dead history, and the name was deliberately reclaimed in 2026-06 when `TextDoc` was
+renamed to `FlexDoc` as the package's single entry-point class. Today `FlexDoc` means
+only that class — the source-retaining document with its layered projections — never a
+second model. Other non-goals: blessed per-kind rollups or fixed detail levels; DOM/XPath/CSS selectors in `SpanRef` (plain-text-first); CommonMark/GFM
 rendering (flowmark covers normalization); stored cross-layer edges (cross-layer
 relationships are offset-containment queries, §3); exact provider-keyed token counts
 (`estimate_tokens` is a heuristic); a thread-safety layer.
@@ -654,7 +656,7 @@ Non-obvious choices, each grounded in a principle:
 - flowmark v0.7.1 API: `flowmark.atomic_spans` (`iter_atomic_spans`,
   `split_sentences_with_spans`, named `AtomicSpan`s) and `flowmark.markdown_ast`
   (`block_span`, `walk_elements`, `extract_links`, `Link`).
-- Source: `src/flexdoc/docs/text_doc.py` (the `TextDoc` core), with the editing units in
+- Source: `src/flexdoc/docs/flex_doc.py` (the `FlexDoc` core), with the editing units in
   `paragraphs.py`, link extraction in `links.py`, sections in `sections.py`, and the
   structural layer in `block_tree.py`, `block_types.py`, `block_info.py`.
 

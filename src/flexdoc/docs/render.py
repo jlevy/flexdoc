@@ -1,7 +1,7 @@
 """
 Render helpers that emit `data-node-id` and `data-source-span` attributes on
 HTML elements so a rendered selection resolves back to a node and thence to
-source text (textdoc-spec section 12, E8/D5).
+source text (flexdoc-spec section 12, E8/D5).
 """
 
 from __future__ import annotations

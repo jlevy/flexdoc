@@ -1,13 +1,13 @@
 from textwrap import dedent
 
+from flexdoc.docs import FlexDoc
 from flexdoc.docs.block_types import BlockType
 from flexdoc.docs.sizes import TextUnit
-from flexdoc.docs.text_doc import TextDoc
 
 
-def serialize_blocks(doc: TextDoc) -> str:
+def serialize_blocks(doc: FlexDoc) -> str:
     """
-    Render a TextDoc's blocks transparently: one line per block with its index,
+    Render a FlexDoc's blocks transparently: one line per block with its index,
     classified `BlockType`, and a single-line preview. Used for golden tests that
     show exactly how a document is split and classified.
     """
@@ -47,7 +47,7 @@ DOC = dedent(
 
 
 def test_block_type_classification():
-    doc = TextDoc.from_text(DOC)
+    doc = FlexDoc.from_text(DOC)
     types = [p.block_type for p in doc.paragraphs]
     assert types == [
         BlockType.heading,
@@ -62,7 +62,7 @@ def test_block_type_classification():
 
 
 def test_iter_paragraphs_include_exclude():
-    doc = TextDoc.from_text(DOC)
+    doc = FlexDoc.from_text(DOC)
 
     paras = list(doc.iter_paragraphs(include={BlockType.paragraph}))
     assert len(paras) == 3
@@ -76,7 +76,7 @@ def test_iter_paragraphs_include_exclude():
 
 
 def test_filtered_counts_paragraphs_only():
-    doc = TextDoc.from_text(DOC)
+    doc = FlexDoc.from_text(DOC)
     paragraphs_only = doc.filtered(include={BlockType.paragraph})
 
     # Three paragraph blocks: 2 + 1 + 2 sentences.
@@ -89,7 +89,7 @@ def test_filtered_counts_paragraphs_only():
 
 
 def test_setext_heading_classified_as_heading():
-    doc = TextDoc.from_text(
+    doc = FlexDoc.from_text(
         dedent(
             """
             Setext Heading One
@@ -104,7 +104,7 @@ def test_setext_heading_classified_as_heading():
 
 
 def test_code_fence_not_a_heading():
-    doc = TextDoc.from_text(
+    doc = FlexDoc.from_text(
         dedent(
             """
             ```python
@@ -118,14 +118,14 @@ def test_code_fence_not_a_heading():
 
 
 def test_empty_filter_returns_empty_doc():
-    doc = TextDoc.from_text(DOC)
+    doc = FlexDoc.from_text(DOC)
     empty = doc.filtered(include=set())
     assert empty.size(TextUnit.words) == 0
     assert empty.size(TextUnit.sentences) == 0
 
 
 def test_filtered_returns_independent_copy():
-    doc = TextDoc.from_text(DOC)
+    doc = FlexDoc.from_text(DOC)
     before = doc.reassemble()
     filtered = doc.filtered(include={BlockType.paragraph})
     filtered.replace_str("paragraph", "XXXXX")
@@ -135,7 +135,7 @@ def test_filtered_returns_independent_copy():
 def test_source_references_are_stable_under_edits():
     # Editing content updates reassemble() but not the fixed source references
     # (original_text, offsets) or the cached block_type.
-    doc = TextDoc.from_text(DOC)
+    doc = FlexDoc.from_text(DOC)
     para = doc.paragraphs[1]
     original_text, offsets, block_type = para.original_text, para.offsets, para.block_type
     para.replace_str("paragraph", "PARA")
@@ -145,12 +145,12 @@ def test_source_references_are_stable_under_edits():
     assert para.block_type == block_type
 
 
-# The following tests document how list spacing affects blocking, since TextDoc
+# The following tests document how list spacing affects blocking, since FlexDoc
 # splits on blank lines (see BlockType docstring).
 
 
 def test_tight_list_is_one_block():
-    doc = TextDoc.from_text(
+    doc = FlexDoc.from_text(
         dedent(
             """
             - item one
@@ -164,13 +164,13 @@ def test_tight_list_is_one_block():
 
 
 def test_ordered_list_block_type():
-    doc = TextDoc.from_text("1. one\n2. two\n3. three")
+    doc = FlexDoc.from_text("1. one\n2. two\n3. three")
     assert len(doc.paragraphs) == 1
     assert doc.paragraphs[0].block_type == BlockType.ordered_list
 
 
 def test_loose_list_is_one_block_per_item():
-    doc = TextDoc.from_text(
+    doc = FlexDoc.from_text(
         dedent(
             """
             - item one
@@ -186,7 +186,7 @@ def test_loose_list_is_one_block_per_item():
 
 
 def test_nested_tight_list_is_one_block():
-    doc = TextDoc.from_text(
+    doc = FlexDoc.from_text(
         dedent(
             """
             - parent one
@@ -201,7 +201,7 @@ def test_nested_tight_list_is_one_block():
 
 
 def test_nested_loose_list_is_flattened_into_list_blocks():
-    doc = TextDoc.from_text(
+    doc = FlexDoc.from_text(
         dedent(
             """
             - parent one
@@ -217,7 +217,7 @@ def test_nested_loose_list_is_flattened_into_list_blocks():
 
 
 def test_list_item_continuation_paragraph_is_paragraph():
-    doc = TextDoc.from_text(
+    doc = FlexDoc.from_text(
         dedent(
             """
             - item one first para
@@ -309,14 +309,14 @@ EXPECTED_RICH_BLOCKS = r"""
 
 
 def test_rich_document_block_structure_golden():
-    doc = TextDoc.from_text(RICH_DOC)
+    doc = FlexDoc.from_text(RICH_DOC)
     assert serialize_blocks(doc) == EXPECTED_RICH_BLOCKS
 
 
 def test_nested_blocks_classify_by_outer_type():
     # A blockquote wrapping a list or a table is classified `blockquote`; the
     # inner block type is intentionally not surfaced at this level.
-    doc = TextDoc.from_text(RICH_DOC)
+    doc = FlexDoc.from_text(RICH_DOC)
     by_type: dict[BlockType, list[str]] = {}
     for p in doc.paragraphs:
         by_type.setdefault(p.block_type, []).append(p.original_text)
@@ -328,7 +328,7 @@ def test_nested_blocks_classify_by_outer_type():
 def test_block_offsets_reference_the_source_document():
     # flexdoc references the backing text by offset; each block's doc_offset
     # indexes the source back to its own content.
-    doc = TextDoc.from_text(RICH_DOC)
+    doc = FlexDoc.from_text(RICH_DOC)
     for p in doc.paragraphs:
         start = p.offsets.doc_offset
         assert RICH_DOC[start : start + len(p.original_text)] == p.original_text

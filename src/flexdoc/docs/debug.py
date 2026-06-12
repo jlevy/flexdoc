@@ -1,6 +1,6 @@
 """
 Reusable developer tool for dumping a document's model views in clean, standard
-formats. Works on any `TextDoc`: use it from a REPL, a script, or the golden-test
+formats. Works on any `FlexDoc`: use it from a REPL, a script, or the golden-test
 harness to see every projection the model derives from one source.
 
 Three views, all deterministic (the model is hermetic — node ids are a stable preorder
@@ -28,10 +28,10 @@ from strif import atomic_output_file
 
 from flexdoc.docs.base_blocks import base_blocks
 from flexdoc.docs.doc_graph import clean_yaml
+from flexdoc.docs.flex_doc import FlexDoc
 from flexdoc.docs.node import NodeKind
 from flexdoc.docs.sizes import TextUnit
 from flexdoc.docs.span_ref import SpanRef, resolve
-from flexdoc.docs.text_doc import TextDoc
 
 # Inline kinds that carry a locatable span worth round-tripping through SpanRef.
 _LOCATABLE_INLINE = frozenset({NodeKind.link, NodeKind.image, NodeKind.code_span})
@@ -41,7 +41,7 @@ def _span_str(span: tuple[int, int] | None) -> str | None:
     return f"{span[0]}:{span[1]}" if span is not None else None
 
 
-def doc_report_data(doc: TextDoc, *, item_partition_depth: int = 6) -> dict[str, Any]:
+def doc_report_data(doc: FlexDoc, *, item_partition_depth: int = 6) -> dict[str, Any]:
     """
     The multi-view report as a plain (ordered) dict, ready to serialize. Captures broad
     state rather than narrow slices, so any change to any view shows up in a diff.
@@ -148,17 +148,17 @@ def doc_report_data(doc: TextDoc, *, item_partition_depth: int = 6) -> dict[str,
     }
 
 
-def doc_report(doc: TextDoc, *, item_partition_depth: int = 6) -> str:
+def doc_report(doc: FlexDoc, *, item_partition_depth: int = 6) -> str:
     """The multi-view report as clean, deterministic YAML."""
     return clean_yaml(doc_report_data(doc, item_partition_depth=item_partition_depth))
 
 
-def doc_graph_yaml(doc: TextDoc) -> str:
+def doc_graph_yaml(doc: FlexDoc) -> str:
     """The default `DocGraph` projection (markdown + document layers) as clean YAML."""
     return doc.graph().to_yaml()
 
 
-def dump_views(doc: TextDoc, dest: Path | str, *, item_partition_depth: int = 6) -> None:
+def dump_views(doc: FlexDoc, dest: Path | str, *, item_partition_depth: int = 6) -> None:
     """
     Write the standard artifact set for `doc` into directory `dest`: `report.yaml`,
     `docgraph.yaml`, and `reassembled.md`. Files are written atomically.

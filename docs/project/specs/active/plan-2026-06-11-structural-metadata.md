@@ -27,7 +27,7 @@ flexdoc extraction (Stage 2); kept as design history for the document model.*
 > - ✔︎ **Frontmatter isolation (#22).** Landed in its own PR
 >   ([`plan-2026-06-11-frontmatter-isolation.md`](plan-2026-06-11-frontmatter-isolation.md)):
 >   `TextDoc.frontmatter` excludes a leading YAML block from all views/counts. This completes
->   issues #18–#22. The `docs/textdoc-spec.md` / `TODO.md` updates also landed (post-extraction
+>   issues #18–#22. The `docs/flexdoc-spec.md` / `TODO.md` updates also landed (post-extraction
 >   cleanup PR).
 
 ## Overview
@@ -92,7 +92,7 @@ markdown and document layers it will be built around.
 Where the model is after v0.3.1 (released; see `CHANGELOG.md`): `TextDoc` is block-aware
 (`blocks()` structural tree with exact spans), section-aware, link-aware, and projects a
 layer-tagged node table, the `base_blocks()` partition, `collect()`, and the `DocGraph`
-Pydantic schema. The design of record is `docs/textdoc-spec.md`; principles are cited as
+Pydantic schema. The design of record is `docs/flexdoc-spec.md`; principles are cited as
 P1–P18 there.
 
 The node table already attaches typed `attrs` to markdown-layer nodes — heading `level`,
@@ -119,12 +119,12 @@ against the live parser (marko via flowmark 0.7.1):
 Two adjacent items ride along because they share the same surface and release window:
 
 - The v0.3.1 `TextDoc.block_type_counts()` / `Section.block_type_counts()` accessors are
-  already documented as **superseded by `collect()`** (`textdoc-spec.md` §9) and slated for
+  already documented as **superseded by `collect()`** (`flexdoc-spec.md` §9) and slated for
   removal "in the next minor." This plan removes them so downstream migrates once, alongside
   the new `attrs`.
 - `src/chopdiff/util/read_time.py` is an orphaned but useful util stranded on the abandoned
   `feature/extend-chopdiff-section-iteration` branch (whose `SectionDoc`/`FlexDoc` runtime
-  models are an explicit non-goal, `textdoc-spec.md` §13). It is salvaged here as a small
+  models are an explicit non-goal, `flexdoc-spec.md` §13). It is salvaged here as a small
   additive util.
 
 ## Design
@@ -164,7 +164,7 @@ restated on the new `Paragraph` accessors.
 | Editing-view convenience | `src/chopdiff/docs/text_doc.py` (`Paragraph._block_info`, accessors; `TextDoc.frontmatter`; `from_text`) |
 | `block_type_counts()` removal | `src/chopdiff/docs/text_doc.py`, callers, tests, examples |
 | Read-time util | `src/chopdiff/util/read_time.py` (salvaged) |
-| Docs | `docs/textdoc-spec.md`, `CHANGELOG.md`, `TODO.md` |
+| Docs | `docs/flexdoc-spec.md`, `CHANGELOG.md`, `TODO.md` |
 
 ### API Changes
 
@@ -263,7 +263,7 @@ The bulk: #18 / #19 / #20, plus the two adjacent cleanups that share the release
   callers/tests/examples to `collect()` / `blocks()`; record the migration in `CHANGELOG.md`.
 - [x] Salvage `src/chopdiff/util/read_time.py` (with its inline tests) from the abandoned
   branch; confirm its `prettyfmt.fmt_timedelta` dependency is already satisfied.
-- [x] Update `docs/textdoc-spec.md` §5 (block-type model: per-kind typed `attrs`) and §9
+- [x] Update `docs/flexdoc-spec.md` §5 (block-type model: per-kind typed `attrs`) and §9
   (note typed attrs are element attributes, not rollups; `block_type_counts()` removed);
   refresh the stale `TODO.md` status (v0.3.1 is released).
 - [x] `make lint` and `make test` clean.
@@ -286,7 +286,7 @@ Independent of Phase 1: #21 and #22.
   `sections()`, the node table, and `size(...)`; `frontmatter` returns the verbatim block;
   the span/round-trip invariant holds; a document without frontmatter is unchanged
   (`frontmatter is None`).
-- [x] Update `docs/textdoc-spec.md` (inline kinds include `footnote_ref`; a short
+- [x] Update `docs/flexdoc-spec.md` (inline kinds include `footnote_ref`; a short
   frontmatter note) and `CHANGELOG.md`.
 - [x] `make lint` and `make test` clean.
 
@@ -365,7 +365,7 @@ Independent of Phase 1: #21 and #22.
   [#20](https://github.com/jlevy/chopdiff/issues/20) (list),
   [#21](https://github.com/jlevy/chopdiff/issues/21) (footnote_ref),
   [#22](https://github.com/jlevy/chopdiff/issues/22) (frontmatter).
-- Design of record: `docs/textdoc-spec.md` (principles P1–P18; markdown/document layers).
+- Design of record: `docs/flexdoc-spec.md` (principles P1–P18; markdown/document layers).
 - Unified document model plan: `plan-2026-05-29-unified-document-model.md` (later phases:
   synthetic / annotation layers, cross-layer edits).
 - Doc-model refinements (precedent for `attrs` / layer-aware `collect()`):

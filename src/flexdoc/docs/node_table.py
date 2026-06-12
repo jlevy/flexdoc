@@ -2,8 +2,8 @@
 Node table: a flat, id-addressed table of all parsed elements in a document,
 covering three layers (markdown, document, textual) over the same source text.
 
-`build_node_table(doc)` constructs the table once from a `TextDoc`; the result
-is cached lazily on `TextDoc.node_table()` (safe because `source_text` is
+`build_node_table(doc)` constructs the table once from a `FlexDoc`; the result
+is cached lazily on `FlexDoc.node_table()` (safe because `source_text` is
 immutable after parse).
 
 The source string and its offset space are canonical; the node table is the
@@ -13,7 +13,7 @@ projections sharing the same source/offset substrate.
 """
 
 # pyright: reportImportCycles=false
-# The TYPE_CHECKING import of TextDoc creates a type-only cycle with text_doc.py
+# The TYPE_CHECKING import of FlexDoc creates a type-only cycle with flex_doc.py
 # (which runtime-imports build_node_table). No runtime cycle exists.
 
 from __future__ import annotations
@@ -35,8 +35,8 @@ from flexdoc.docs.node import (
 )
 
 if TYPE_CHECKING:
+    from flexdoc.docs.flex_doc import FlexDoc
     from flexdoc.docs.sections import Section
-    from flexdoc.docs.text_doc import TextDoc
 
 
 # Atomic-span pattern names that map to inline NodeKinds.
@@ -136,7 +136,7 @@ def _build_markdown_nodes(
 
 def _build_inline_nodes(
     source_text: str,
-    doc: TextDoc,
+    doc: FlexDoc,
     all_nodes: dict[str, Node],
     counter: list[int],
 ) -> None:
@@ -155,7 +155,7 @@ def _build_inline_nodes(
 
     seen_spans: set[tuple[int, int]] = set()
     # Frontmatter is a non-content region: skip any inline element located inside it (see
-    # TextDoc.frontmatter). Block/section/textual nodes are already frontmatter-free.
+    # FlexDoc.frontmatter). Block/section/textual nodes are already frontmatter-free.
     content_offset = doc._content_offset()
 
     # Links via doc.links() (handles reference resolution correctly).
@@ -319,9 +319,9 @@ def _build_section_nodes(
     return child_ids
 
 
-def build_node_table(doc: TextDoc) -> NodeTable:
+def build_node_table(doc: FlexDoc) -> NodeTable:
     """
-    Construct a `NodeTable` from a `TextDoc`, building nodes from three layers:
+    Construct a `NodeTable` from a `FlexDoc`, building nodes from three layers:
 
     - **markdown**: every structural block from the recursive block tree, plus
       inline elements (links, code spans, images, inline HTML).

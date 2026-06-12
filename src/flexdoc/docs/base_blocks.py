@@ -2,7 +2,7 @@
 Sequential base-block partition of a Markdown document.
 
 A base block is a unit of the flat, depth-annotated partition described in
-textdoc-spec section 6. The partition is ordered by source position, its spans are
+flexdoc-spec section 6. The partition is ordered by source position, its spans are
 non-overlapping, and together they cover every non-whitespace character of the
 document exactly once (the gaps are inter-block and structural whitespace). It is the
 view for block-by-block processing and resequencing.

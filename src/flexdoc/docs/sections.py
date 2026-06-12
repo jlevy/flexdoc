@@ -1,12 +1,12 @@
 """
 Document sections: a heading plus the content it owns, with nested subsections.
-Built by `TextDoc.sections()` from the structural heading blocks; see that method
+Built by `FlexDoc.sections()` from the structural heading blocks; see that method
 for the construction rules.
 """
 
 # pyright: reportImportCycles=false
-# The TYPE_CHECKING/function-local imports of TextDoc create a type-only cycle with
-# text_doc.py (which runtime-imports Section). No module-level runtime cycle exists.
+# The TYPE_CHECKING/function-local imports of FlexDoc create a type-only cycle with
+# flex_doc.py (which runtime-imports Section). No module-level runtime cycle exists.
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from flexdoc.docs.paragraphs import Paragraph
 from flexdoc.docs.sizes import TextUnit
 
 if TYPE_CHECKING:
-    from flexdoc.docs.text_doc import TextDoc
+    from flexdoc.docs.flex_doc import FlexDoc
 
 
 @dataclass
@@ -28,8 +28,8 @@ class Section:
     A document section: a heading plus the content it owns, with nested subsections.
 
     `content` are this section's own content paragraphs (excluding the heading line and
-    any subsections); `children` are nested `Section`s. Built by `TextDoc.sections()`.
-    Sizes are rolled up by reusing `TextDoc.size` over the section's paragraphs, so every
+    any subsections); `children` are nested `Section`s. Built by `FlexDoc.sections()`.
+    Sizes are rolled up by reusing `FlexDoc.size` over the section's paragraphs, so every
     `TextUnit` aggregates uniformly.
 
     Two views of the same content, both derived (nothing stored as counts):
@@ -45,7 +45,7 @@ class Section:
     content: list[Paragraph]
     children: list[Section]
     source_text: str = ""
-    _doc: TextDoc | None = field(default=None, compare=False, repr=False)
+    _doc: FlexDoc | None = field(default=None, compare=False, repr=False)
 
     def _all_blocks(self) -> list[Block]:
         """The whole-document structural parse, shared via the owning doc's cache when
@@ -71,7 +71,7 @@ class Section:
 
     def blocks(self) -> list[Block]:
         """
-        The structural block tree (see `TextDoc.blocks`) restricted to this section's
+        The structural block tree (see `FlexDoc.blocks`) restricted to this section's
         own content — the heading and the blocks it owns, excluding subsections. Spans
         are document-absolute, and the slice is density-invariant like the whole-document
         tree, so per-section block-type tallies are spacing-independent.
@@ -99,19 +99,19 @@ class Section:
     def size(self, unit: TextUnit, subtree: bool = True) -> int:
         """
         Size in `unit`, rolled up over the whole subtree by default (`subtree=True`) or
-        the section's own content only (`subtree=False`). Reuses `TextDoc.size`.
+        the section's own content only (`subtree=False`). Reuses `FlexDoc.size`.
         """
-        # Local import: text_doc imports Section, so a module-level import would cycle.
-        from flexdoc.docs.text_doc import TextDoc
+        # Local import: flex_doc imports Section, so a module-level import would cycle.
+        from flexdoc.docs.flex_doc import FlexDoc
 
         paragraphs = self.subtree_paragraphs() if subtree else self.own_paragraphs()
-        return TextDoc(paragraphs).size(unit)
+        return FlexDoc(paragraphs).size(unit)
 
     def size_summary(self, subtree: bool = True) -> str:
-        from flexdoc.docs.text_doc import TextDoc
+        from flexdoc.docs.flex_doc import FlexDoc
 
         paragraphs = self.subtree_paragraphs() if subtree else self.own_paragraphs()
-        return TextDoc(paragraphs).size_summary()
+        return FlexDoc(paragraphs).size_summary()
 
     def links(self) -> list[Link]:
         """

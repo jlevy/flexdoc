@@ -1,13 +1,13 @@
 from textwrap import dedent
 
-from flexdoc.docs.text_doc import TextDoc
+from flexdoc.docs import FlexDoc
 from flexdoc.docs.token_mapping import TokenMapping
 from flexdoc.docs.wordtoks import wordtokenize
 
 
 def test_offset_mapping():
-    doc1 = TextDoc.from_text("This is a simple test with some words.")
-    doc2 = TextDoc.from_text(
+    doc1 = FlexDoc.from_text("This is a simple test with some words.")
+    doc2 = FlexDoc.from_text(
         "This is<-PARA-BR->a simple pytest adding other words.<-SENT-BR->And another sentence."
     )
 
@@ -68,7 +68,7 @@ def test_offset_mapping_longer():
     )
 
     doc1_wordtoks = wordtokenize(doc1)
-    doc2_wordtoks = list(TextDoc.from_text(doc2).as_wordtoks())
+    doc2_wordtoks = list(FlexDoc.from_text(doc2).as_wordtoks())
 
     mapping = TokenMapping(doc1_wordtoks, doc2_wordtoks)
 

@@ -1,10 +1,9 @@
-from flexdoc.docs import SentIndex
-from flexdoc.docs.text_doc import TextDoc
+from flexdoc.docs import FlexDoc, SentIndex
 from flexdoc.docs.wordtoks import BOF_TOK, EOF_TOK
 
 
 def test_sub_doc_is_independent_copy():
-    doc = TextDoc.from_text(
+    doc = FlexDoc.from_text(
         "The first sentence here. The second sentence here.\n\nAnother paragraph here now."
     )
     before = doc.reassemble()
@@ -15,7 +14,7 @@ def test_sub_doc_is_independent_copy():
 
 
 def test_sub_paras_is_independent_copy():
-    doc = TextDoc.from_text("Paragraph one here today.\n\nParagraph two here today.")
+    doc = FlexDoc.from_text("Paragraph one here today.\n\nParagraph two here today.")
     before = doc.reassemble()
     sub = doc.sub_paras(0, 0)
     sub.paragraphs[0].sentences[0].text = "MUTATED."
@@ -24,7 +23,7 @@ def test_sub_paras_is_independent_copy():
 
 
 def test_empty_doc_as_wordtoks_bof_eof():
-    doc = TextDoc.from_text("")
+    doc = FlexDoc.from_text("")
     # Empty doc with boundary tokens yields just BOF/EOF (mapped to a sentinel), no crash.
     assert list(doc.as_wordtoks(bof_eof=True)) == [BOF_TOK, EOF_TOK]
     assert list(doc.as_wordtoks(bof_eof=False)) == []

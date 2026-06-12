@@ -8,9 +8,9 @@ from __future__ import annotations
 
 from textwrap import dedent
 
+from flexdoc.docs import FlexDoc
 from flexdoc.docs.collect import collect
 from flexdoc.docs.node import NodeKind
-from flexdoc.docs.text_doc import TextDoc
 
 
 def test_footnote_ref_collected_with_span_and_label():
@@ -21,7 +21,7 @@ def test_footnote_ref_collected_with_span_and_label():
         [^note]: Second definition.
         """).strip()
     refs = collect(
-        TextDoc.from_text(src).node_table(), kinds={NodeKind.footnote_ref}, recursive=True
+        FlexDoc.from_text(src).node_table(), kinds={NodeKind.footnote_ref}, recursive=True
     )
 
     assert [r.attrs["label"] for r in refs] == ["1", "note"]
@@ -33,5 +33,5 @@ def test_footnote_ref_collected_with_span_and_label():
 
 def test_footnote_definition_is_not_a_reference():
     src = "[^1]: only a definition, no reference.\n"
-    table = TextDoc.from_text(src).node_table()
+    table = FlexDoc.from_text(src).node_table()
     assert collect(table, kinds={NodeKind.footnote_ref}, recursive=True) == []

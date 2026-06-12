@@ -8,7 +8,7 @@
 import logging
 from textwrap import dedent
 
-from flexdoc.docs import BOF_TOK, EOF_TOK, PARA_BR_TOK, TextDoc, TokenMapping, search_tokens
+from flexdoc.docs import BOF_TOK, EOF_TOK, PARA_BR_TOK, FlexDoc, TokenMapping, search_tokens
 from flexdoc.html import ContentNotFound, TimestampExtractor
 
 logging.basicConfig(format=">> %(message)s")
@@ -47,7 +47,7 @@ def backfill_timestamps(target_text: str, source_text: str) -> str:
     print(target_text)
 
     # Parse the target document into wordtoks.
-    target_doc = TextDoc.from_text(target_text)
+    target_doc = FlexDoc.from_text(target_text)
     extractor = TimestampExtractor(source_text)
     source_wordtoks = extractor.wordtoks
 

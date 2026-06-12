@@ -1,3 +1,7 @@
+# pyright: reportImportCycles=false
+# Type-only cycles with node_table.py (TYPE_CHECKING import of FlexDoc) and sections.py
+# (TYPE_CHECKING/function-local imports of FlexDoc). No runtime cycle exists.
+
 from __future__ import annotations
 
 import threading
@@ -59,23 +63,23 @@ _DerivedT = TypeVar("_DerivedT")
 
 def _memoized_derivation(
     attr_name: str,
-) -> Callable[[Callable[[TextDoc], _DerivedT]], Callable[[TextDoc], _DerivedT]]:
+) -> Callable[[Callable[[FlexDoc], _DerivedT]], Callable[[FlexDoc], _DerivedT]]:
     """
-    Memoize a zero-arg `TextDoc` derivation into `attr_name`, computed at most once.
+    Memoize a zero-arg `FlexDoc` derivation into `attr_name`, computed at most once.
 
     Filling the cache is the only state change that happens during a read, and it is
     idempotent and thread-safe: a lock-free fast path returns an already-cached value,
     otherwise the instance's reentrant lock serializes the first computation so
     concurrent readers compute it once and all observe the same object. This is sound
     only because every memoized derivation is a pure, deterministic function of the
-    immutable-after-parse `source_text` (see the `TextDoc` contract); the lock is
+    immutable-after-parse `source_text` (see the `FlexDoc` contract); the lock is
     reentrant so a derivation may call other memoized derivations (e.g. `node_table()`
     uses `blocks()` and `links()`).
     """
 
-    def decorator(func: Callable[[TextDoc], _DerivedT]) -> Callable[[TextDoc], _DerivedT]:
+    def decorator(func: Callable[[FlexDoc], _DerivedT]) -> Callable[[FlexDoc], _DerivedT]:
         @wraps(func)
-        def wrapper(self: TextDoc) -> _DerivedT:
+        def wrapper(self: FlexDoc) -> _DerivedT:
             cached = getattr(self, attr_name)
             if cached is not None:
                 return cached
@@ -92,7 +96,7 @@ def _memoized_derivation(
 
 
 @dataclass
-class TextDoc:
+class FlexDoc:
     """
     A class for parsing and handling documents consisting of sentences and paragraphs
     of text. Preserves original text, tracking offsets of each sentence and paragraph.
@@ -100,7 +104,7 @@ class TextDoc:
 
     Contract and intended use:
 
-    - A `TextDoc` is a snapshot of a *parsed source document*, meant for analysis
+    - A `FlexDoc` is a snapshot of a *parsed source document*, meant for analysis
       (sizing, classifying, diffing, windowing) and for generating *new* text via
       `reassemble()`. It is not a live, self-updating DOM.
 
@@ -122,7 +126,7 @@ class TextDoc:
       references tracking your edits: after editing, `original_text`, the `offsets`,
       and cached values like `Paragraph.block_type` still describe the *original*
       blocks. To get offsets/classification for edited content, re-parse with
-      `TextDoc.from_text(doc.reassemble())`.
+      `FlexDoc.from_text(doc.reassemble())`.
 
     - `filtered()` returns an independent deep copy; `iter_paragraphs()` and the
       `paragraphs`/`sentences` lists expose this document's live objects.
@@ -176,7 +180,7 @@ class TextDoc:
     def __getstate__(self) -> dict[str, object]:
         # Pickle/deepcopy only the source data. The reentrant lock is not pickleable and
         # the derived caches (incl. the marko parse) re-derive on demand, so both are
-        # dropped here and recreated in `__setstate__`. This keeps `TextDoc` copyable and
+        # dropped here and recreated in `__setstate__`. This keeps `FlexDoc` copyable and
         # picklable despite holding a lock.
         return {"paragraphs": self.paragraphs, "source_text": self.source_text}
 
@@ -211,7 +215,7 @@ class TextDoc:
     @tally_calls(level="warning", min_total_runtime=5)
     def from_text(
         cls, text: str, sentence_splitter: Splitter = default_sentence_splitter
-    ) -> TextDoc:
+    ) -> FlexDoc:
         """
         Parse a document from a string. Paragraphs are split on blank lines (two or
         more newlines, including blank lines that contain only whitespace). The
@@ -258,11 +262,11 @@ class TextDoc:
         return split_frontmatter(self.source_text)[1]
 
     @classmethod
-    def from_wordtoks(cls, wordtoks: list[str]) -> TextDoc:
+    def from_wordtoks(cls, wordtoks: list[str]) -> FlexDoc:
         """
         Parse a document from a list of wordtoks.
         """
-        return TextDoc.from_text(join_wordtoks(wordtoks))
+        return FlexDoc.from_text(join_wordtoks(wordtoks))
 
     def reassemble(self) -> str:
         """
@@ -521,7 +525,7 @@ class TextDoc:
 
         return last_fit_index, last_fit_offset
 
-    def sub_doc(self, first: SentIndex, last: SentIndex | None = None) -> TextDoc:
+    def sub_doc(self, first: SentIndex, last: SentIndex | None = None) -> FlexDoc:
         """
         Get a sub-document. Inclusive ranges. Preserves original paragraph and sentence offsets.
         """
@@ -564,16 +568,16 @@ class TextDoc:
 
         # Deep-copy so the sub-document is an independent value: callers (and transform
         # helpers like remove_window_br) must not mutate the original through a slice.
-        return TextDoc([deepcopy(p) for p in sub_paras], source_text=self.source_text)
+        return FlexDoc([deepcopy(p) for p in sub_paras], source_text=self.source_text)
 
-    def sub_paras(self, start: int, end: int | None = None) -> TextDoc:
+    def sub_paras(self, start: int, end: int | None = None) -> FlexDoc:
         """
         Get a sub-document containing a range of paragraphs. Returns an independent deep
         copy, so mutating the sub-document does not affect this one.
         """
         if end is None:
             end = len(self.paragraphs) - 1
-        return TextDoc(
+        return FlexDoc(
             [deepcopy(p) for p in self.paragraphs[start : end + 1]],
             source_text=self.source_text,
         )
@@ -607,7 +611,7 @@ class TextDoc:
         *,
         include: set[BlockType] | None = None,
         exclude: set[BlockType] | None = None,
-    ) -> TextDoc:
+    ) -> FlexDoc:
         """
         Return a new sub-document containing only the paragraphs matching the given
         `BlockType` filter, e.g.
@@ -618,7 +622,7 @@ class TextDoc:
         of this document: editing one does not affect the other. (Use `iter_paragraphs`
         to edit this document's paragraphs in place.)
         """
-        return TextDoc(
+        return FlexDoc(
             [deepcopy(para) for para in self.iter_paragraphs(include=include, exclude=exclude)],
             source_text=self.source_text,
         )
@@ -665,7 +669,7 @@ class TextDoc:
         if unit == TextUnit.wordtoks:
             return base_size + n_para_breaks
 
-        raise ValueError(f"Unsupported unit for TextDoc: {unit}")
+        raise ValueError(f"Unsupported unit for FlexDoc: {unit}")
 
     def size_summary(self) -> str:
         nbytes = self.size(TextUnit.bytes)
@@ -769,4 +773,4 @@ class TextDoc:
 
     @override
     def __str__(self):
-        return f"TextDoc({self.size_summary()})"
+        return f"FlexDoc({self.size_summary()})"

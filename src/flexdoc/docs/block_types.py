@@ -1,5 +1,5 @@
 """
-Markdown block classification, shared by `text_doc` (per-paragraph block typing) and
+Markdown block classification, shared by `flex_doc` (per-paragraph block typing) and
 `block_tree` (whole-document structural parsing). Kept in its own module so both can
 depend on it without an import cycle.
 
@@ -54,7 +54,7 @@ class BlockType(StrEnum):
     Likewise, a fenced code block containing a blank line can be split across
     blocks. For exact block boundaries, preserved nesting, and reliable
     per-list-item granularity, use the whole-document structural view
-    `TextDoc.blocks()` (see `block_tree`).
+    `FlexDoc.blocks()` (see `block_tree`).
     """
 
     paragraph = "paragraph"

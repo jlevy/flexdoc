@@ -7,13 +7,15 @@
 **Status:** Stage 1 shipped (chopdiff, PR #26 merged). Stage 2 Steps 1–3 (extract +
 scaffold + verify) and Stage 2.5 (pre-publish design refinement, from the 2026-06-12
 review) are done in this repo, tracked as beads `flexdoc-7yfb/gvzk/3xhq/hqi1/32s0/
-6a5i/6off/tfg8/mbdt` (all closed). Steps 4–5 (publish + rewire chopdiff) are pending.
-Stages 3–5 are forward-looking.
+6a5i/6off/tfg8/mbdt` (closed), plus the 2.5 addendum (`TextDoc` → `FlexDoc` rename and
+root entry point; beads `flexdoc-bx3j/jfiq` closed). The root-surface definition and
+implementation remain open as beads `flexdoc-l0lc` → `flexdoc-bift`. Steps 4–5
+(publish + rewire chopdiff) are pending. Stages 3–5 are forward-looking.
 
 > **Repo note.** This is flexdoc's copy of the extraction plan. It was authored in
 > chopdiff (where Stage 1 happened) and now lives in the extracted package, which is the
 > Stage 2 destination. Where the original runbook said "the new repo," that repo is
-> *this* one. Cross-references to chopdiff's plan specs and `docs/textdoc-spec.md` were
+> *this* one. Cross-references to chopdiff's plan specs and `docs/flexdoc-spec.md` were
 > copied alongside it under `docs/project/` so the design history travels with the model.
 
 ## Overview
@@ -186,7 +188,7 @@ from the merged Stage-1 tree; **re-verify each fact against the source before re
       PEP 723 `# dependencies` block listed `chopdiff`, not `flexdoc` (it worked only
       because flexdoc shipped inside the chopdiff wheel). Rewritten to `flexdoc`; two
       docstrings that described "chopdiff's" features were reframed to flexdoc.
-- [x] Copy the **design history**: `docs/textdoc-spec.md` (design of record), the research
+- [x] Copy the **design history**: `docs/flexdoc-spec.md` (design of record), the research
       briefs under `docs/project/research/`, and the plan specs
       `plan-2026-05-29-unified-document-model.md`, `plan-2026-06-11-structural-metadata.md`,
       `plan-2026-05-31-doc-model-refinements.md`, `plan-2026-05-31-golden-doc-testing.md`,
@@ -318,6 +320,51 @@ Verified after the stage: `make lint` clean, 305 tests green (goldens unchanged)
 examples run, `uv build` + isolated-venv wheel smoke test exercising the new API
 (`paragraph_at_offset`, settled exports) passes.
 
+### Stage 2.5 addendum (2026-06-12): `TextDoc` → `FlexDoc` and the root entry point
+
+Maintainer-decided after a naming review: the package's central class should carry the
+package's name. The deciding argument is that the two names' accuracy trends in
+opposite directions — `TextDoc` gets more wrong as the annotation/synthetic/layout
+layers land, `FlexDoc` gets more right — and the pre-publish window plus the pending
+chopdiff rewire makes this the one nearly-free moment for the rename. The known
+caveat is recorded honestly: `FlexDoc` slightly over-promises on editing (only the
+textual layer is mutable; structural layers are read-only projections until the
+cross-layer edit phases), which the class docstring's contract addresses.
+
+- [x] **Rename `TextDoc` → `FlexDoc`** (bead `flexdoc-bx3j`), executed with
+      `uvx repren@latest` in three literal passes (`TextDoc`→`FlexDoc`,
+      `text_doc`→`flex_doc`, `textdoc-spec`→`flexdoc-spec`): class, module
+      (`flex_doc.py`; `test_flex_doc.py` follows), and the design of record
+      (`docs/flexdoc-spec.md`, retitled "FlexDoc and DocGraph"). Spec §13 rewritten to
+      deliberately **reclaim the name** from the abandoned `BlockDoc`/`SectionDoc`
+      branch that coincidentally also used "FlexDoc": today the name means only this
+      class. History docs (the review, copied plans/briefs) keep their `TextDoc` prose
+      as historical record; only spec path references were updated. Goldens and the
+      DocGraph wire format are name-free (verified) and unchanged; the JSON Schema was
+      regenerated (one embedded docstring reference). Tests now import `FlexDoc` from
+      the package surface; src-internal imports stay module-direct.
+- [x] **Root entry point** (bead `flexdoc-jfiq`): `from flexdoc import FlexDoc` works;
+      the root `__init__` docstring now presents it as the primary entry point;
+      README's example uses the root import; the CI wheel-smoke job and a contract
+      test (`tests/test_root_api.py`) pin root-vs-canonical identity and the exact
+      root `__all__`. This amends Stage 5's earlier "submodule-only" stance by
+      maintainer decision.
+- [ ] **Requirement — define the root-level API surface** (bead `flexdoc-l0lc`, gating
+      `flexdoc-bift`): decide exactly which symbols belong at the flexdoc root beyond
+      `FlexDoc`. Candidates: `DocGraph`, `collect`, `SpanRef`, `TextUnit`, `BlockType`,
+      `NodeKind`/`Layer`. Working criteria: a symbol earns root placement only if it
+      appears in the first ten lines of typical use; wordtok/diff internals and the
+      html helpers stay submodule-only; every root addition needs a contract-test
+      entry in `tests/test_root_api.py`. Deliverable: a maintainer-approved surface
+      list recorded here (or in the Stage 3 surface spec), then implemented by bead
+      `flexdoc-bift`.
+
+Re-verified after the addendum: `make lint` clean, 307 tests green (goldens still
+unchanged), examples run, isolated-venv wheel smoke via the root import passes.
+chopdiff's Step 5 rewire gains the class rename (46 occurrences across 7 files,
+mechanical) in the same already-breaking release; the migration note is one pass:
+`chopdiff.docs.TextDoc` → `flexdoc.FlexDoc`.
+
 ### Step 4 — publish flexdoc (pending; maintainer-gated; after Stage 2.5)
 
 - [ ] Land Stage 2.5 first, so 0.1.0's first published API is the refined one (no
@@ -325,7 +372,7 @@ examples run, `uv build` + isolated-venv wheel smoke test exercising the new API
       targets the final names in one pass.
 - [ ] Confirm the distribution name `flexdoc` is available on PyPI — verified available
       2026-06-12 (pypi.org returns 404 for `flexdoc`); re-check at publish time. Resolve
-      the textdoc-spec §13 name collision (Stage 2.5 / Open Questions). Configure the
+      the flexdoc-spec §13 name collision (Stage 2.5 / Open Questions). Configure the
       PyPI Trusted Publisher for `jlevy/flexdoc` (`docs/publishing.md`).
 - [ ] Tag and publish `flexdoc 0.1.0` (its own version line) via `publish.yml`. Publishing
       is irreversible; it is the maintainer's call to trigger.
@@ -356,7 +403,7 @@ examples run, `uv build` + isolated-venv wheel smoke test exercising the new API
 What makes flexdoc flexible is a shape: a **stable node table over a single source-grounded
 coordinate space**, with the document's many structures expressed as **independent,
 composable parse layers** rather than one privileged tree. This is the architecture the
-design of record (`docs/textdoc-spec.md`, principles P1–P5) and the unified-document-model
+design of record (`docs/flexdoc-spec.md`, principles P1–P5) and the unified-document-model
 plan settled, much of which already ships. The granularity the vision asks for falls out of
 three properties:
 
@@ -388,7 +435,7 @@ forthcoming specs rather than frozen here.
 - [ ] Make the driving use cases first-class and tested — deep textual analysis,
       source-grounded annotation/cleanup, reparse-stable editing — with worked examples.
 - [ ] Land the remaining unified-document-model phases (annotation, cross-layer edits,
-      layout) in flexdoc; the model core already ships (textdoc-spec §14).
+      layout) in flexdoc; the model core already ships (flexdoc-spec §14).
 - [ ] Add the optional **analyzer interface** for the grammar/language axis (opt-in backends,
       light core preserved); deepen the Markdown and other-structure axes as needed.
 - [ ] Document the extension contract (add a `Layer`/`NodeKind`/`attrs`/analyzer); revisit
@@ -413,13 +460,12 @@ standalone surface. Most can land before or alongside Stage 3.
       offset comment, and the `doc_structure.py` sample prose now say flexdoc. The one
       remaining mention — `flexdoc/__init__.py` noting that chopdiff builds on flexdoc — is
       deliberate, describing the package relationship.
-- [x] **Decide flexdoc's top-level public surface (resolved for Stage 2: keep
-      submodule-only).** `flexdoc/__init__.py` exposes no root API by design and its
-      docstring defers convenience re-exports "so the top-level API is designed once rather
-      than piecemeal" — adding curated re-exports (e.g. `TextDoc`, `collect`, `SpanRef`)
-      piecemeal at extraction time would contradict that recorded intent. Root re-exports
-      are therefore part of Stage 3's "settle the public surface," where the whole API is
-      designed together. Revisit there.
+- [x] **Decide flexdoc's top-level public surface (superseded 2026-06-12).** Initially
+      resolved as "keep submodule-only," matching the docstring's design-once intent.
+      Amended by maintainer decision with the `FlexDoc` rename: the root now exports the
+      single entry point (`from flexdoc import FlexDoc`; see the Stage 2.5 addendum),
+      and the *full* root surface is defined deliberately via beads
+      `flexdoc-l0lc` (definition, gating) and `flexdoc-bift` (implementation).
 - [x] **Resolve the FlexDoc naming collision / trim the design-history docs** — moved into
       Stage 2.5's docs-and-polish sweep, since both must land before 0.1.0 publishes.
 - [ ] **Audit docstrings/`README` examples** for correctness against the standalone API
@@ -469,19 +515,22 @@ standalone surface. Most can land before or alongside Stage 3.
 
 ## Open Questions
 
-- **flexdoc distribution name.** Confirm `flexdoc` is available on PyPI before Step 4; if
-  taken, pick an alternative. Also resolve the textdoc-spec §13 name collision (Stage 5).
+- **flexdoc distribution name.** Confirm `flexdoc` is available on PyPI before Step 4
+  (verified available 2026-06-12; re-check at publish). The spec §13 name collision is
+  resolved: the name was deliberately reclaimed for the `FlexDoc` class (Stage 2.5
+  addendum).
 - **`token_diffs` long-term home.** Forced into flexdoc for v1 by the `docs` cycle; whether
   to relocate the diff primitives later is open (Stage 3).
-- **flexdoc's top-level public API.** Submodule-only today; whether to add curated root-level
-  re-exports is a Stage 3/Stage 5 decision.
+- **flexdoc's root API surface beyond `FlexDoc`.** The entry point is root-exported; which
+  further symbols earn root placement is the open definition task (bead `flexdoc-l0lc`,
+  gating `flexdoc-bift`), feeding Stage 3's full surface design.
 - **Depth and backends of the grammar/language axis**, **which "other structures" to
   prioritize**, and **the extension-interface shape** — flexdoc Stage-3 decisions, constrained
   by the light-core and supply-chain principles.
 
 ## References
 
-- Design of record: [`docs/textdoc-spec.md`](../../../textdoc-spec.md).
+- Design of record: [`docs/flexdoc-spec.md`](../../../flexdoc-spec.md).
 - Unified document model (houses the model flexdoc owns; synthetic layer = its Phase 3 / this
   plan's Stage 4): [`plan-2026-05-29-unified-document-model.md`](plan-2026-05-29-unified-document-model.md).
 - Markdown-layer completion (prerequisite):

@@ -2,7 +2,7 @@
 
 flexdoc is a document model for powerful text parsing and processing in Markdown: a
 source-grounded, layered model of Markdown and text. It parses a document into a
-`TextDoc`/`DocGraph`, lets you query its structure across independent layers with a
+`FlexDoc`/`DocGraph`, lets you query its structure across independent layers with a
 single `collect()` primitive, and anchors spans and edits with `SpanRef` so they survive
 a reparse.
 
@@ -23,10 +23,10 @@ uv add flexdoc
 
 ## Usage
 
-flexdoc has no root-level public API by design; import from the submodules, which carry
-the explicit public surfaces:
+The primary entry point is `FlexDoc`, importable from the package root; the full public
+surfaces live in the submodules:
 
-- `flexdoc.docs` — `TextDoc`, `Paragraph`, `Sentence`, `Section`, `Block`, `BlockType`,
+- `flexdoc.docs` — `FlexDoc`, `Paragraph`, `Sentence`, `Section`, `Block`, `BlockType`,
   the node table, `collect()`, `DocGraph`, `SpanRef`, token diffs/mappings, and
   word-token utilities.
 - `flexdoc.html` — html-in-md, html/plaintext conversion, HTML tag helpers, the content
@@ -34,9 +34,9 @@ the explicit public surfaces:
 - `flexdoc.util` — read-time and token-count estimation.
 
 ```python
-from flexdoc.docs import TextDoc
+from flexdoc import FlexDoc
 
-doc = TextDoc.from_text("# Title\n\nHello world. This is a second sentence.\n")
+doc = FlexDoc.from_text("# Title\n\nHello world. This is a second sentence.\n")
 
 # Round-trips back to normalized Markdown.
 print(doc.reassemble())
@@ -49,7 +49,7 @@ See [examples/](examples/) for worked scripts (run any with `uv run examples/<na
 
 ## Project Docs
 
-- Design of record: [docs/textdoc-spec.md](docs/textdoc-spec.md).
+- Design of record: [docs/flexdoc-spec.md](docs/flexdoc-spec.md).
 - The extraction program and the model's design history:
   [docs/project/specs/active/](docs/project/specs/active/).
 - For how to install uv and Python, see [installation.md](docs/installation.md).
