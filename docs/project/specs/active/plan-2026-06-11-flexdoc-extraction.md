@@ -422,8 +422,12 @@ mechanical) in the same already-breaking release; the migration note is one pass
   2026-06-12 (pypi.org returns 404 for `flexdoc`); re-check at publish time.
   Resolve the flexdoc-spec §13 name collision (Stage 2.5 / Open Questions).
   Configure the PyPI Trusted Publisher for `jlevy/flexdoc` (`docs/publishing.md`).
-- [ ] Tag and publish `flexdoc 0.1.0` (its own version line) via `publish.yml`.
-  Publishing is irreversible; it is the maintainer’s call to trigger.
+- [x] Tagged and published `flexdoc 0.1.0` (2026-06-12): release-notes PR merged, GitHub
+  release v0.1.0 created, `publish.yml` succeeded on its first trusted-publishing run,
+  and the package was verified live on PyPI (wheel + sdist) with a clean-venv install
+  exercising the root API. Note: the install check must run outside the repo, since the
+  project's own cool-off excludes the just-published version.
+
 
 ### Step 5 — rewire chopdiff to the external flexdoc (pending; the breaking release)
 
