@@ -4,7 +4,7 @@ All notable changes to flexdoc are documented here.
 This project uses [semantic versioning](https://semver.org/); while pre-1.0, breaking
 changes bump the **minor** version (see `docs/publishing.md`).
 
-## 0.1.1 (2026-06-13)
+## 0.2.0 (unreleased)
 
 Correctness fixes and a completed inline/heading/link surface for the document-metrics
 use case (`docs/project/specs/active/plan-2026-06-13-metrics-use-case.md`, issue #6).

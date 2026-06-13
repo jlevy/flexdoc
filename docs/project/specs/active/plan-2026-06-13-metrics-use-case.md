@@ -6,7 +6,9 @@
 
 **Status:** Implemented (2026-06-13). All beads
 (`flexdoc-yhzm/w3uk/xjl8/0xky/jnvt/hwcl/1jrc`) landed; 322 tests pass, lint clean.
-Release prep (`flexdoc-aa0l`) covers the CHANGELOG; tagging is the maintainer's action.
+Targeted at **0.2.0** (breaking changes → pre-1.0 minor bump); the release is **not** cut
+here — the version is labeled `0.2.0 (unreleased)` and the tag is held pending final
+review. Release prep (`flexdoc-aa0l`) covers the CHANGELOG; tagging is the maintainer's action.
 
 Two findings during implementation:
 
@@ -29,7 +31,7 @@ regex metrics (`metrics.py`) in favor of flexdoc's typed document model. Migrati
 against flexdoc 0.1.0 surfaced two correctness bugs and a cluster of API gaps,
 filed together as [#6](https://github.com/jlevy/flexdoc/issues/6) (link-form gaps
 recapped from [#5](https://github.com/jlevy/flexdoc/issues/5)). This plan lands all
-of them in one cleanup release, **0.1.1**.
+of them in one release, **0.2.0**.
 
 Two of the items are bugs where the model violates its own documented contract:
 `collect()`/`node_table()`/`graph()` raise on valid Markdown (against P17 and the
@@ -69,7 +71,8 @@ input / strict internal contracts), not source-level compatibility.
 ## Non-Goals
 
 - **Fuzzy / edit-distance `SpanRef` re-anchoring** (#5 item 4, spec §14) — forward-looking,
-  stays deferred.
+  stays deferred for 0.2.0. The proper solution is mapped in **Appendix A** so #5 is fully
+  accounted for.
 - **The synthetic layer** (`flexdoc-t5rh`, `TextNode`/`parse_divs`) — unrelated, stays
   on its own track.
 - **A uniform opt-in strict-validation / diagnostics pass** (spec §2, §14) — out of scope.
@@ -151,7 +154,7 @@ pprose docs, including `AGENTS.md` (3 of 4 headings lost, each `##` preceded by 
 ### Approach
 
 Two correctness fixes first (Phase 1), then the typed-surface completion (Phase 2),
-shipped together as 0.1.1. Each fix is grounded in the existing design rather than a
+shipped together as 0.2.0. Each fix is grounded in the existing design rather than a
 bolt-on: Bug 1 is fixed structurally by scoping inline discovery to block spans; Bug 2
 is fixed by making the implementation match spec §7; heading metadata follows the
 established `*_info` pattern; link forms extend the existing `Link`/`block_links` path.
@@ -290,10 +293,10 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
 - [x] `link_taxonomy.md` corpus doc + link-form accounting invariant (Test-Suite
       Hardening (a)/(b)): every `links()` entry has a true-link form; `len(links()) +
       len(images()) + #ref-defs` equals the table's `link`/`image`/`link_ref_def` count.
-- [x] `CHANGELOG.md` 0.1.1 section (Fixed: Bug 1, Bug 2; Added: heading level on `Block`,
+- [x] `CHANGELOG.md` 0.2.0 section (Fixed: Bug 1, Bug 2; Added: heading level on `Block`,
       `LinkForm`/`Link.form` + reference-definition surfacing/`link_ref_def`,
       `prose_text()`, `block_at_offset()`, `collect()` inline ergonomics). Update
-      `TODO.md` / spec references; tag `v0.1.1` per `docs/publishing.md`; close #6 (and
+      `TODO.md` / spec references; tag `v0.2.0` per `docs/publishing.md`; close #6 (and
       the folded-in #5 items).
 
 ## Testing Strategy
@@ -388,13 +391,14 @@ are part of the bead work below; this section is the rationale and the checklist
 
 ## Rollout Plan
 
-Single **0.1.1** release covering both phases. As a preview-stage library with no
-downstream-compatibility obligations, changes take the cleanest shape (e.g. `Link.form`
-is required, not a defaulted add-on); there are no compatibility shims or aliases. Note:
-`docs/publishing.md`'s letter would treat signature changes as a pre-1.0 **minor** (0.2.0)
-bump — shipping as 0.1.1 is the maintainer's call given preview status and is trivial to
-relabel if desired. CHANGELOG records the fixes and additions; the tag triggers the PyPI
-publish per `docs/publishing.md`.
+Single **0.2.0** release covering both phases. The release carries breaking signature
+changes (e.g. `Link.form` is required, not a defaulted add-on; `links()` / `collect()`
+defaults adjusted), so per `docs/publishing.md`'s pre-1.0 rule — breaking changes bump the
+**minor** version — this is a 0.2.0 minor bump, not a patch. As a preview-stage library with
+no downstream-compatibility obligations there are no compatibility shims or aliases.
+CHANGELOG records the fixes and additions; the release is **not** being cut here — the
+version is labeled `0.2.0 (unreleased)` and the `v0.2.0` tag (which triggers the PyPI publish
+per `docs/publishing.md`) is held pending final review.
 
 ## Resolved Decisions
 
@@ -412,7 +416,8 @@ Settled in review (2026-06-13):
 
 ## Open Questions
 
-None outstanding. Version is set to 0.1.1 (relabel to 0.2.0 trivially if preferred; see
+None outstanding. Version is **0.2.0** — the breaking signature changes are a pre-1.0 minor
+bump per `docs/publishing.md`; the release is not yet cut (held for final review, see
 Rollout).
 
 ## References
@@ -425,6 +430,100 @@ Rollout).
 - `docs/project/specs/active/plan-2026-06-11-structural-metadata.md` — the `*_info`
   pattern this extends with `HeadingInfo`.
 - `docs/publishing.md` — release/versioning.
+
+## Appendix A: Deferred — Fuzzy `SpanRef` Re-anchoring (#5 item 4)
+
+Mapped here so #5 is fully accounted for; **not implemented in 0.2.0** (spec §11 and §14
+keep it deferred). #5 item 4 wants a `SpanRef` to re-anchor after the two-phase linter edits
+the text around — or inside — a referenced span. Today `resolve()` (`span_ref.py`) is an
+exact ladder: offset fast path, then exact full-text search, then prefix/suffix
+disambiguation among the exact occurrences; if `exact` itself was edited it returns `None` by
+design (a wrong location is never guessed). Fuzzy re-anchoring adds approximate recovery as
+an explicit, scored, opt-in fallback.
+
+### Approach: extend the ladder, leave the exact contract intact
+
+Run the existing exact ladder first and unchanged (it stays pure and total), then add fuzzy
+rungs that fire only when the exact ladder misses and the caller opts in — the battle-tested
+Hypothesis / Apache Annotator order
+(`docs/project/research/research-2026-05-30-span-references.md` §3):
+
+1. offset fast path (exact text at `start`/`end`) — implemented.
+2. exact quote search, prefix/suffix-disambiguated — implemented.
+3. **offset-hinted fuzzy search**: best approximate match of `exact` within a bounded window
+   around the `start` hint (match on `prefix+exact+suffix` when `exact` is short and the
+   context disambiguates).
+4. **full-document fuzzy search**: if there is no hint or the window misses, the best
+   above-threshold match across the whole source.
+
+### API shape (recommended)
+
+Keep `resolve()` exact-only and add a separate, explicit entry point, so an approximate hit
+is never silently taken for an exact one:
+
+```python
+@dataclass
+class FuzzyMatch:
+    span: tuple[int, int]
+    score: float  # 0..1 similarity; 1.0 == exact
+    exact: bool
+
+def resolve_fuzzy(
+    span_ref: SpanRef,
+    source_text: str,
+    *,
+    min_score: float = 0.7,
+    hint_radius: int | None = None,
+) -> FuzzyMatch | None: ...
+```
+
+`resolve_fuzzy()` delegates to `resolve()` first (returning `score=1.0, exact=True` on a
+hit), then tries rungs 3–4 and returns the best match at or above `min_score`, else `None`.
+This keeps the spec's "failure is a value" posture and the "quote canonical, offset a hint"
+principle: a caller must opt in to a guess and receives a confidence it can gate on (e.g.
+require a high score before re-applying a correction). `resolve()` and `resolve_and_update()`
+are untouched; the addition is purely additive to `span_ref.py`.
+
+### Matching primitive and the dependency gate
+
+The standard primitive is Google **diff-match-patch** `match_main` (Bitap) with a hint offset
+and threshold (research §3). Two paths:
+
+- **diff-match-patch (higher fidelity).** Bitap caps the pattern near 32 characters, so for a
+  longer `exact` match on a ≤32-char anchor slice (the head of `exact`, or the prefix/suffix
+  window) and verify/extend the full quote around the located point. It adds a third-party
+  dependency, which under this repo's policy needs the 14-day cool-off plus a recorded
+  exception (`SUPPLY-CHAIN-SECURITY.md`, `pyproject.toml` `exclude-newer`). That gate is the
+  main reason to hold it out of 0.2.0.
+- **No-dependency fallback.** A bounded `difflib.SequenceMatcher.ratio()` (stdlib; consistent
+  with the existing `cydifflib` use) scored over candidate windows around the hint and across
+  the document. Lower recall than Bitap but ships with no new dependency and no cool-off.
+
+Recommendation: prototype with the stdlib fallback to settle the API and thresholds at zero
+supply-chain cost, and adopt diff-match-patch only if the fallback's recall proves
+insufficient.
+
+### Decisions to settle at implementation time
+
+- `min_score` default and the edit-distance-to-similarity normalization, tuned so genuinely
+  deleted text returns `None` rather than a wrong location.
+- Tie-breaking among near-equal candidates: nearest the offset hint first, then best
+  prefix/suffix agreement (reuse `_best_match`'s scoring over the fuzzy candidates).
+- Whether `resolve_and_update()` ever writes back a fuzzy span — recommend no: keep the
+  exact-only hint contract; a fuzzy result is returned, not persisted as an exact hint.
+- Offsets stay Unicode code points (P1); the primitive must operate on the code-point string.
+
+### Testing
+
+A corpus of `(original SpanRef, edited source)` pairs — edits inside `exact`, inside
+`prefix`/`suffix`, span relocation, and genuine deletion — asserting the recovered span for
+the recoverable cases, a descending `score`, and `None` (not a wrong guess) when the quote is
+truly gone.
+
+### Tracking
+
+A new deferred bead (`tbd`), blocked on the supply-chain decision above; spec §11 and §14
+remain the source of record.
 
 <!-- This document follows common-doc-guidelines.md.
 See github.com/jlevy/practical-prose and review guidelines before editing.
