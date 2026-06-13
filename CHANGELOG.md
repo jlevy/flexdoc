@@ -19,14 +19,20 @@ the API additions below include breaking signature changes (see **Changed**).
   inline span escaping its parent block and raised a layer-nesting error. Inline discovery
   is now scoped per leaf content block, so an inline node can never straddle a block
   boundary; links/images/definitions are parented by full containment.
-- **`sections()` / `toc()` recover every heading `blocks()` finds.** Headings were
-  re-derived from the blank-line paragraph view, dropping tight headings and headings
-  preceded by a non-blank line (e.g. an HTML-comment marker). They now derive from the
-  structural `heading` blocks, as the spec already specified.
+- **`sections()` / `toc()` recover every heading `blocks()` finds, and own their content
+  correctly.** Headings were re-derived from the blank-line paragraph view, dropping tight
+  headings and headings preceded by a non-blank line (e.g. an HTML-comment marker), and
+  section content was bucketed from that same view, so a heading glued to its body lost the
+  body. Sections now derive entirely from the structural block tree — the heading set *and*
+  each section's own content (`own_paragraphs()` / `blocks()` / sizes) come from the section's
+  source region — so tight and marker-preceded headings own exactly their content.
 - **Section spans nest correctly** even when a blank-line paragraph straddles a later
   heading (e.g. an embedded `---` block marko reads as a setext heading): each section
   spans from its heading to the next same-or-higher heading (trimmed), which nests by
   construction. Byte-identical to the prior span for well-formed documents.
+- **Reference-definition nodes attach to their block.** A `link_ref_def` span included the
+  line's trailing newline and escaped the containing paragraph, leaving the node unparented
+  so a block-scoped `collect()` missed it; spans are now trimmed like every structural block.
 
 ### Added
 
@@ -40,8 +46,8 @@ the API additions below include breaking signature changes (see **Changed**).
   and via `links(forms={LinkForm.reference_definition})`.
 - **`FlexDoc.prose_text()`**: prose-only text for editorial linting — prose blocks with
   inline code dropped, links/images replaced by their text/alt, inline-HTML tags dropped
-  (wrapped text kept), from verbatim source slices so spacing like a spaced em-dash is
-  preserved.
+  (wrapped text kept), reference-definition lines excluded, from verbatim source slices so
+  spacing like a spaced em-dash is preserved.
 - **`FlexDoc.block_at_offset()`**: the innermost structural `Block` containing an offset
   (the structural counterpart of `paragraph_at_offset`; the name, freed in 0.1.0, now
   correctly returns a `Block`).

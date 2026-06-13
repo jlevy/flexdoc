@@ -1,8 +1,9 @@
 ---
 name: heading_edges
 description: Adversarial heading layouts - a heading preceded by an HTML-comment marker
-  with no blank line, a setext heading, a level jump, and headings nested in a blockquote
-  and a list item (which must not start document sections). Exercises sections()/toc().
+  with no blank line, a setext heading, a level jump, headings nested in a blockquote and a
+  list item (which must not start document sections), a fully glued (tight) heading/body
+  pair, and a duplicate top-level title. Exercises sections()/toc() and section content.
 ---
 # Top
 
@@ -24,3 +25,12 @@ Setext title
 
 - ### Heading inside a list item (not a document section)
 - second item
+
+# Top
+
+A second top-level section with a duplicate title (sections are identified by span, not title).
+
+# Tight outer
+Intro glued directly under the tight outer heading with no blank line.
+## Tight inner
+Body glued directly under the tight inner heading with no blank line.

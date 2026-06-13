@@ -359,15 +359,16 @@ are part of the bead work below; this section is the rationale and the checklist
   corpus doc, so the golden diff *and* the invariants both guard it):
   - `inline_pathology.md` — empty fence immediately followed by a line mixing indented
     and inline backticks; unequal-length backtick runs; adjacent code spans; inline code
-    containing `]`/`)`; a linked image. (Bug-1 class.)
-  - `heading_edges.md` — tight headings (no blank lines); a heading preceded by an
-    HTML-comment marker with no blank line (the `AGENTS.md` pattern); setext h1/h2; a
-    level jump (h1→h3); a heading inside a blockquote and inside a list item (must *not*
-    become a document section); duplicate titles. (Bug-2 class.)
+    containing `]`/`)`; and a plain inline image. (Bug-1 class.)
+  - `heading_edges.md` — a heading preceded by an HTML-comment marker with no blank line
+    (the `AGENTS.md` pattern); a setext h1; a level jump (to h4); a heading inside a
+    blockquote and inside a list item (must *not* become a document section); a fully glued
+    (tight) heading/body pair; and a duplicate top-level title. (Bug-2 / section-content
+    class.)
   - `link_taxonomy.md` — inline, reference (definition elsewhere), collapsed `[x][]` and
     shortcut `[x]` references, autolink `<url>`, bare URL, inline image, reference image,
-    linked image `[![alt](i)](u)`, and used *and* unused reference definitions. (Exercises
-    every `LinkForm`.)
+    and used *and* unused reference definitions. (Exercises every `LinkForm`; linked images
+    `[![alt](i)](u)` are a deliberate non-goal — see the note at the top of this plan.)
 - **(b) Cross-projection invariants** added to `test_model_invariants` (corpus-wide, so
   every present and future doc is held to them):
   - `len(toc()) == count of top-level `heading` blocks`; each `Section.title` equals its

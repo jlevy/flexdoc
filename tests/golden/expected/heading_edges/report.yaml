@@ -1,7 +1,7 @@
 source:
-  sha256: 3696ad4025e1a183d94897d2f344be23140dd5a8dd0f10ea81b889ff44f6870e
-  length: 369
-  size_summary: 368 bytes (20 lines, 8 paras, 8 sents, 51 words, ~97 tok)
+  sha256: 6ac66a8fb02f20130b8e84c19a7068e2eae27b48037cf2adb3fa0e4ccaced3fe
+  length: 644
+  size_summary: 643 bytes (29 lines, 11 paras, 12 sents, 98 words, ~170 tok)
 base_blocks:
   cover_ok: true
   uncovered_nonspace: 0
@@ -51,11 +51,36 @@ base_blocks:
     type: list_item
     span: 355:368
     text: '- second item'
+  - depth: 0
+    type: heading
+    span: 370:375
+    text: '# Top'
+  - depth: 0
+    type: paragraph
+    span: 377:472
+    text: A second top-level section with a duplicate title (sections are 
+      identified by span, not title).
+  - depth: 0
+    type: heading
+    span: 474:487
+    text: '# Tight outer'
+  - depth: 0
+    type: paragraph
+    span: 488:558
+    text: Intro glued directly under the tight outer heading with no blank line.
+  - depth: 0
+    type: heading
+    span: 559:573
+    text: '## Tight inner'
+  - depth: 0
+    type: paragraph
+    span: 574:643
+    text: Body glued directly under the tight inner heading with no blank line.
 sections:
 - level: 1
   title: Top
   span: 0:165
-  words: 18
+  words: 15
 - level: 2
   title: Marker preceded
   span: 106:165
@@ -68,6 +93,18 @@ sections:
   title: Jumped to level four
   span: 194:368
   words: 33
+- level: 1
+  title: Top
+  span: 370:472
+  words: 17
+- level: 1
+  title: Tight outer
+  span: 474:643
+  words: 30
+- level: 2
+  title: Tight inner
+  span: 559:643
+  words: 15
 node_table:
 - id: n0001
   layer: markdown
@@ -153,121 +190,216 @@ node_table:
   span: 355:368
   parent: n0014
 - id: n0016
+  layer: markdown
+  kind: heading
+  span: 370:375
+  attrs:
+    level: 1
+- id: n0017
+  layer: markdown
+  kind: paragraph
+  span: 377:472
+- id: n0018
+  layer: markdown
+  kind: heading
+  span: 474:487
+  attrs:
+    level: 1
+- id: n0019
+  layer: markdown
+  kind: paragraph
+  span: 488:558
+- id: n0020
+  layer: markdown
+  kind: heading
+  span: 559:573
+  attrs:
+    level: 2
+- id: n0021
+  layer: markdown
+  kind: paragraph
+  span: 574:643
+- id: n0022
   layer: document
   kind: section
   span: 0:165
   attrs:
     level: 1
     title: Top
-- id: n0017
+- id: n0023
   layer: document
   kind: section
   span: 106:165
-  parent: n0016
+  parent: n0022
   attrs:
     level: 2
     title: Marker preceded
-- id: n0018
+- id: n0024
   layer: document
   kind: section
   span: 167:368
   attrs:
     level: 1
     title: Setext title
-- id: n0019
+- id: n0025
   layer: document
   kind: section
   span: 194:368
-  parent: n0018
+  parent: n0024
   attrs:
     level: 4
     title: Jumped to level four
-- id: n0020
+- id: n0026
+  layer: document
+  kind: section
+  span: 370:472
+  attrs:
+    level: 1
+    title: Top
+- id: n0027
+  layer: document
+  kind: section
+  span: 474:643
+  attrs:
+    level: 1
+    title: Tight outer
+- id: n0028
+  layer: document
+  kind: section
+  span: 559:643
+  parent: n0027
+  attrs:
+    level: 2
+    title: Tight inner
+- id: n0029
   layer: textual
   kind: paragraph
   span: 0:5
-- id: n0021
+- id: n0030
   layer: textual
   kind: sentence
   span: 0:5
-  parent: n0020
+  parent: n0029
   attrs:
     text: '# Top'
-- id: n0022
+- id: n0031
   layer: textual
   kind: paragraph
   span: 7:35
-- id: n0023
+- id: n0032
   layer: textual
   kind: sentence
   span: 7:35
-  parent: n0022
+  parent: n0031
   attrs:
     text: Intro under the top heading.
-- id: n0024
+- id: n0033
   layer: textual
   kind: paragraph
   span: 37:124
-- id: n0025
+- id: n0034
   layer: textual
   kind: sentence
   span: 37:124
-  parent: n0024
+  parent: n0033
   attrs:
     text: '<!-- a marker comment with no blank line before the next heading --> ##
       Marker preceded'
-- id: n0026
-  layer: textual
-  kind: paragraph
-  span: 126:165
-- id: n0027
-  layer: textual
-  kind: sentence
-  span: 126:165
-  parent: n0026
-  attrs:
-    text: Body under the marker-preceded heading.
-- id: n0028
-  layer: textual
-  kind: paragraph
-  span: 167:192
-- id: n0029
-  layer: textual
-  kind: sentence
-  span: 167:192
-  parent: n0028
-  attrs:
-    text: Setext title ============
-- id: n0030
-  layer: textual
-  kind: paragraph
-  span: 194:219
-- id: n0031
-  layer: textual
-  kind: sentence
-  span: 194:219
-  parent: n0030
-  attrs:
-    text: '#### Jumped to level four'
-- id: n0032
-  layer: textual
-  kind: paragraph
-  span: 221:295
-- id: n0033
-  layer: textual
-  kind: sentence
-  span: 221:295
-  parent: n0032
-  attrs:
-    text: '> ## Heading inside a blockquote (not a document section) > > Quoted body.'
-- id: n0034
-  layer: textual
-  kind: paragraph
-  span: 297:368
 - id: n0035
   layer: textual
+  kind: paragraph
+  span: 126:165
+- id: n0036
+  layer: textual
+  kind: sentence
+  span: 126:165
+  parent: n0035
+  attrs:
+    text: Body under the marker-preceded heading.
+- id: n0037
+  layer: textual
+  kind: paragraph
+  span: 167:192
+- id: n0038
+  layer: textual
+  kind: sentence
+  span: 167:192
+  parent: n0037
+  attrs:
+    text: Setext title ============
+- id: n0039
+  layer: textual
+  kind: paragraph
+  span: 194:219
+- id: n0040
+  layer: textual
+  kind: sentence
+  span: 194:219
+  parent: n0039
+  attrs:
+    text: '#### Jumped to level four'
+- id: n0041
+  layer: textual
+  kind: paragraph
+  span: 221:295
+- id: n0042
+  layer: textual
+  kind: sentence
+  span: 221:295
+  parent: n0041
+  attrs:
+    text: '> ## Heading inside a blockquote (not a document section) > > Quoted body.'
+- id: n0043
+  layer: textual
+  kind: paragraph
+  span: 297:368
+- id: n0044
+  layer: textual
   kind: sentence
   span: 297:368
-  parent: n0034
+  parent: n0043
   attrs:
     text: '- ### Heading inside a list item (not a document section) - second item'
+- id: n0045
+  layer: textual
+  kind: paragraph
+  span: 370:375
+- id: n0046
+  layer: textual
+  kind: sentence
+  span: 370:375
+  parent: n0045
+  attrs:
+    text: '# Top'
+- id: n0047
+  layer: textual
+  kind: paragraph
+  span: 377:472
+- id: n0048
+  layer: textual
+  kind: sentence
+  span: 377:472
+  parent: n0047
+  attrs:
+    text: A second top-level section with a duplicate title (sections are 
+      identified by span, not title).
+- id: n0049
+  layer: textual
+  kind: paragraph
+  span: 474:643
+- id: n0050
+  layer: textual
+  kind: sentence
+  span: 474:558
+  parent: n0049
+  attrs:
+    text: '# Tight outer Intro glued directly under the tight outer heading with no
+      blank line.'
+- id: n0051
+  layer: textual
+  kind: sentence
+  span: 559:643
+  parent: n0049
+  attrs:
+    text: '## Tight inner Body glued directly under the tight inner heading with no
+      blank line.'

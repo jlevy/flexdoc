@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import threading
-from bisect import bisect_right
 from collections import defaultdict
 from collections.abc import Callable, Generator, Iterable, Iterator
 from copy import deepcopy
@@ -56,6 +55,50 @@ A paragraph break: a run of whitespace containing two or more newlines (a blank
 line). Blank lines that contain only spaces, tabs, or `\r` still count, and any
 number of consecutive blank lines collapse into a single break.
 """
+
+
+def _rstrip(text: str, lo: int, hi: int) -> int:
+    """The largest `end` in `(lo, hi]` with no trailing whitespace (or `lo` if the range is
+    all whitespace), so a heading-derived section span ends at its last non-space content,
+    matching the structural block tree's trimmed spans."""
+    while hi > lo and text[hi - 1].isspace():
+        hi -= 1
+    return hi
+
+
+def _segment_paragraphs(
+    source: str,
+    start: int,
+    end: int,
+    sentence_splitter: Splitter = default_sentence_splitter,
+) -> list[Paragraph]:
+    """
+    Segment `source[start:end]` into blank-line `Paragraph`s with absolute document offsets.
+
+    The document's paragraph rule (a blank line is two or more newlines), factored out of
+    `from_text` so a `Section` can derive the editing view of its own structural region.
+    Segmenting per region — rather than bucketing the whole document's paragraphs by heading
+    offset — is what makes section content correct when a heading is glued to its body: the
+    document-level split would merge a glued heading, its body, and the next heading into one
+    paragraph, while the per-region split owns exactly the region's content.
+    """
+    region = source[start:end]
+    spans: list[tuple[int, int]] = []
+    cursor = 0
+    for m in _PARA_BREAK_REGEX.finditer(region):
+        spans.append((cursor, m.start()))
+        cursor = m.end()
+    spans.append((cursor, len(region)))
+    paragraphs: list[Paragraph] = []
+    for span_start, span_end in spans:
+        piece = region[span_start:span_end]
+        stripped = piece.strip()
+        if stripped:
+            # Absolute offset of the stripped content within `source`.
+            doc_offset = start + span_start + (len(piece) - len(piece.lstrip()))
+            paragraphs.append(Paragraph.from_text(stripped, doc_offset, sentence_splitter))
+    return paragraphs
+
 
 # Inline kinds stripped from prose: code spans, links/images (kept as their text/alt),
 # inline-HTML tags, and footnote references. See `FlexDoc.prose_text`.
@@ -258,21 +301,7 @@ class FlexDoc:
         # (and thus sentences, sizes, and prose counts) are built over the body only, with
         # absolute offsets into the full `text` (kept as `source_text`). See `frontmatter`.
         _raw, content_offset = split_frontmatter(text)
-        body = text[content_offset:]
-        paragraphs: list[Paragraph] = []
-        spans: list[tuple[int, int]] = []
-        start = 0
-        for m in _PARA_BREAK_REGEX.finditer(body):
-            spans.append((start, m.start()))
-            start = m.end()
-        spans.append((start, len(body)))
-        for span_start, span_end in spans:
-            piece = body[span_start:span_end]
-            stripped = piece.strip()
-            if stripped:
-                # Doc offset of the stripped content within the original text (absolute).
-                doc_offset = content_offset + span_start + (len(piece) - len(piece.lstrip()))
-                paragraphs.append(Paragraph.from_text(stripped, doc_offset, sentence_splitter))
+        paragraphs = _segment_paragraphs(text, content_offset, len(text), sentence_splitter)
         return cls(paragraphs=paragraphs, source_text=text)
 
     @property
@@ -393,71 +422,48 @@ class FlexDoc:
 
     @_memoized_derivation("_cached_sections")
     def _section_list(self) -> list[Section]:
-        # Sections derive from the top-level structural `heading` blocks (spec section 7),
-        # so every heading `blocks()` finds starts a section — including tight headings and
-        # headings preceded by a non-blank line, which the blank-line paragraph view cannot
-        # see as a heading. Level and title come from each block's parser-authoritative
-        # `HeadingInfo`.
+        # Sections derive entirely from the top-level structural `heading` blocks (spec
+        # section 7): each heading owns the structural region from its end to the next heading
+        # of any level (its own content), and nests under the most recent heading of a lower
+        # level. Both the heading set and the owned content come from the block tree, not the
+        # blank-line paragraph view, so a heading glued to its body (tight) or preceded by a
+        # non-blank line (marker) still owns exactly its content — the paragraph view merges a
+        # glued heading with its body and cannot attribute it.
         source_text = self.source_text or self.reassemble()
         heading_blocks = [b for b in self.blocks() if b.type == BlockType.heading]
         if not heading_blocks:
             return []
 
-        para_by_start = {para.span[0]: para for para in self.paragraphs}
-        heading_starts = [b.span[0] for b in heading_blocks]
-        section_by_start: dict[int, Section] = {}
+        starts = [b.span[0] for b in heading_blocks]
+        levels = [b.heading_level or 1 for b in heading_blocks]
+        n = len(heading_blocks)
         roots: list[Section] = []
         stack: list[Section] = []
-        for block in heading_blocks:
-            start = block.span[0]
-            level = block.heading_level or 1
-            # Reuse the coinciding blank-line paragraph when one starts at the heading
-            # block (the well-formed case, byte-identical to the editing view); otherwise
-            # synthesize a heading paragraph from the block's exact source slice.
-            heading_para = para_by_start.get(start) or Paragraph.from_text(
-                source_text[block.span[0] : block.span[1]], start
+        for i, block in enumerate(heading_blocks):
+            level = levels[i]
+            # Subtree span: heading to the next heading of equal-or-higher level (nests by
+            # construction). Own span: heading to the very next heading of ANY level —
+            # everything past it is a subsection or a later section, never own content.
+            subtree_end = next(
+                (starts[j] for j in range(i + 1, n) if levels[j] <= level), len(source_text)
             )
+            own_end = starts[i + 1] if i + 1 < n else len(source_text)
+            span = (block.span[0], _rstrip(source_text, block.span[1], subtree_end))
+            own_span = (block.span[0], _rstrip(source_text, block.span[1], own_end))
             section = Section(
-                heading=heading_para,
+                heading_block=block,
                 level=level,
-                content=[],
+                content=_segment_paragraphs(source_text, block.span[1], own_span[1]),
                 children=[],
                 source_text=source_text,
                 _doc=self,
+                _span=span,
+                _own_span=own_span,
             )
             while stack and stack[-1].level >= level:
                 stack.pop()
             (stack[-1].children if stack else roots).append(section)
             stack.append(section)
-            section_by_start[start] = section
-
-        # Each section spans from its heading to the start of the next heading at an
-        # equal-or-higher level (or end of content), trimmed of trailing whitespace. This
-        # nests by construction (a deeper heading's boundary never exceeds its parent's), so
-        # section spans never overlap even when a blank-line paragraph straddles a later
-        # heading (e.g. an embedded `---` block marko reads as a setext heading). For
-        # well-formed docs the trimmed boundary equals the last content paragraph's end.
-        levels = [b.heading_level or 1 for b in heading_blocks]
-        for i, block in enumerate(heading_blocks):
-            end = len(source_text)
-            for j in range(i + 1, len(heading_blocks)):
-                if levels[j] <= levels[i]:
-                    end = heading_starts[j]
-                    break
-            while end > block.span[1] and source_text[end - 1].isspace():
-                end -= 1
-            section_by_start[block.span[0]]._span = (block.span[0], end)
-
-        # Assign each non-heading paragraph to the section of the nearest preceding heading
-        # block (the innermost open section at that offset). Heading paragraphs themselves
-        # and preamble paragraphs (before the first heading) are not content.
-        heading_start_set = set(heading_starts)
-        for para in self.paragraphs:
-            if para.span[0] in heading_start_set:
-                continue
-            idx = bisect_right(heading_starts, para.span[0]) - 1
-            if idx >= 0:
-                section_by_start[heading_starts[idx]].content.append(para)
         return roots
 
     @_memoized_derivation("_cached_links")
@@ -509,9 +515,19 @@ class FlexDoc:
         """
         table = self.node_table()
         source = self.source_text or self.reassemble()
+        # Reference-definition lines (`[id]: url`) are structurally their own blocks but are
+        # not prose; drop any block covered by a `link_ref_def` node so definition ids and
+        # URLs do not leak into the editorial-lint text.
+        ref_def_spans = [
+            n.source_span
+            for n in table.nodes.values()
+            if n.kind == NodeKind.link_ref_def and n.source_span is not None
+        ]
         parts: list[str] = []
         for block, _depth in walk_blocks(self.blocks()):
             if block.type not in (BlockType.paragraph, BlockType.heading):
+                continue
+            if any(rs[0] <= block.span[0] and block.span[1] <= rs[1] for rs in ref_def_spans):
                 continue
             text = self._block_prose_text(block, table, source)
             if block.type == BlockType.heading:

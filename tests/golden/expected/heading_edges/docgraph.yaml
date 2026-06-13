@@ -2,7 +2,7 @@ schema: DocGraph/v0.1
 source:
   format: markdown
   offset_unit: unicode_code_points
-  sha256: 3696ad4025e1a183d94897d2f344be23140dd5a8dd0f10ea81b889ff44f6870e
+  sha256: 6ac66a8fb02f20130b8e84c19a7068e2eae27b48037cf2adb3fa0e4ccaced3fe
 nodes:
 - id: n0001
   kind: heading
@@ -128,53 +128,128 @@ nodes:
     start: 355
     end: 368
 - id: n0016
+  kind: heading
+  layer: markdown
+  source_span:
+    start: 370
+    end: 375
+  attrs:
+    level: 1
+- id: n0017
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 377
+    end: 472
+- id: n0018
+  kind: heading
+  layer: markdown
+  source_span:
+    start: 474
+    end: 487
+  attrs:
+    level: 1
+- id: n0019
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 488
+    end: 558
+- id: n0020
+  kind: heading
+  layer: markdown
+  source_span:
+    start: 559
+    end: 573
+  attrs:
+    level: 2
+- id: n0021
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 574
+    end: 643
+- id: n0022
   kind: section
   layer: document
   children:
-  - n0017
+  - n0023
   source_span:
     start: 0
     end: 165
   attrs:
     level: 1
     title: Top
-- id: n0017
+- id: n0023
   kind: section
   layer: document
-  parent: n0016
+  parent: n0022
   source_span:
     start: 106
     end: 165
   attrs:
     level: 2
     title: Marker preceded
-- id: n0018
+- id: n0024
   kind: section
   layer: document
   children:
-  - n0019
+  - n0025
   source_span:
     start: 167
     end: 368
   attrs:
     level: 1
     title: Setext title
-- id: n0019
+- id: n0025
   kind: section
   layer: document
-  parent: n0018
+  parent: n0024
   source_span:
     start: 194
     end: 368
   attrs:
     level: 4
     title: Jumped to level four
+- id: n0026
+  kind: section
+  layer: document
+  source_span:
+    start: 370
+    end: 472
+  attrs:
+    level: 1
+    title: Top
+- id: n0027
+  kind: section
+  layer: document
+  children:
+  - n0028
+  source_span:
+    start: 474
+    end: 643
+  attrs:
+    level: 1
+    title: Tight outer
+- id: n0028
+  kind: section
+  layer: document
+  parent: n0027
+  source_span:
+    start: 559
+    end: 643
+  attrs:
+    level: 2
+    title: Tight inner
 views:
   toc:
-  - n0016
-  - n0017
-  - n0018
-  - n0019
+  - n0022
+  - n0023
+  - n0024
+  - n0025
+  - n0026
+  - n0027
+  - n0028
   blocks:
   - n0001
   - n0002
@@ -191,3 +266,9 @@ views:
   - n0013
   - n0014
   - n0015
+  - n0016
+  - n0017
+  - n0018
+  - n0019
+  - n0020
+  - n0021

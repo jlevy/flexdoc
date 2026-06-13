@@ -1,8 +1,9 @@
 ---
 name: link_taxonomy
 description: Every link form - inline, reference, shortcut reference, autolink, bare URL,
-  inline image, reference image, linked image, and used and unused reference definitions -
-  to exercise LinkForm classification, images(), and reference-definition surfacing.
+  inline image, reference image, and used and unused reference definitions - to exercise
+  LinkForm classification, images(), and reference-definition surfacing. Linked images
+  `[![alt](i)](u)` are a deliberate non-goal; see the metrics-use-case plan.
 ---
 # Link taxonomy
 

@@ -2,7 +2,7 @@
 name: inline_pathology
 description: Adversarial inline constructs - an empty fenced block next to inline
   backtick runs (the cross-block pairing that once crashed node-table construction),
-  unequal backtick runs, a code span with brackets, and a linked image.
+  unequal backtick runs, a code span with brackets, and a plain inline image.
 ---
 # Inline pathology
 

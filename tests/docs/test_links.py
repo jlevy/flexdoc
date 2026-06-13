@@ -192,3 +192,17 @@ def test_images_and_reference_definitions_are_separate_from_links():
     # Reference definitions are reachable via forms, not the default.
     defs = doc.links(forms={LinkForm.reference_definition})
     assert [(d.text, d.url, d.title) for d in defs] == [("d", "https://def.example", "Title")]
+
+
+def test_linked_image_is_a_pinned_degradation():
+    """`[![alt](i)](u)` (an image wrapped in a link) is a deliberate non-goal: flowmark's
+    atomic span for the outer link stops at the inner image's `)`, so the inner image is
+    unlocatable (`span=None`) and the outer surfaces as a plain navigable link, not an image.
+    Pinned so the known degradation stays visible (see the metrics-use-case plan)."""
+    doc = FlexDoc.from_text(
+        "A linked image [![alt](https://img.example/i.png)](https://target.example).\n"
+    )
+    (image,) = doc.images()
+    assert image.span is None  # the wrapped image cannot be located
+    nav = doc.links()
+    assert len(nav) == 1 and nav[0].span is not None  # the outer is located, but as a link

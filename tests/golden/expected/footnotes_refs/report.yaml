@@ -174,7 +174,8 @@ node_table:
 - id: n0022
   layer: markdown
   kind: link_ref_def
-  span: 150:176
+  span: 150:175
+  parent: n0004
   attrs:
     url: https://docs.example
     text: d
@@ -183,7 +184,8 @@ node_table:
 - id: n0023
   layer: markdown
   kind: link_ref_def
-  span: 176:215
+  span: 176:214
+  parent: n0005
   attrs:
     url: https://spec.example
     text: s

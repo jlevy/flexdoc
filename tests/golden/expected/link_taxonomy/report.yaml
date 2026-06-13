@@ -227,7 +227,8 @@ node_table:
 - id: n0027
   layer: markdown
   kind: link_ref_def
-  span: 284:335
+  span: 284:334
+  parent: n0005
   attrs:
     url: https://reference.example
     text: ref
@@ -237,7 +238,8 @@ node_table:
 - id: n0028
   layer: markdown
   kind: link_ref_def
-  span: 335:372
+  span: 335:371
+  parent: n0006
   attrs:
     url: https://shortcut.example
     text: shortcut
@@ -246,7 +248,8 @@ node_table:
 - id: n0029
   layer: markdown
   kind: link_ref_def
-  span: 372:405
+  span: 372:404
+  parent: n0007
   attrs:
     url: https://img.example/c.png
     text: img
@@ -255,7 +258,8 @@ node_table:
 - id: n0030
   layer: markdown
   kind: link_ref_def
-  span: 405:438
+  span: 405:437
+  parent: n0008
   attrs:
     url: https://unused.example
     text: unused

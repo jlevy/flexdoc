@@ -174,6 +174,14 @@ def block_links(block_text: str, doc_offset: int, *, parsed: Document | None = N
         if not isinstance(element, LinkRefDef):
             continue
         s, e = block_span(element)
+        # Trim to the structural block's whitespace-trimmed extent: marko's block span for a
+        # reference definition includes the line's trailing newline, which would escape the
+        # containing paragraph's (trimmed) span and leave the node unparented — so a
+        # block-scoped `collect()` could not find it. Matches block_tree's span trimming.
+        while e > s and block_text[e - 1].isspace():
+            e -= 1
+        while s < e and block_text[s].isspace():
+            s += 1
         title = element.title.strip("\"'") if element.title else None
         result.append(
             Link(

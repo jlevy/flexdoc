@@ -472,6 +472,13 @@ def test_prose_text_strips_inline_markup_and_keeps_spacing():
     assert "<span>" not in prose and "`" not in prose
 
 
+def test_prose_text_excludes_reference_definitions():
+    """Reference-definition lines (`[id]: url`) are not prose: their ids and URLs must not
+    leak into the editorial-lint text, while the reference link is kept as its text."""
+    doc = FlexDoc.from_text("Text with [link][r].\n\n[r]: https://example.com\n")
+    assert doc.prose_text() == "Text with link."
+
+
 def test_block_at_offset_returns_innermost_block():
     from flexdoc.docs.block_types import BlockType
 

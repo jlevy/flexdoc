@@ -11,6 +11,7 @@ for the construction rules.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 from flexdoc.docs.block_tree import Block, parse_blocks
@@ -32,26 +33,32 @@ class Section:
     Sizes are rolled up by reusing `FlexDoc.size` over the section's paragraphs, so every
     `TextUnit` aggregates uniformly.
 
-    Two views of the same content, both derived (nothing stored as counts):
+    Both views derive from this section's source region (nothing stored as counts):
 
-    - the *editing* view — `content`, `own_paragraphs()`, `subtree_paragraphs()` —
-      returns the blank-line `Paragraph`s, matching the document's paragraph view;
-    - the *structural* view — `blocks()` — returns the density-invariant structural
-      `Block` tree scoped to this section.
+    - the *structural* view — `blocks()` / `subtree_blocks()` — the density-invariant
+      `Block` tree scoped to this section (its own content, or the whole subtree);
+    - the *editing* view — `content`, `own_paragraphs()`, `subtree_paragraphs()` — the
+      blank-line `Paragraph`s of the section's own region. For a well-formed document this
+      matches the document's paragraph view; when a heading is glued to its body it is the
+      per-region segmentation, so the body is owned by its heading rather than merged.
+
+    `heading_block` (with parser-authoritative `HeadingInfo`) is the structural source of
+    truth for the heading; `heading` is its projection into the editing view.
     """
 
-    heading: Paragraph
+    heading_block: Block
     level: int
     content: list[Paragraph]
     children: list[Section]
     source_text: str = ""
     _doc: FlexDoc | None = field(default=None, compare=False, repr=False)
-    # Heading-block-derived span (heading start to the next same-or-higher heading,
-    # trimmed), set by `FlexDoc._section_list`. Authoritative when present so section spans
-    # nest by construction even when a blank-line paragraph straddles a later heading; falls
-    # back to the subtree-paragraph extent for standalone sections. Derived, so excluded
-    # from equality/repr.
+    # Heading-derived spans, set by `FlexDoc._section_list` (heading start to, respectively,
+    # the next equal-or-higher heading and the very next heading of any level, trimmed). The
+    # subtree `_span` nests by construction; `_own_span` bounds this section's own content (no
+    # subsections). Both fall back to the paragraph extent for standalone sections. Derived,
+    # so excluded from equality/repr.
     _span: tuple[int, int] | None = field(default=None, compare=False, repr=False)
+    _own_span: tuple[int, int] | None = field(default=None, compare=False, repr=False)
 
     def _all_blocks(self) -> list[Block]:
         """The whole-document structural parse, shared via the owning doc's cache when
@@ -67,26 +74,52 @@ class Section:
             return self._doc.links()
         return block_links(self.source_text, 0)
 
+    @cached_property
+    def heading(self) -> Paragraph:
+        """The heading as an editing-view `Paragraph`, synthesized from `heading_block`'s
+        exact source slice (the structural block, not the document's blank-line paragraph
+        view, so a glued heading is never merged with its body)."""
+        start, end = self.heading_block.span
+        return Paragraph.from_text(self.source_text[start:end], start)
+
     @property
     def title(self) -> str:
-        return self.heading.heading_title() or ""
+        info = self.heading_block.heading_info
+        return info.title if info is not None else ""
 
     def own_paragraphs(self) -> list[Paragraph]:
         """The heading plus this section's own content paragraphs (no subsections)."""
         return [self.heading, *self.content]
 
+    @property
+    def own_span(self) -> tuple[int, int]:
+        """`[start, end)` of this section's own content (heading to the next heading of any
+        level, trimmed); excludes subsections. Set by `FlexDoc._section_list`; falls back to
+        the own-paragraph extent for standalone sections."""
+        if self._own_span is not None:
+            return self._own_span
+        own = self.own_paragraphs()
+        return own[0].span[0], own[-1].span[1]
+
     def blocks(self) -> list[Block]:
         """
-        The structural block tree (see `FlexDoc.blocks`) restricted to this section's
-        own content — the heading and the blocks it owns, excluding subsections. Spans
-        are document-absolute, and the slice is density-invariant like the whole-document
-        tree, so per-section block-type tallies are spacing-independent.
+        The structural block tree (see `FlexDoc.blocks`) restricted to this section's own
+        content — the heading and the blocks it owns, excluding subsections. Spans are
+        document-absolute and density-invariant like the whole-document tree, so per-section
+        block-type tallies are spacing-independent (and correct for glued headings, since the
+        scope is the structural `own_span`, not the blank-line paragraph extent).
         """
-        own = self.own_paragraphs()
-        start, end = own[0].span[0], own[-1].span[1]
-        return [
-            block for block in self._all_blocks() if start <= block.span[0] and block.span[1] <= end
-        ]
+        start, end = self.own_span
+        return [b for b in self._all_blocks() if start <= b.span[0] and b.span[1] <= end]
+
+    def subtree_blocks(self) -> list[Block]:
+        """
+        The structural block tree restricted to this section's whole subtree (own content plus
+        all subsections), scoped by `span`; the structural counterpart of
+        `subtree_paragraphs()`.
+        """
+        start, end = self.span
+        return [b for b in self._all_blocks() if start <= b.span[0] and b.span[1] <= end]
 
     def subtree_paragraphs(self) -> list[Paragraph]:
         """All paragraphs of this section and its subsections, in document order."""

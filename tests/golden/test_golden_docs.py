@@ -175,6 +175,22 @@ def test_model_invariants():
                 and p_span[0] <= n.source_span[0] <= n.source_span[1] <= p_span[1]
             ), f"{where}: inline {n.id} span {n.source_span} escapes parent {p_span}"
 
+        # Reference-definition nodes are block-attached, never deliberate roots: each
+        # link_ref_def with a span has a containing parent and is found scoped to it (the
+        # contract the escaped, untrimmed ref-def span broke).
+        for n in table.nodes.values():
+            if n.kind is not NodeKind.link_ref_def or n.source_span is None:
+                continue
+            assert n.parent is not None, f"{where}: link_ref_def {n.id} unparented"
+            p_span = table.nodes[n.parent].source_span
+            assert (
+                p_span is not None
+                and p_span[0] <= n.source_span[0] <= n.source_span[1] <= p_span[1]
+            ), f"{where}: link_ref_def {n.id} span {n.source_span} escapes parent {p_span}"
+            assert any(
+                c.id == n.id for c in td.collect(within=n.parent, kinds={NodeKind.link_ref_def})
+            ), f"{where}: link_ref_def {n.id} not found scoped to its block"
+
         # The public inline query path builds without raising for every inline kind (Bug 1
         # broke this through collect()/graph(), not only the internal build).
         for kind in INLINE_KINDS:
