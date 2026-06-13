@@ -93,11 +93,20 @@ access on the affected inputs (2 of 61 real docs in pprose).
 ```python
 from flexdoc import FlexDoc
 from flexdoc.docs.block_types import BlockType
-for src in ["\n## Heading\n\nbody\n", "# A\nintro\n## B\nbody\n"]:
+cases = [
+    "# A\nintro\n## B\nbody\n",              # tight: ## B glued below preceding text
+    "# T\n\n<!-- marker -->\n## S\n\nx\n",   # ## S preceded by a non-blank line
+]
+for src in cases:
     d = FlexDoc.from_text(src)
     n = sum(1 for b in d.blocks() if b.type == BlockType.heading)
-    print(n, len(d.toc()))   # blocks finds the headings; toc drops them
+    print(n, len(d.toc()))   # both print "2 1": blocks() finds both; toc() drops one
 ```
+
+(Verified against the current source: both cases give `blocks=2, toc=1`. A
+well-formed `# A\n\nintro\n\n## B\n\nbody` and a blank-led `\n## Heading\n\nbody`
+both give `2/2` and `1/1` respectively — the bug is specifically tight or
+non-blank-preceded headings.)
 
 `flex_doc._section_list` walks `self.paragraphs` and recognizes a heading only when a
 blank-line **paragraph**'s `heading_level()` is non-`None` — i.e. the heading must be
@@ -180,30 +189,34 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
 
 **Phase 2 — typed surface for metrics.**
 
-4. **Link `form` + reference definitions** (`links.py`, `node.py`, `node_table.py`,
-   `collect.py`). Add `LinkForm` (`StrEnum`: `inline`, `autolink`, `bare_url`,
-   `reference`, `image`, `reference_definition`) and a required `Link.form`. `block_links`
-   classifies each identity from how it was located: `inline` (a `markdown_link` atomic
-   containing `](`), `reference` (a `markdown_link` resolved by text, with the URL in a
-   separate definition), `autolink` (located with surrounding `<>`), `bare_url` (located
-   as a verbatim URL with no brackets). Reference definitions come parser-authoritatively
-   from marko's `Document.link_ref_defs` (`{id: (url, title)}`); spans are recovered by
-   locating the `[id]:` line in source. They are surfaced as `Link(form=reference_definition)`
-   in `links()` **and** as `NodeKind.link_ref_def` nodes in the node table (so
-   `collect(kinds={NodeKind.link_ref_def})` counts them) — #5 accepts either; doing both
-   is cheap and consistent. Images stay surfaced via the node-table atomic pass with
-   `NodeKind.image`; whether `links()` should also include them with `form=image` is an
-   open question (see below).
+4. **Link `form`, image access, and reference definitions** (`links.py`, `node.py`,
+   `node_table.py`, `collect.py`). Add `LinkForm` (`StrEnum`: `inline`, `autolink`,
+   `bare_url`, `reference`, `image`, `reference_definition`) and a required `Link.form`,
+   classified in `block_links` from how each identity was located: `inline` (a
+   `markdown_link` atomic containing `](`), `reference` (resolved by text against a
+   definition), `autolink` (surrounded by `<>`), `bare_url` (a verbatim URL, no brackets),
+   `image` (preceded by `!`; covers inline `![alt](url)` and reference `![alt][id]`, alt
+   text in `Link.text`).
+   `links()` returns **true links only by default** — `inline`, `reference`, `autolink`,
+   `bare_url` — and takes `links(forms: set[LinkForm] | None = None)` to retrieve any form
+   set; `images()` is a documented convenience for `links(forms={LinkForm.image})`. Image
+   and image-link access is therefore first-class and easy, just not the `links()` default.
+   Reference definitions come parser-authoritatively from marko's `Document.link_ref_defs`
+   (`{id: (url, title)}`), spans recovered by locating the `[id]:` line; they are surfaced
+   primarily as `NodeKind.link_ref_def` nodes (so `collect(kinds={NodeKind.link_ref_def})`
+   counts them) and are retrievable via `links(forms={LinkForm.reference_definition})` —
+   kept out of the default `links()` since a definition is not a link occurrence.
 
 5. **Prose-text projection** (`flex_doc.prose_text()`). A method returning prose-only
    text for editorial linting: take prose-bearing blocks (`paragraph`, `heading`;
    exclude `code`, `table`, `html`, `thematic_break`, and frontmatter), use each block's
    **verbatim source slice** (not `reassemble()`, to preserve `" — "` spacing), and strip
    inline non-prose spans via the node table — inline `code_span` removed, `link`/`image`
-   replaced by their text, `inline_html` / `footnote_ref` removed — joining blocks with
-   blank lines. Depends on Bug 1 being fixed (uses the node table). Default replacement
-   policy above; flagged as an open question, with a documented `collect()` recipe as the
-   fallback if the contract proves contentious (#6 need 4 accepts "or documented recipe").
+   replaced by their text/alt, `footnote_ref` removed, and inline-HTML **tags** removed
+   while the text they wrap is kept (`<span>foo</span> bar` becomes `foo bar`, since marko
+   emits each tag as its own `inline_html` node and the wrapped text is ordinary text) —
+   joining blocks with blank lines. Depends on Bug 1 being fixed (uses the node table).
+   Ships as a real method, not a `collect()` recipe.
 
 6. **Ergonomics** (`flex_doc.py`, `collect.py`). `FlexDoc.block_at_offset(offset) ->
    Block | None` — the innermost structural block whose span contains `offset`,
@@ -219,7 +232,9 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
   property. New `HeadingInfo` and `heading_info_for` in `flexdoc.docs.block_info`
   (exported from `flexdoc.docs`).
 - `Link`: new required `form: LinkForm` field; new `LinkForm` enum (exported from
-  `flexdoc.docs`). `links()` now includes `reference_definition` entries.
+  `flexdoc.docs`). `links()` defaults to true links; new `links(forms=...)` filter and
+  `images()` convenience; reference definitions are reached via `forms` or the node
+  table, not the default `links()`.
 - `NodeKind`: new `link_ref_def` member (a new kind in the cross-language `DocGraph`
   contract; any port must learn it).
 - `FlexDoc`: new `prose_text()` and `block_at_offset()` methods.
@@ -241,10 +256,11 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
       reuse/synthesize `Section.heading`; assign `content` by offset.
 - [ ] Regression tests: Bug 1 repro asserts no raise + correct inline nodes; Bug 2 repros
       assert `len(toc()) == #heading blocks` (tight and marker-preceded cases).
-- [ ] Golden corpus: add a backtick-straddling/empty-fence doc and a tight +
-      marker-preceded-heading doc; add a `test_model_invariants` check that `len(toc())`
-      equals the top-level heading-block count and every inline node's span ⊆ its parent.
-      Regenerate goldens (`UPDATE_GOLDEN=1`) and review the diff.
+- [ ] Golden corpus + invariants (Test-Suite Hardening (a)–(c)): add `inline_pathology.md`
+      and `heading_edges.md`; add the cross-projection invariants (toc-count ==
+      heading-block count, inline span ⊆ parent on the query surface, public inline
+      `collect()`/`graph()` build without raising); add the dogfood test over the repo's
+      own `.md`. Regenerate goldens (`UPDATE_GOLDEN=1`) and review the diff.
 
 ### Phase 2: Typed surface — links, prose text, ergonomics
 
@@ -255,6 +271,9 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
 - [ ] `FlexDoc.prose_text()` (node-table-backed strip); tests for inline-code/link
       stripping and `" — "` preservation.
 - [ ] `FlexDoc.block_at_offset()`; `collect()` inline-without-`recursive` fix; tests.
+- [ ] `link_taxonomy.md` corpus doc + link-form accounting invariant (Test-Suite
+      Hardening (a)/(b)): every `links()` entry has a true-link form; `len(links()) +
+      len(images()) + #ref-defs` equals the table's `link`/`image`/`link_ref_def` count.
 - [ ] `CHANGELOG.md` 0.1.1 section (Fixed: Bug 1, Bug 2; Added: heading level on `Block`,
       `LinkForm`/`Link.form` + reference-definition surfacing/`link_ref_def`,
       `prose_text()`, `block_at_offset()`, `collect()` inline ergonomics). Update
@@ -276,6 +295,81 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
 - `make lint` (zero ruff/basedpyright findings) and `make test` clean before each phase
   merges; goldens regenerated and reviewed for any intended projection change.
 
+## Why These Bugs Escaped the Tests
+
+These were not caught by a thin suite — the suite is substantial (golden artifacts
+plus programmatic invariants over a 7-document corpus). They escaped for specific,
+correctable reasons worth fixing at the root, because the *class* of each gap will
+recur otherwise.
+
+**The harness wiring was sound; the corpus and the invariant set were not.** Grounded
+in the current source:
+
+- **`node_table()` is already built for every corpus doc** (`test_model_invariants`),
+  and `_validate_layer_nesting` raises on exactly the Bug-1 condition. So Bug 1 would
+  have been caught the moment *any* corpus doc contained the pathological inline pattern
+  (an empty fenced block adjacent to inline backticks, so backtick pairing crosses a
+  block boundary). None of the seven docs do. This is a pure **corpus** gap.
+- **`doc_report` already serializes sections/TOC, the full node table, and links**
+  (debug.py), so a dropped heading *would* show in a golden `report.yaml` diff — but
+  only if a doc triggered it. Every corpus heading is blank-separated and the first line
+  of its paragraph (the one shape that works); none is tight or marker-preceded. So Bug 2
+  is invisible in the golden diff **and** in the invariants, which never assert any
+  cross-projection equality tying `sections()`/`toc()` back to `blocks()`.
+- **The invariants check internal consistency only** — the base-block partition (P13),
+  SpanRef round-trips, node-table reference integrity, DocGraph child validity, and
+  `reassemble()` idempotence. None ties two projections together. An invariant of the
+  form "`toc()` has one entry per top-level heading block" would have failed on the first
+  heading-bearing doc once it included a tight/marker-preceded heading.
+- **Link forms were never asserted.** `footnotes_refs.md` exercises autolinks, a
+  reference link, and reference definitions, but no test checks that they *classify*,
+  that a bare URL is distinguishable, or that a reference definition is counted — so the
+  whole missing taxonomy went unnoticed.
+- **`kitchen_sink.md` is broad, not adversarial.** It samples one clean instance of each
+  construct, not the messy combinations real documents contain. The pprose migration
+  found these precisely by running flexdoc over 61 real documents; the suite never
+  dogfooded real Markdown — and this repo's own `AGENTS.md` (headings preceded by
+  `<!-- ... -->` markers) reproduces Bug 2 on its own.
+
+## Test-Suite Hardening
+
+Root-cause fixes, landed *with* the bug fixes so each guards its own regression. (a)–(c)
+are part of the bead work below; this section is the rationale and the checklist.
+
+- **(a) Adversarial corpus docs** (each fixed bug's minimal repro becomes a permanent
+  corpus doc, so the golden diff *and* the invariants both guard it):
+  - `inline_pathology.md` — empty fence immediately followed by a line mixing indented
+    and inline backticks; unequal-length backtick runs; adjacent code spans; inline code
+    containing `]`/`)`; a linked image. (Bug-1 class.)
+  - `heading_edges.md` — tight headings (no blank lines); a heading preceded by an
+    HTML-comment marker with no blank line (the `AGENTS.md` pattern); setext h1/h2; a
+    level jump (h1→h3); a heading inside a blockquote and inside a list item (must *not*
+    become a document section); duplicate titles. (Bug-2 class.)
+  - `link_taxonomy.md` — inline, reference (definition elsewhere), collapsed `[x][]` and
+    shortcut `[x]` references, autolink `<url>`, bare URL, inline image, reference image,
+    linked image `[![alt](i)](u)`, and used *and* unused reference definitions. (Exercises
+    every `LinkForm`.)
+- **(b) Cross-projection invariants** added to `test_model_invariants` (corpus-wide, so
+  every present and future doc is held to them):
+  - `len(toc()) == count of top-level `heading` blocks`; each `Section.title` equals its
+    heading block's `HeadingInfo.title`.
+  - every located markdown inline node's span ⊆ its parent block's span — the nesting
+    guarantee asserted on the *query surface* across the whole corpus, not only at build.
+  - `node_table()`, `graph()`, and `collect(kinds=…, recursive=True)` for each inline
+    kind (`link`, `image`, `code_span`, `footnote_ref`, `link_ref_def`) build without
+    raising — exercising the *public* inline path Bug 1 broke, not just the internal build.
+  - link-form accounting: every `links()` entry has a true-link form, and
+    `len(links()) + len(images()) + #ref-defs` equals the count of `link` / `image` /
+    `link_ref_def` nodes in the table.
+- **(c) Dogfood real Markdown** (highest value, lowest cost): a test that parses every
+  `.md` under the repo (`docs/`, the specs, `AGENTS.md`, `README.md`, …) and asserts only
+  the invariants (no goldens). This mechanically reproduces the pprose discovery loop and
+  catches "crashes or loses data on real input" for free as the repo's own docs evolve;
+  `AGENTS.md` alone would have caught Bug 2.
+- **(d) Process**: adding the minimal repro to the corpus is the required closing step of
+  any document-model bug fix — the standing rule that turns each escape into a permanent
+  guard.
+
 ## Rollout Plan
 
 Single **0.1.1** release covering both phases. As a preview-stage library with no
@@ -283,23 +377,27 @@ downstream-compatibility obligations, changes take the cleanest shape (e.g. `Lin
 is required, not a defaulted add-on); there are no compatibility shims or aliases. Note:
 `docs/publishing.md`'s letter would treat signature changes as a pre-1.0 **minor** (0.2.0)
 bump — shipping as 0.1.1 is the maintainer's call given preview status and is trivial to
-relabel if desired (see Open Questions). CHANGELOG records the fixes and additions; the
-tag triggers the PyPI publish per `docs/publishing.md`.
+relabel if desired. CHANGELOG records the fixes and additions; the tag triggers the PyPI
+publish per `docs/publishing.md`.
+
+## Resolved Decisions
+
+Settled in review (2026-06-13):
+
+- **Images stay out of the `links()` default.** `links()` returns true links only;
+  `images()` and `links(forms={...})` provide first-class, documented access to images
+  and any other form. Reference definitions likewise come via the node table or
+  `links(forms=...)`, never the default — a definition is not a link occurrence.
+- **`prose_text()` drops inline-HTML tags but keeps the text they wrap**
+  (`<span>foo</span> bar` -> `foo bar`); inline code is dropped and links/images become
+  their text/alt. It ships as a real method, not a `collect()` recipe.
+- **Behavior fixes, not doc-only notes**, in every case — including the `collect()`
+  inline-without-`recursive` footgun.
 
 ## Open Questions
 
-1. **`links()` and images.** Surface images in `links()` with `form=image` (symmetry with
-   the other forms), or keep `links()` link-only and surface images only via the node
-   table's `NodeKind.image`? Recommendation: node-table only — `links()` stays "links,"
-   and `form` never returns `image` from `links()`.
-2. **`prose_text()` replacement policy.** Default proposed: inline code dropped,
-   links/images replaced by their text, inline-HTML/footnote-refs dropped. Confirm, or
-   downgrade to a documented `collect()` recipe in `usage.md`.
-3. **`collect()` inline ergonomics.** Behavior fix (inline-kind requests imply the
-   full-node candidate set) vs. a docstring-only note. Recommendation: behavior fix — the
-   silent `[]` is the documented footgun.
-4. **Version label.** Shipping as 0.1.1 per decision; relabel to 0.2.0 if you prefer to
-   follow `publishing.md`'s letter for signature changes. No code impact.
+None outstanding. Version is set to 0.1.1 (relabel to 0.2.0 trivially if preferred; see
+Rollout).
 
 ## References
 
