@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from flexdoc.docs.block_tree import Block, parse_blocks
-from flexdoc.docs.links import Link, block_links
+from flexdoc.docs.links import TRUE_LINK_FORMS, Link, block_links
 from flexdoc.docs.paragraphs import Paragraph
 from flexdoc.docs.sizes import TextUnit
 
@@ -46,6 +46,12 @@ class Section:
     children: list[Section]
     source_text: str = ""
     _doc: FlexDoc | None = field(default=None, compare=False, repr=False)
+    # Heading-block-derived span (heading start to the next same-or-higher heading,
+    # trimmed), set by `FlexDoc._section_list`. Authoritative when present so section spans
+    # nest by construction even when a blank-line paragraph straddles a later heading; falls
+    # back to the subtree-paragraph extent for standalone sections. Derived, so excluded
+    # from equality/repr.
+    _span: tuple[int, int] | None = field(default=None, compare=False, repr=False)
 
     def _all_blocks(self) -> list[Block]:
         """The whole-document structural parse, shared via the owning doc's cache when
@@ -91,8 +97,13 @@ class Section:
 
     @property
     def span(self) -> tuple[int, int]:
-        """`[start, end)` covering the heading through the end of the last subtree
-        paragraph."""
+        """`[start, end)` from the heading to the next same-or-higher heading (trimmed),
+        when set by `FlexDoc._section_list`; otherwise the subtree-paragraph extent (for
+        standalone sections). The heading-derived form guarantees sibling/parent spans nest
+        and do not overlap, which the subtree extent cannot when a blank-line paragraph
+        straddles a later heading."""
+        if self._span is not None:
+            return self._span
         paragraphs = self.subtree_paragraphs()
         return paragraphs[0].span[0], paragraphs[-1].span[1]
 
@@ -115,16 +126,18 @@ class Section:
 
     def links(self) -> list[Link]:
         """
-        All links in this section's subtree, in document order. Derived from a
-        document-level parse of `source_text` (so reference links resolve across
-        blocks) and filtered to links whose span falls within the section's span.
-        Links with `span=None` (e.g. reference definitions with no recoverable
-        inline span) are omitted because they cannot be attributed to a section
-        by offset alone.
+        All navigable links in this section's subtree (true-link forms only; not images or
+        reference definitions), in document order. Derived from a document-level parse of
+        `source_text` (so reference links resolve across blocks) and filtered to links whose
+        span falls within the section's span. Links with `span=None` (an unlocatable
+        reference) are omitted because they cannot be attributed to a section by offset.
         """
         sec_start, sec_end = self.span
         return [
             link
             for link in self._all_links()
-            if link.span is not None and sec_start <= link.span[0] and link.span[1] <= sec_end
+            if link.form in TRUE_LINK_FORMS
+            and link.span is not None
+            and sec_start <= link.span[0]
+            and link.span[1] <= sec_end
         ]

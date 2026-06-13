@@ -31,9 +31,11 @@ from marko.element import Element
 
 from flexdoc.docs.block_info import (
     CodeInfo,
+    HeadingInfo,
     ListInfo,
     TableInfo,
     code_info_for,
+    heading_info_for,
     list_info_for,
     table_info_for,
 )
@@ -57,10 +59,11 @@ class Block:
     block with the same `list_item` children as its tight form, so `tight` records the
     spacing without changing the structure or the tallies.
 
-    `code_info`, `table_info`, and `list_info` carry typed, parser-authoritative metadata
-    (see `block_info`): each is non-`None` only for its block kind (`code` / `table` /
-    `list`/`ordered_list`). They are derived facts about the same source span, so they do
-    not participate in equality or `repr` (a block's identity is its type/span/children).
+    `code_info`, `table_info`, `list_info`, and `heading_info` carry typed,
+    parser-authoritative metadata (see `block_info`): each is non-`None` only for its block
+    kind (`code` / `table` / `list`/`ordered_list` / `heading`). They are derived facts
+    about the same source span, so they do not participate in equality or `repr` (a block's
+    identity is its type/span/children).
     """
 
     type: BlockType
@@ -70,6 +73,12 @@ class Block:
     code_info: CodeInfo | None = field(default=None, compare=False, repr=False)
     table_info: TableInfo | None = field(default=None, compare=False, repr=False)
     list_info: ListInfo | None = field(default=None, compare=False, repr=False)
+    heading_info: HeadingInfo | None = field(default=None, compare=False, repr=False)
+
+    @property
+    def heading_level(self) -> int | None:
+        """The heading level 1-6 for a `heading` block, else `None`."""
+        return self.heading_info.level if self.heading_info is not None else None
 
 
 def parse_blocks(text: str, parsed: Element | None = None) -> list[Block]:
@@ -137,6 +146,7 @@ def _blocks_from(text: str, parent: Element) -> list[Block]:
                 code_info=code_info_for(element),
                 table_info=table_info_for(element),
                 list_info=list_info_for(element),
+                heading_info=heading_info_for(element),
             )
         )
     return blocks

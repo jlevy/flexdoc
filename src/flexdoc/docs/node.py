@@ -48,6 +48,7 @@ class NodeKind(StrEnum):
     image = "image"
     inline_html = "inline_html"
     footnote_ref = "footnote_ref"
+    link_ref_def = "link_ref_def"
 
     # Document-layer kind.
     section = "section"

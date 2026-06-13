@@ -336,18 +336,10 @@ node_table:
   attrs:
     url: https://a.example
     text: inline link
+    form: inline
     section: n0023
     sentence: n0029
 - id: n0045
-  layer: markdown
-  kind: code_span
-  span: 79:90
-  parent: n0002
-  attrs:
-    content: code span
-    section: n0023
-    sentence: n0029
-- id: n0046
   layer: markdown
   kind: image
   span: 308:346
@@ -357,6 +349,15 @@ node_table:
     text: an image
     section: n0025
     sentence: n0043
+- id: n0046
+  layer: markdown
+  kind: code_span
+  span: 79:90
+  parent: n0002
+  attrs:
+    content: code span
+    section: n0023
+    sentence: n0029
 links:
 - kind: link
   text: inline link
@@ -374,10 +375,10 @@ spanrefs:
   resolved: 40:72
   ok: true
 - id: n0045
-  exact: '`code span`'
-  resolved: 79:90
-  ok: true
-- id: n0046
   exact: '![an image](https://img.example/x.png)'
   resolved: 308:346
+  ok: true
+- id: n0046
+  exact: '`code span`'
+  resolved: 79:90
   ok: true

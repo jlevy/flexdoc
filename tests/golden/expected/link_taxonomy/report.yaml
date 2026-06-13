@@ -1,0 +1,328 @@
+source:
+  sha256: 22d5ebc9162e8b9cee554a273f14ef56afdb405ae5f6c08d01dbd17f4b1fb202
+  length: 438
+  size_summary: 437 bytes (13 lines, 5 paras, 5 sents, 43 words, ~115 tok)
+base_blocks:
+  cover_ok: true
+  uncovered_nonspace: 0
+  blocks:
+  - depth: 0
+    type: heading
+    span: 0:15
+    text: '# Link taxonomy'
+  - depth: 0
+    type: paragraph
+    span: 17:103
+    text: An [inline link](https://inline.example) and a [reference link][ref] 
+      and a [shortcut].
+  - depth: 0
+    type: paragraph
+    span: 105:185
+    text: An autolink <https://auto.example> and a bare URL https://bare.example
+      in prose.
+  - depth: 0
+    type: paragraph
+    span: 187:282
+    text: |-
+      An inline image ![inline alt](https://img.example/a.png) and a reference image
+      ![ref alt][img].
+  - depth: 0
+    type: paragraph
+    span: 284:334
+    text: '[ref]: https://reference.example "Reference title"'
+  - depth: 0
+    type: paragraph
+    span: 335:371
+    text: '[shortcut]: https://shortcut.example'
+  - depth: 0
+    type: paragraph
+    span: 372:404
+    text: '[img]: https://img.example/c.png'
+  - depth: 0
+    type: paragraph
+    span: 405:437
+    text: '[unused]: https://unused.example'
+sections:
+- level: 1
+  title: Link taxonomy
+  span: 0:437
+  words: 43
+node_table:
+- id: n0001
+  layer: markdown
+  kind: heading
+  span: 0:15
+  attrs:
+    level: 1
+- id: n0002
+  layer: markdown
+  kind: paragraph
+  span: 17:103
+- id: n0003
+  layer: markdown
+  kind: paragraph
+  span: 105:185
+- id: n0004
+  layer: markdown
+  kind: paragraph
+  span: 187:282
+- id: n0005
+  layer: markdown
+  kind: paragraph
+  span: 284:334
+- id: n0006
+  layer: markdown
+  kind: paragraph
+  span: 335:371
+- id: n0007
+  layer: markdown
+  kind: paragraph
+  span: 372:404
+- id: n0008
+  layer: markdown
+  kind: paragraph
+  span: 405:437
+- id: n0009
+  layer: document
+  kind: section
+  span: 0:437
+  attrs:
+    level: 1
+    title: Link taxonomy
+- id: n0010
+  layer: textual
+  kind: paragraph
+  span: 0:15
+- id: n0011
+  layer: textual
+  kind: sentence
+  span: 0:15
+  parent: n0010
+  attrs:
+    text: '# Link taxonomy'
+- id: n0012
+  layer: textual
+  kind: paragraph
+  span: 17:103
+- id: n0013
+  layer: textual
+  kind: sentence
+  span: 17:103
+  parent: n0012
+  attrs:
+    text: An [inline link](https://inline.example) and a [reference link][ref] 
+      and a [shortcut].
+- id: n0014
+  layer: textual
+  kind: paragraph
+  span: 105:185
+- id: n0015
+  layer: textual
+  kind: sentence
+  span: 105:185
+  parent: n0014
+  attrs:
+    text: An autolink <https://auto.example> and a bare URL https://bare.example
+      in prose.
+- id: n0016
+  layer: textual
+  kind: paragraph
+  span: 187:282
+- id: n0017
+  layer: textual
+  kind: sentence
+  span: 187:282
+  parent: n0016
+  attrs:
+    text: An inline image ![inline alt](https://img.example/a.png) and a 
+      reference image ![ref alt][img].
+- id: n0018
+  layer: textual
+  kind: paragraph
+  span: 284:437
+- id: n0019
+  layer: textual
+  kind: sentence
+  span: 284:437
+  parent: n0018
+  attrs:
+    text: '[ref]: https://reference.example "Reference title" [shortcut]: https://shortcut.example
+      [img]: https://img.example/c.png [unused]: https://unused.example'
+- id: n0020
+  layer: markdown
+  kind: link
+  span: 20:57
+  parent: n0002
+  attrs:
+    url: https://inline.example
+    text: inline link
+    form: inline
+    section: n0009
+    sentence: n0013
+- id: n0021
+  layer: markdown
+  kind: link
+  span: 64:85
+  parent: n0002
+  attrs:
+    url: https://reference.example
+    text: reference link
+    form: reference
+    title: Reference title
+    section: n0009
+    sentence: n0013
+- id: n0022
+  layer: markdown
+  kind: link
+  span: 92:102
+  parent: n0002
+  attrs:
+    url: https://shortcut.example
+    text: shortcut
+    form: reference
+    section: n0009
+    sentence: n0013
+- id: n0023
+  layer: markdown
+  kind: link
+  span: 117:139
+  parent: n0003
+  attrs:
+    url: https://auto.example
+    text: https://auto.example
+    form: autolink
+    section: n0009
+    sentence: n0015
+- id: n0024
+  layer: markdown
+  kind: link
+  span: 155:175
+  parent: n0003
+  attrs:
+    url: https://bare.example
+    text: https://bare.example
+    form: bare_url
+    section: n0009
+    sentence: n0015
+- id: n0025
+  layer: markdown
+  kind: image
+  span: 203:243
+  parent: n0004
+  attrs:
+    url: https://img.example/a.png
+    text: inline alt
+    section: n0009
+    sentence: n0017
+- id: n0026
+  layer: markdown
+  kind: image
+  span: 266:281
+  parent: n0004
+  attrs:
+    url: https://img.example/c.png
+    text: ref alt
+    section: n0009
+    sentence: n0017
+- id: n0027
+  layer: markdown
+  kind: link_ref_def
+  span: 284:335
+  attrs:
+    url: https://reference.example
+    text: ref
+    title: Reference title
+    section: n0009
+    sentence: n0019
+- id: n0028
+  layer: markdown
+  kind: link_ref_def
+  span: 335:372
+  attrs:
+    url: https://shortcut.example
+    text: shortcut
+    section: n0009
+    sentence: n0019
+- id: n0029
+  layer: markdown
+  kind: link_ref_def
+  span: 372:405
+  attrs:
+    url: https://img.example/c.png
+    text: img
+    section: n0009
+    sentence: n0019
+- id: n0030
+  layer: markdown
+  kind: link_ref_def
+  span: 405:438
+  attrs:
+    url: https://unused.example
+    text: unused
+    section: n0009
+    sentence: n0019
+links:
+- kind: link
+  text: inline link
+  url: https://inline.example
+  span: 20:57
+  section: Link taxonomy
+- kind: link
+  text: reference link
+  url: https://reference.example
+  span: 64:85
+  section: Link taxonomy
+- kind: link
+  text: shortcut
+  url: https://shortcut.example
+  span: 92:102
+  section: Link taxonomy
+- kind: link
+  text: https://auto.example
+  url: https://auto.example
+  span: 117:139
+  section: Link taxonomy
+- kind: link
+  text: https://bare.example
+  url: https://bare.example
+  span: 155:175
+  section: Link taxonomy
+- kind: image
+  text: inline alt
+  url: https://img.example/a.png
+  span: 203:243
+  section: Link taxonomy
+- kind: image
+  text: ref alt
+  url: https://img.example/c.png
+  span: 266:281
+  section: Link taxonomy
+spanrefs:
+- id: n0020
+  exact: '[inline link](https://inline.example)'
+  resolved: 20:57
+  ok: true
+- id: n0021
+  exact: '[reference link][ref]'
+  resolved: 64:85
+  ok: true
+- id: n0022
+  exact: '[shortcut]'
+  resolved: 92:102
+  ok: true
+- id: n0023
+  exact: <https://auto.example>
+  resolved: 117:139
+  ok: true
+- id: n0024
+  exact: https://bare.example
+  resolved: 155:175
+  ok: true
+- id: n0025
+  exact: '![inline alt](https://img.example/a.png)'
+  resolved: 203:243
+  ok: true
+- id: n0026
+  exact: '![ref alt][img]'
+  resolved: 266:281
+  ok: true

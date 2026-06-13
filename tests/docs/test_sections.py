@@ -157,3 +157,22 @@ def test_heading_inside_code_fence_is_not_a_section():
     ).strip()
     doc = FlexDoc.from_text(md)
     assert [title for _, title, _ in doc.toc()] == ["Real"]
+
+
+def test_sections_recover_tight_and_marker_preceded_headings():
+    """Regression for the sections()/toc() heading-loss bug: a heading glued below
+    preceding text (tight) or preceded by a non-blank line (e.g. an HTML-comment marker)
+    is no longer dropped, because sections derive from the structural heading blocks, not
+    the blank-line paragraph view."""
+    tight = FlexDoc.from_text("# A\nintro\n## B\nbody\n")
+    assert [title for _level, title, _span in tight.toc()] == ["A", "B"]
+
+    marker = FlexDoc.from_text("# T\n\n<!-- marker -->\n## S\n\nbody\n")
+    assert [title for _level, title, _span in marker.toc()] == ["T", "S"]
+
+
+def test_toc_matches_heading_block_count():
+    """Every top-level structural heading block yields exactly one toc entry."""
+    doc = FlexDoc.from_text(_DOC)
+    headings = [b for b in doc.blocks() if b.type == BlockType.heading]
+    assert len(doc.toc()) == len(headings)

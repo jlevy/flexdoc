@@ -151,3 +151,44 @@ def test_autolink_is_single_link_node_not_inline_html():
     link_nodes = [k for k, _ in auto if k == NodeKind.link]
     html_nodes = [k for k, _ in auto if k == NodeKind.inline_html]
     assert link_nodes and not html_nodes
+
+
+def test_link_forms_are_classified():
+    from flexdoc.docs import LinkForm
+
+    src = dedent(
+        """
+        An [inline](https://in.example) and a [ref][r] link.
+
+        An <https://auto.example> autolink and a bare https://bare.example URL.
+
+        [r]: https://ref.example
+        """
+    ).strip()
+    doc = FlexDoc.from_text(src)
+    forms = {link.url: link.form for link in doc.links()}
+    assert forms["https://in.example"] == LinkForm.inline
+    assert forms["https://ref.example"] == LinkForm.reference
+    assert forms["https://auto.example"] == LinkForm.autolink
+    assert forms["https://bare.example"] == LinkForm.bare_url
+
+
+def test_images_and_reference_definitions_are_separate_from_links():
+    from flexdoc.docs import LinkForm
+
+    src = dedent(
+        """
+        Text with a [link](https://link.example) and an image ![alt text](https://img.example/x.png).
+
+        [d]: https://def.example "Title"
+        """
+    ).strip()
+    doc = FlexDoc.from_text(src)
+    # links() is navigable links only.
+    assert [link.url for link in doc.links()] == ["https://link.example"]
+    # images() exposes the image, with alt text in `text`.
+    images = doc.images()
+    assert [(img.text, img.url) for img in images] == [("alt text", "https://img.example/x.png")]
+    # Reference definitions are reachable via forms, not the default.
+    defs = doc.links(forms={LinkForm.reference_definition})
+    assert [(d.text, d.url, d.title) for d in defs] == [("d", "https://def.example", "Title")]

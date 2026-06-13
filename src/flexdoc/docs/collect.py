@@ -25,6 +25,7 @@ INLINE_KINDS: frozenset[NodeKind] = frozenset(
         NodeKind.image,
         NodeKind.inline_html,
         NodeKind.footnote_ref,
+        NodeKind.link_ref_def,
     }
 )
 
@@ -70,18 +71,20 @@ def collect(
     if (want_within and within_region is None) or (want_overlaps and overlaps_region is None):
         return []
 
+    # An explicit kind selection that names inline kinds implies inline inclusion,
+    # so `collect(kinds={NodeKind.link})` is not silently emptied by the inline guard.
+    include_inline = inline or (kinds is not None and bool(kinds & INLINE_KINDS))
+
     if subtree_of is not None:
         candidates = _subtree_nodes(table, subtree_of, recursive)
-    elif recursive or want_within or want_overlaps:
-        # Recursive, or any interval relation: consider all nodes in insertion order.
+    elif recursive or want_within or want_overlaps or include_inline:
+        # Recursive, any interval relation, or an inline-kind request: consider all nodes
+        # in insertion order. Inline nodes are never roots, so an inline request must widen
+        # the candidate set or it would match nothing without `recursive=True`.
         candidates = list(table.nodes.values())
     else:
         # No relation, non-recursive: just the root nodes.
         candidates = [table.nodes[rid] for rid in table.roots if rid in table.nodes]
-
-    # An explicit kind selection that names inline kinds implies inline inclusion,
-    # so `collect(kinds={NodeKind.link})` is not silently emptied by the inline guard.
-    include_inline = inline or (kinds is not None and bool(kinds & INLINE_KINDS))
 
     result: list[Node] = []
     for node in candidates:

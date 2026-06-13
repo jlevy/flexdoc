@@ -453,3 +453,31 @@ def test_set_sent_preserves_original_source_span():
     assert after_sent.text == "Hello much longer replacement world."
     assert after_sent.span == before
     assert doc.source_text[before[0] : before[1]] == "Hello world."
+
+
+def test_prose_text_strips_inline_markup_and_keeps_spacing():
+    doc = FlexDoc.from_text(
+        "## A `code` heading\n\n"
+        "Body with <span>foo</span> bar, a [link](https://e.example), "
+        "`inline` code — and a spaced dash.\n"
+    )
+    prose = doc.prose_text()
+    # Heading markers and inline code dropped; collapsed to single spaces.
+    assert "A heading" in prose
+    # Inline-HTML tags dropped but the wrapped text kept; link becomes its text; code
+    # dropped; the spaced em-dash is preserved verbatim.
+    assert "foo bar" in prose
+    assert "a link," in prose
+    assert "code — and" in prose
+    assert "<span>" not in prose and "`" not in prose
+
+
+def test_block_at_offset_returns_innermost_block():
+    from flexdoc.docs.block_types import BlockType
+
+    doc = FlexDoc.from_text("# H\n\n- item one\n- item two\n")
+    offset = doc.source_text.index("item two")
+    block = doc.block_at_offset(offset)
+    assert block is not None and block.type == BlockType.paragraph
+    # An offset in inter-block whitespace maps to no block.
+    assert doc.block_at_offset(doc.source_text.index("\n\n")) is None

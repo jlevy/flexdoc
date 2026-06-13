@@ -1,0 +1,77 @@
+schema: DocGraph/v0.1
+source:
+  format: markdown
+  offset_unit: unicode_code_points
+  sha256: 22d5ebc9162e8b9cee554a273f14ef56afdb405ae5f6c08d01dbd17f4b1fb202
+nodes:
+- id: n0001
+  kind: heading
+  layer: markdown
+  source_span:
+    start: 0
+    end: 15
+  attrs:
+    level: 1
+- id: n0002
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 17
+    end: 103
+- id: n0003
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 105
+    end: 185
+- id: n0004
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 187
+    end: 282
+- id: n0005
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 284
+    end: 334
+- id: n0006
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 335
+    end: 371
+- id: n0007
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 372
+    end: 404
+- id: n0008
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 405
+    end: 437
+- id: n0009
+  kind: section
+  layer: document
+  source_span:
+    start: 0
+    end: 437
+  attrs:
+    level: 1
+    title: Link taxonomy
+views:
+  toc:
+  - n0009
+  blocks:
+  - n0001
+  - n0002
+  - n0003
+  - n0004
+  - n0005
+  - n0006
+  - n0007
+  - n0008

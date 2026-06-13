@@ -25,7 +25,11 @@ from pathlib import Path
 from frontmatter_format import fmf_read
 
 from flexdoc.docs import FlexDoc
+from flexdoc.docs.block_types import BlockType
+from flexdoc.docs.collect import INLINE_KINDS
 from flexdoc.docs.debug import doc_graph_yaml, doc_report, doc_report_data
+from flexdoc.docs.links import TRUE_LINK_FORMS, LinkForm
+from flexdoc.docs.node import Layer, NodeKind
 
 _HERE = Path(__file__).parent
 _DOCS_DIR = _HERE / "documents"
@@ -147,6 +151,45 @@ def test_model_invariants():
             for cid in nm.children:
                 assert cid in ids, f"{where}: docgraph child {cid} missing for {nm.id}"
 
+        # Cross-projection: sections()/toc() recover exactly the top-level heading blocks,
+        # with matching titles in document order (the contract Bug 2 broke).
+        heading_blocks = [b for b in td.blocks() if b.type == BlockType.heading]
+        toc = td.toc()
+        assert len(toc) == len(heading_blocks), (
+            f"{where}: toc has {len(toc)} entries, {len(heading_blocks)} top-level headings"
+        )
+        assert [title for _level, title, _span in toc] == [
+            b.heading_info.title if b.heading_info else "" for b in heading_blocks
+        ], f"{where}: toc titles do not match heading-block titles"
+
+        # Every located markdown inline node lies within its parent block's span — the
+        # nesting guarantee asserted on the query surface (the contract Bug 1 broke).
+        for n in table.nodes.values():
+            if n.layer is not Layer.markdown or n.kind not in INLINE_KINDS:
+                continue
+            if n.parent is None or n.source_span is None:
+                continue
+            p_span = table.nodes[n.parent].source_span
+            assert (
+                p_span is not None
+                and p_span[0] <= n.source_span[0] <= n.source_span[1] <= p_span[1]
+            ), f"{where}: inline {n.id} span {n.source_span} escapes parent {p_span}"
+
+        # The public inline query path builds without raising for every inline kind (Bug 1
+        # broke this through collect()/graph(), not only the internal build).
+        for kind in INLINE_KINDS:
+            td.collect(kinds={kind})  # inline kinds need no recursive=True
+            td.collect(kinds={kind}, recursive=True)
+
+        # Link-form accounting: every links() entry is a true link, and the per-form lists
+        # match the node-table node counts one-for-one.
+        assert all(link.form in TRUE_LINK_FORMS for link in td.links())
+        assert len(td.links()) == len(table.by_kind(NodeKind.link)), f"{where}: link count"
+        assert len(td.images()) == len(table.by_kind(NodeKind.image)), f"{where}: image count"
+        assert len(td.links(forms={LinkForm.reference_definition})) == len(
+            table.by_kind(NodeKind.link_ref_def)
+        ), f"{where}: reference-definition count"
+
         # Normalized-form idempotence (P11): `reassemble()` produces the editing view's
         # normalized text (which may differ from the source for constructs the editing
         # view normalizes, e.g. multi-line reference definitions). Re-parsing and
@@ -154,3 +197,49 @@ def test_model_invariants():
         normalized = td.reassemble()
         renormalized = FlexDoc.from_text(normalized).reassemble()
         assert normalized == renormalized, f"{where}: reassemble() is not idempotent"
+
+
+_REPO_ROOT = _HERE.parent.parent
+
+
+def _repo_markdown() -> list[Path]:
+    """Every Markdown file under the repo, minus generated golden artifacts and vendored
+    trees. Real documents combine constructs the curated corpus does not, so parsing them
+    is a cheap, self-renewing fuzz over the model (it reproduces the pprose discovery that
+    found these bugs); this repo's own `AGENTS.md` alone exercises marker-preceded headings."""
+    skip = {".venv", "node_modules", ".git", "expected"}
+    return sorted(
+        p for p in _REPO_ROOT.rglob("*.md") if not (set(p.relative_to(_REPO_ROOT).parts) & skip)
+    )
+
+
+def test_repo_markdown_invariants():
+    """Parsing the repo's own Markdown must never crash and must hold the cross-projection
+    contracts (toc parity, inline nesting, the public inline query path). No goldens — only
+    invariants — so the suite self-renews as the repo's docs evolve."""
+    docs = _repo_markdown()
+    assert docs, f"no Markdown found under {_REPO_ROOT}"
+
+    for path in docs:
+        where = str(path.relative_to(_REPO_ROOT))
+        td = FlexDoc.from_text(path.read_text(encoding="utf-8"))
+        table = td.node_table()  # the build that Bug 1 crashed on real input
+
+        heading_blocks = [b for b in td.blocks() if b.type == BlockType.heading]
+        assert len(td.toc()) == len(heading_blocks), f"{where}: toc/heading-block mismatch"
+
+        for n in table.nodes.values():
+            if n.layer is not Layer.markdown or n.kind not in INLINE_KINDS:
+                continue
+            if n.parent is None or n.source_span is None:
+                continue
+            p_span = table.nodes[n.parent].source_span
+            assert (
+                p_span is not None
+                and p_span[0] <= n.source_span[0] <= n.source_span[1] <= p_span[1]
+            ), f"{where}: inline {n.id} escapes its parent block"
+
+        for kind in INLINE_KINDS:
+            td.collect(kinds={kind}, recursive=True)
+        td.graph()
+        td.prose_text()

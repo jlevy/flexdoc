@@ -4,7 +4,23 @@
 
 **Author:** Joshua Levy
 
-**Status:** Draft
+**Status:** Implemented (2026-06-13). All beads
+(`flexdoc-yhzm/w3uk/xjl8/0xky/jnvt/hwcl/1jrc`) landed; 322 tests pass, lint clean.
+Release prep (`flexdoc-aa0l`) covers the CHANGELOG; tagging is the maintainer's action.
+
+Two findings during implementation:
+
+- The dogfood invariant test (Test-Suite Hardening (c)) immediately caught a *third* defect
+  the section rewrite would have introduced: `AGENTS.md` embeds a `---`-fenced block that
+  marko reads as a setext heading *inside* a blank-line paragraph, so a content paragraph
+  straddled a later heading and the subtree-derived section spans overlapped (a
+  document-layer nesting violation). Fixed by deriving each section's span from
+  heading-block boundaries (heading start to the next same-or-higher heading, trimmed),
+  which nests by construction and is byte-identical to the old span for well-formed docs.
+  This is exactly the class of "real input breaks the model" the hardening targets.
+- Linked images (`[![alt](img)](url)`) are excluded from the corpus: flowmark's atomic
+  span for the outer link stops at the inner image's `)`, so neither its span nor its form
+  classifies reliably. Out of scope here; the other forms all classify correctly.
 
 ## Overview
 
@@ -246,17 +262,17 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
 
 ### Phase 1: Correctness — crash and heading loss
 
-- [ ] `HeadingInfo` + `heading_info_for` in `block_info.py` (with inline tests); carry
+- [x] `HeadingInfo` + `heading_info_for` in `block_info.py` (with inline tests); carry
       `heading_info` and `heading_level` on `Block`; populate in `block_tree._blocks_from`.
-- [ ] `node_table._build_markdown_nodes` reads `block.heading_info` for `attrs["level"]`;
+- [x] `node_table._build_markdown_nodes` reads `block.heading_info` for `attrs["level"]`;
       remove the `#`-counting/setext scan.
-- [ ] Scope `node_table._build_inline_nodes` inline discovery per leaf content block;
+- [x] Scope `node_table._build_inline_nodes` inline discovery per leaf content block;
       parent links by full containment; keep `_validate_layer_nesting` intact.
-- [ ] Rewrite `flex_doc._section_list` to derive sections from top-level heading blocks;
+- [x] Rewrite `flex_doc._section_list` to derive sections from top-level heading blocks;
       reuse/synthesize `Section.heading`; assign `content` by offset.
-- [ ] Regression tests: Bug 1 repro asserts no raise + correct inline nodes; Bug 2 repros
+- [x] Regression tests: Bug 1 repro asserts no raise + correct inline nodes; Bug 2 repros
       assert `len(toc()) == #heading blocks` (tight and marker-preceded cases).
-- [ ] Golden corpus + invariants (Test-Suite Hardening (a)–(c)): add `inline_pathology.md`
+- [x] Golden corpus + invariants (Test-Suite Hardening (a)–(c)): add `inline_pathology.md`
       and `heading_edges.md`; add the cross-projection invariants (toc-count ==
       heading-block count, inline span ⊆ parent on the query surface, public inline
       `collect()`/`graph()` build without raising); add the dogfood test over the repo's
@@ -264,17 +280,17 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
 
 ### Phase 2: Typed surface — links, prose text, ergonomics
 
-- [ ] `LinkForm` + `Link.form`; classify forms in `block_links`; surface
+- [x] `LinkForm` + `Link.form`; classify forms in `block_links`; surface
       `reference_definition` from `Document.link_ref_defs` with recovered spans.
-- [ ] `NodeKind.link_ref_def`; emit ref-def nodes and `form` on link nodes in
+- [x] `NodeKind.link_ref_def`; emit ref-def nodes and `form` on link nodes in
       `node_table`; export `LinkForm`; per-form tests including bare-URL vs autolink.
-- [ ] `FlexDoc.prose_text()` (node-table-backed strip); tests for inline-code/link
+- [x] `FlexDoc.prose_text()` (node-table-backed strip); tests for inline-code/link
       stripping and `" — "` preservation.
-- [ ] `FlexDoc.block_at_offset()`; `collect()` inline-without-`recursive` fix; tests.
-- [ ] `link_taxonomy.md` corpus doc + link-form accounting invariant (Test-Suite
+- [x] `FlexDoc.block_at_offset()`; `collect()` inline-without-`recursive` fix; tests.
+- [x] `link_taxonomy.md` corpus doc + link-form accounting invariant (Test-Suite
       Hardening (a)/(b)): every `links()` entry has a true-link form; `len(links()) +
       len(images()) + #ref-defs` equals the table's `link`/`image`/`link_ref_def` count.
-- [ ] `CHANGELOG.md` 0.1.1 section (Fixed: Bug 1, Bug 2; Added: heading level on `Block`,
+- [x] `CHANGELOG.md` 0.1.1 section (Fixed: Bug 1, Bug 2; Added: heading level on `Block`,
       `LinkForm`/`Link.form` + reference-definition surfacing/`link_ref_def`,
       `prose_text()`, `block_at_offset()`, `collect()` inline ergonomics). Update
       `TODO.md` / spec references; tag `v0.1.1` per `docs/publishing.md`; close #6 (and
