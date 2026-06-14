@@ -373,11 +373,12 @@ is the reassembled working text, and the invariant holds against that.
   (§3).
 - **Sizing:** `size(unit)` and `size_summary()` measure the document in any `TextUnit`
   (see Terminology), including the approximate LLM `tokens` estimate.
-- **Prose projection:** `prose_text()` returns prose-only text for editorial linting —
-  prose-bearing blocks (paragraphs and headings) with inline code dropped, links/images
-  reduced to their text/alt, inline-HTML tags removed (wrapped text kept), and heading
-  markers and reference-definition lines stripped — from verbatim source slices, so
-  editorial spacing (e.g. a spaced em-dash) is preserved.
+- **Prose projection:** `prose_text(include_tables=False)` returns prose-only text for
+  editorial linting and metrics — prose-bearing blocks (paragraphs/headings, and table cells
+  when `include_tables=True`) with inline code/footnote refs dropped, links/images reduced to
+  their text/alt, inline-HTML tags removed (wrapped text kept), and heading/blockquote/list
+  markers and reference-definition lines stripped. Slices are verbatim (line wrapping
+  preserved, never reflowed), so editorial spacing (e.g. a spaced em-dash) survives.
 
 ### 4.3 Nodes, kinds, layers, and the node table
 

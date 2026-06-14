@@ -479,6 +479,25 @@ def test_prose_text_excludes_reference_definitions():
     assert doc.prose_text() == "Text with link."
 
 
+def test_prose_text_strips_block_markers_and_tables_are_opt_in():
+    """Leading blockquote/list markers are stripped to plain prose, and tables are excluded by
+    default but flattened to cell text under `include_tables=True`."""
+    src = (
+        "# Title\n\n> A quoted line.\n\n- item one\n- item two\n\n"
+        "| Col A | Col B |\n| --- | --- |\n| cell one | cell two |\n"
+    )
+    doc = FlexDoc.from_text(src)
+    prose = doc.prose_text()
+    assert "A quoted line." in prose and ">" not in prose
+    assert "item one" in prose and "item two" in prose and "- " not in prose
+    assert "cell one" not in prose  # tables excluded by default
+
+    with_tables = doc.prose_text(include_tables=True)
+    assert "Col A Col B" in with_tables
+    assert "cell one cell two" in with_tables
+    assert "---" not in with_tables  # separator row dropped
+
+
 def test_block_at_offset_returns_innermost_block():
     from flexdoc.docs.block_types import BlockType
 

@@ -113,6 +113,12 @@ _PROSE_INLINE_KINDS: frozenset[NodeKind] = frozenset(
 )
 _ATX_OPEN_REGEX = regex.compile(r"^[ \t]*#{1,6}[ \t]+")
 _ATX_CLOSE_REGEX = regex.compile(r"[ \t]+#+[ \t]*$")
+_BLOCK_MARKER_REGEX = regex.compile(r"^[ \t]*(?:>[ \t]?|[-*+][ \t]+|\d+[.)][ \t]+)+")
+r"""Leading blockquote/list markers on a line (`>`, `-`/`*`/`+`, `1.`/`1)`), possibly nested
+(`> - `); stripped from `prose_text()` so quoted and list prose reads as prose."""
+_TABLE_SEPARATOR_REGEX = regex.compile(r"^[ \t]*\|?[ \t:|-]*-[ \t:|-]*\|?[ \t]*$")
+r"""A Markdown table header/body separator row (e.g. `| --- | :-: |`); dropped when
+`prose_text(include_tables=True)` flattens a table to its cell text."""
 
 
 _DerivedT = TypeVar("_DerivedT")
@@ -163,6 +169,26 @@ def _strip_heading_markers(text: str) -> str:
         if underline and len(set(underline)) == 1 and underline[0] in "=-":
             text = "\n".join(lines[:-1])
     return text
+
+
+def _strip_block_markers(text: str) -> str:
+    """Strip leading blockquote (`>`) and list (`-`/`*`/`+`/`1.`) markers from each line so
+    quoted and list prose reads as plain prose; nested markers (`> -`) are removed together."""
+    return "\n".join(_BLOCK_MARKER_REGEX.sub("", line) for line in text.splitlines())
+
+
+def _table_prose_text(text: str) -> str:
+    """Flatten an (already inline-stripped) Markdown table slice to prose: drop the
+    header/body separator row and join each row's cell text with spaces, one row per line."""
+    rows: list[str] = []
+    for line in text.splitlines():
+        if _TABLE_SEPARATOR_REGEX.match(line):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        row = " ".join(cell for cell in cells if cell)
+        if row:
+            rows.append(row)
+    return "\n".join(rows)
 
 
 @dataclass
@@ -498,20 +524,28 @@ class FlexDoc:
         """
         return self.links(link_forms={LinkForm.image})
 
-    def prose_text(self) -> str:
+    def prose_text(self, *, include_tables: bool = False) -> str:
         """
-        Prose-only text for editorial linting: the verbatim source of prose-bearing blocks
-        (paragraphs and headings, including those nested in lists and blockquotes;
-        excluding code, tables, HTML blocks, thematic breaks, and frontmatter), with inline
-        non-prose removed via the node table. Inline code is dropped; links and images are
-        replaced by their text/alt; inline-HTML tags are dropped while the text they wrap is
-        kept (`<span>foo</span> bar` becomes `foo bar`); footnote references are dropped.
-        Heading markers (`#`, setext underlines) are stripped. Blocks are joined by blank
-        lines.
+        Prose-only text for editorial linting and prose metrics: the readable prose of the
+        document with both inline markup and non-prose blocks removed. This is a prose
+        *projection*, not a faithful plain-text rendering of the whole document — code blocks,
+        HTML blocks, thematic breaks, reference-definition lines, and frontmatter are dropped
+        entirely (not flattened to text), and tables are dropped unless `include_tables=True`
+        (then each table is flattened to its cell text, one row per line).
 
-        Uses verbatim source slices (not `reassemble()`), so editorial spacing like a
-        spaced em-dash (`" — "`) is preserved exactly. Depends on the node table, so it is a
-        pure function of `source_text` (see the class contract on read-time caching).
+        Included blocks are paragraphs and headings, including those nested in lists and
+        blockquotes. Within each block the inline markup is removed: inline code, footnote
+        references, and inline-HTML tags are dropped (the text an HTML tag wraps is kept, so
+        `<span>foo</span> bar` becomes `foo bar`); links and images become their text/alt.
+        Leading markers are stripped — heading `#`/setext underlines, blockquote `>`, and
+        list `-`/`*`/`1.` — so the result reads as plain prose.
+
+        Line wrapping is preserved, not normalized: a block's source line breaks are kept
+        verbatim (hard-wrapped prose stays wrapped — `prose_text()` never reflows or joins
+        wrapped lines), and blocks are separated by a single blank line. Slices come from the
+        verbatim source (not `reassemble()`), so editorial spacing such as a spaced em-dash
+        (`" — "`) survives exactly. Depends only on the node table, so it is a pure function
+        of `source_text` (see the class contract on read-time caching).
         """
         table = self.node_table()
         source = self.source_text or self.reassemble()
@@ -523,15 +557,21 @@ class FlexDoc:
             for n in table.nodes.values()
             if n.kind == NodeKind.link_ref_def and n.source_span is not None
         ]
+        included = {BlockType.paragraph, BlockType.heading}
+        if include_tables:
+            included.add(BlockType.table)
         parts: list[str] = []
         for block, _depth in walk_blocks(self.blocks()):
-            if block.type not in (BlockType.paragraph, BlockType.heading):
+            if block.type not in included:
                 continue
             if any(rs[0] <= block.span[0] and block.span[1] <= rs[1] for rs in ref_def_spans):
                 continue
-            text = self._block_prose_text(block, table, source)
-            if block.type == BlockType.heading:
-                text = _strip_heading_markers(text)
+            if block.type == BlockType.table:
+                text = _table_prose_text(self._block_prose_text(block, table, source))
+            else:
+                text = _strip_block_markers(self._block_prose_text(block, table, source))
+                if block.type == BlockType.heading:
+                    text = _strip_heading_markers(text)
             text = text.strip()
             if text:
                 parts.append(text)

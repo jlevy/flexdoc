@@ -44,10 +44,12 @@ the API additions below include breaking signature changes (see **Changed**).
   forms (default: navigable links only), and `FlexDoc.images()` is a convenience for image
   access. Reference definitions (`[id]: url`) are surfaced as `NodeKind.link_ref_def` nodes
   and via `links(link_forms={LinkForm.reference_definition})`.
-- **`FlexDoc.prose_text()`**: prose-only text for editorial linting — prose blocks with
-  inline code dropped, links/images replaced by their text/alt, inline-HTML tags dropped
-  (wrapped text kept), reference-definition lines excluded, from verbatim source slices so
-  spacing like a spaced em-dash is preserved.
+- **`FlexDoc.prose_text()`**: prose-only text for editorial linting and prose metrics —
+  prose blocks (paragraphs/headings, and table cells when `include_tables=True`) with inline
+  code and footnote refs dropped, links/images replaced by their text/alt, inline-HTML tags
+  dropped (wrapped text kept), and heading/blockquote/list markers and reference-definition
+  lines stripped; from verbatim source slices (line wrapping preserved, never reflowed) so
+  spacing like a spaced em-dash is kept exactly.
 - **`FlexDoc.block_at_offset()`**: the innermost structural `Block` containing an offset
   (the structural counterpart of `paragraph_at_offset`; the name, freed in 0.1.0, now
   correctly returns a `Block`).
