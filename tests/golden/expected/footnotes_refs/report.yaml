@@ -134,6 +134,7 @@ node_table:
   attrs:
     url: https://docs.example
     text: docs
+    link_form: reference
     section: n0007
     sentence: n0011
 - id: n0019
@@ -144,6 +145,7 @@ node_table:
   attrs:
     url: https://spec.example
     text: spec
+    link_form: reference
     title: Spec Title
     section: n0007
     sentence: n0011
@@ -155,6 +157,7 @@ node_table:
   attrs:
     url: https://auto.example
     text: https://auto.example
+    link_form: autolink
     section: n0007
     sentence: n0013
 - id: n0021
@@ -165,9 +168,31 @@ node_table:
   attrs:
     url: https://bare.example
     text: https://bare.example
+    link_form: bare_url
     section: n0007
     sentence: n0013
 - id: n0022
+  layer: markdown
+  kind: link_ref_def
+  span: 150:175
+  parent: n0004
+  attrs:
+    url: https://docs.example
+    text: d
+    section: n0007
+    sentence: n0015
+- id: n0023
+  layer: markdown
+  kind: link_ref_def
+  span: 176:214
+  parent: n0005
+  attrs:
+    url: https://spec.example
+    text: s
+    title: Spec Title
+    section: n0007
+    sentence: n0015
+- id: n0024
   layer: markdown
   kind: footnote_ref
   span: 62:69

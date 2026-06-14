@@ -1,7 +1,7 @@
 # flake8: noqa: F401
 
 from flexdoc.docs.base_blocks import BaseBlock, base_blocks
-from flexdoc.docs.block_info import CodeInfo, ListInfo, TableInfo
+from flexdoc.docs.block_info import CodeInfo, HeadingInfo, ListInfo, TableInfo
 from flexdoc.docs.block_tree import Block, parse_blocks, walk_blocks
 from flexdoc.docs.block_types import BlockType, block_type_for
 from flexdoc.docs.collect import collect
@@ -21,7 +21,7 @@ from flexdoc.docs.doc_graph import (
     build_doc_graph,
 )
 from flexdoc.docs.flex_doc import FlexDoc
-from flexdoc.docs.links import Link
+from flexdoc.docs.links import TRUE_LINK_FORMS, Link, LinkForm
 from flexdoc.docs.node import LAYER_NESTING, Layer, NestingGuarantee, Node, NodeKind, NodeTable
 from flexdoc.docs.node_table import build_node_table
 from flexdoc.docs.paragraphs import Offsets, Paragraph, Sentence, SentIndex
@@ -87,10 +87,13 @@ __all__ = [
     "parse_blocks",
     "walk_blocks",
     "CodeInfo",
+    "HeadingInfo",
     "ListInfo",
     "TableInfo",
     "Offsets",
     "Link",
+    "LinkForm",
+    "TRUE_LINK_FORMS",
     "Paragraph",
     "Section",
     "Sentence",

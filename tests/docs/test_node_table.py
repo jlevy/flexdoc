@@ -375,3 +375,28 @@ def test_node_ids_are_deterministic_contiguous_preorder():
     ]
     ids = list(t1.nodes.keys())
     assert ids == [f"n{i:04d}" for i in range(1, len(ids) + 1)]
+
+
+def test_inline_extraction_does_not_cross_block_boundaries():
+    """Regression: inline atomic spans were once discovered over the whole source and
+    parented by start offset, so backtick pairing across a block boundary (an empty fence
+    next to inline backticks) produced an inline span escaping its parent block and raised
+    a layer-nesting error during build. Per-block scanning makes this build cleanly."""
+    src = "```python\n```\n  a `` ```t `` b\n- Inline `Emphasis` text\n"
+    table = build_node_table(FlexDoc.from_text(src))
+    for node in table.nodes.values():
+        if node.layer is Layer.markdown and node.parent is not None and node.source_span:
+            p_span = table.nodes[node.parent].source_span
+            assert p_span and p_span[0] <= node.source_span[0] <= node.source_span[1] <= p_span[1]
+    # The inline code spans are still found (one per block, not paired across the fence).
+    assert len(FlexDoc.from_text(src).collect(kinds={NodeKind.code_span})) >= 2
+
+
+def test_reference_definitions_surface_as_nodes():
+    """`[id]: url` reference definitions surface as `link_ref_def` nodes, countable via
+    collect without recursive=True."""
+    src = 'Use [the spec][s] here.\n\n[s]: https://spec.example "Spec"\n'
+    doc = FlexDoc.from_text(src)
+    defs = doc.collect(kinds={NodeKind.link_ref_def})
+    assert len(defs) == 1
+    assert defs[0].attrs["url"] == "https://spec.example"

@@ -21,6 +21,7 @@ def test_block_kinds_match_block_type_values():
             NodeKind.image,
             NodeKind.inline_html,
             NodeKind.footnote_ref,
+            NodeKind.link_ref_def,
             NodeKind.section,
             NodeKind.sentence,
         )
@@ -35,6 +36,7 @@ def test_inline_kinds_exist():
         NodeKind.image,
         NodeKind.inline_html,
         NodeKind.footnote_ref,
+        NodeKind.link_ref_def,
     }
     assert all(k in NodeKind for k in inline_kinds)
     assert NodeKind.section not in inline_kinds

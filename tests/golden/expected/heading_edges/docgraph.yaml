@@ -1,0 +1,274 @@
+schema: DocGraph/v0.1
+source:
+  format: markdown
+  offset_unit: unicode_code_points
+  sha256: 6ac66a8fb02f20130b8e84c19a7068e2eae27b48037cf2adb3fa0e4ccaced3fe
+nodes:
+- id: n0001
+  kind: heading
+  layer: markdown
+  source_span:
+    start: 0
+    end: 5
+  attrs:
+    level: 1
+- id: n0002
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 7
+    end: 35
+- id: n0003
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 37
+    end: 105
+- id: n0004
+  kind: heading
+  layer: markdown
+  source_span:
+    start: 106
+    end: 124
+  attrs:
+    level: 2
+- id: n0005
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 126
+    end: 165
+- id: n0006
+  kind: heading
+  layer: markdown
+  source_span:
+    start: 167
+    end: 192
+  attrs:
+    level: 1
+- id: n0007
+  kind: heading
+  layer: markdown
+  source_span:
+    start: 194
+    end: 219
+  attrs:
+    level: 4
+- id: n0008
+  kind: blockquote
+  layer: markdown
+  children:
+  - n0009
+  - n0010
+  source_span:
+    start: 221
+    end: 295
+- id: n0009
+  kind: heading
+  layer: markdown
+  parent: n0008
+  source_span:
+    start: 221
+    end: 278
+  attrs:
+    level: 2
+- id: n0010
+  kind: paragraph
+  layer: markdown
+  parent: n0008
+  source_span:
+    start: 281
+    end: 295
+- id: n0011
+  kind: list
+  layer: markdown
+  children:
+  - n0012
+  - n0014
+  source_span:
+    start: 297
+    end: 368
+  attrs:
+    tight: true
+    ordered: false
+    max_depth: 1
+    item_count: 2
+- id: n0012
+  kind: list_item
+  layer: markdown
+  parent: n0011
+  children:
+  - n0013
+  source_span:
+    start: 297
+    end: 354
+- id: n0013
+  kind: heading
+  layer: markdown
+  parent: n0012
+  source_span:
+    start: 297
+    end: 354
+  attrs:
+    level: 3
+- id: n0014
+  kind: list_item
+  layer: markdown
+  parent: n0011
+  children:
+  - n0015
+  source_span:
+    start: 355
+    end: 368
+- id: n0015
+  kind: paragraph
+  layer: markdown
+  parent: n0014
+  source_span:
+    start: 355
+    end: 368
+- id: n0016
+  kind: heading
+  layer: markdown
+  source_span:
+    start: 370
+    end: 375
+  attrs:
+    level: 1
+- id: n0017
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 377
+    end: 472
+- id: n0018
+  kind: heading
+  layer: markdown
+  source_span:
+    start: 474
+    end: 487
+  attrs:
+    level: 1
+- id: n0019
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 488
+    end: 558
+- id: n0020
+  kind: heading
+  layer: markdown
+  source_span:
+    start: 559
+    end: 573
+  attrs:
+    level: 2
+- id: n0021
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 574
+    end: 643
+- id: n0022
+  kind: section
+  layer: document
+  children:
+  - n0023
+  source_span:
+    start: 0
+    end: 165
+  attrs:
+    level: 1
+    title: Top
+- id: n0023
+  kind: section
+  layer: document
+  parent: n0022
+  source_span:
+    start: 106
+    end: 165
+  attrs:
+    level: 2
+    title: Marker preceded
+- id: n0024
+  kind: section
+  layer: document
+  children:
+  - n0025
+  source_span:
+    start: 167
+    end: 368
+  attrs:
+    level: 1
+    title: Setext title
+- id: n0025
+  kind: section
+  layer: document
+  parent: n0024
+  source_span:
+    start: 194
+    end: 368
+  attrs:
+    level: 4
+    title: Jumped to level four
+- id: n0026
+  kind: section
+  layer: document
+  source_span:
+    start: 370
+    end: 472
+  attrs:
+    level: 1
+    title: Top
+- id: n0027
+  kind: section
+  layer: document
+  children:
+  - n0028
+  source_span:
+    start: 474
+    end: 643
+  attrs:
+    level: 1
+    title: Tight outer
+- id: n0028
+  kind: section
+  layer: document
+  parent: n0027
+  source_span:
+    start: 559
+    end: 643
+  attrs:
+    level: 2
+    title: Tight inner
+views:
+  toc:
+  - n0022
+  - n0023
+  - n0024
+  - n0025
+  - n0026
+  - n0027
+  - n0028
+  blocks:
+  - n0001
+  - n0002
+  - n0003
+  - n0004
+  - n0005
+  - n0006
+  - n0007
+  - n0008
+  - n0009
+  - n0010
+  - n0011
+  - n0012
+  - n0013
+  - n0014
+  - n0015
+  - n0016
+  - n0017
+  - n0018
+  - n0019
+  - n0020
+  - n0021

@@ -453,3 +453,57 @@ def test_set_sent_preserves_original_source_span():
     assert after_sent.text == "Hello much longer replacement world."
     assert after_sent.span == before
     assert doc.source_text[before[0] : before[1]] == "Hello world."
+
+
+def test_prose_text_strips_inline_markup_and_keeps_spacing():
+    doc = FlexDoc.from_text(
+        "## A `code` heading\n\n"
+        "Body with <span>foo</span> bar, a [link](https://e.example), "
+        "`inline` code — and a spaced dash.\n"
+    )
+    prose = doc.prose_text()
+    # Heading markers and inline code dropped; collapsed to single spaces.
+    assert "A heading" in prose
+    # Inline-HTML tags dropped but the wrapped text kept; link becomes its text; code
+    # dropped; the spaced em-dash is preserved verbatim.
+    assert "foo bar" in prose
+    assert "a link," in prose
+    assert "code — and" in prose
+    assert "<span>" not in prose and "`" not in prose
+
+
+def test_prose_text_excludes_reference_definitions():
+    """Reference-definition lines (`[id]: url`) are not prose: their ids and URLs must not
+    leak into the editorial-lint text, while the reference link is kept as its text."""
+    doc = FlexDoc.from_text("Text with [link][r].\n\n[r]: https://example.com\n")
+    assert doc.prose_text() == "Text with link."
+
+
+def test_prose_text_strips_block_markers_and_tables_are_opt_in():
+    """Leading blockquote/list markers are stripped to plain prose, and tables are excluded by
+    default but flattened to cell text under `include_tables=True`."""
+    src = (
+        "# Title\n\n> A quoted line.\n\n- item one\n- item two\n\n"
+        "| Col A | Col B |\n| --- | --- |\n| cell one | cell two |\n"
+    )
+    doc = FlexDoc.from_text(src)
+    prose = doc.prose_text()
+    assert "A quoted line." in prose and ">" not in prose
+    assert "item one" in prose and "item two" in prose and "- " not in prose
+    assert "cell one" not in prose  # tables excluded by default
+
+    with_tables = doc.prose_text(include_tables=True)
+    assert "Col A Col B" in with_tables
+    assert "cell one cell two" in with_tables
+    assert "---" not in with_tables  # separator row dropped
+
+
+def test_block_at_offset_returns_innermost_block():
+    from flexdoc.docs.block_types import BlockType
+
+    doc = FlexDoc.from_text("# H\n\n- item one\n- item two\n")
+    offset = doc.source_text.index("item two")
+    block = doc.block_at_offset(offset)
+    assert block is not None and block.type == BlockType.paragraph
+    # An offset in inter-block whitespace maps to no block.
+    assert doc.block_at_offset(doc.source_text.index("\n\n")) is None

@@ -117,6 +117,7 @@ node_table:
   attrs:
     url: https://û.example
     text: liñk
+    link_form: inline
     section: n0008
     sentence: n0012
 links:

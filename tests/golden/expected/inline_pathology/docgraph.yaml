@@ -1,0 +1,91 @@
+schema: DocGraph/v0.1
+source:
+  format: markdown
+  offset_unit: unicode_code_points
+  sha256: 17b2904b6ab058ad343a50bed13c5c6ab67d53367ec0ebba519ea129eb78dc74
+nodes:
+- id: n0001
+  kind: heading
+  layer: markdown
+  source_span:
+    start: 0
+    end: 18
+  attrs:
+    level: 1
+- id: n0002
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 20
+    end: 115
+- id: n0003
+  kind: code
+  layer: markdown
+  source_span:
+    start: 117
+    end: 130
+  attrs:
+    language: python
+    line_count: 0
+- id: n0004
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 132
+    end: 216
+- id: n0005
+  kind: list
+  layer: markdown
+  children:
+  - n0006
+  source_span:
+    start: 218
+    end: 264
+  attrs:
+    tight: true
+    ordered: false
+    max_depth: 1
+    item_count: 1
+- id: n0006
+  kind: list_item
+  layer: markdown
+  parent: n0005
+  children:
+  - n0007
+  source_span:
+    start: 218
+    end: 264
+- id: n0007
+  kind: paragraph
+  layer: markdown
+  parent: n0006
+  source_span:
+    start: 218
+    end: 264
+- id: n0008
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 266
+    end: 361
+- id: n0009
+  kind: section
+  layer: document
+  source_span:
+    start: 0
+    end: 361
+  attrs:
+    level: 1
+    title: Inline pathology
+views:
+  toc:
+  - n0009
+  blocks:
+  - n0001
+  - n0002
+  - n0003
+  - n0004
+  - n0005
+  - n0006
+  - n0007
+  - n0008

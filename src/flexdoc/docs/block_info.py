@@ -17,7 +17,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from marko.block import CodeBlock, FencedCode, List, ListItem
+from marko.block import CodeBlock, FencedCode, Heading, List, ListItem, SetextHeading
 from marko.element import Element
 from marko.ext.gfm.elements import Table, TableCell, TableRow
 
@@ -48,6 +48,16 @@ class TableInfo:
     """`rows * cols`."""
     alignments: list[Alignment]
     """Per-column alignment, length `cols`."""
+
+
+@dataclass(frozen=True)
+class HeadingInfo:
+    """Typed metadata for a heading block."""
+
+    level: int
+    """Heading level 1-6 (marko `Heading.level` / `SetextHeading.level`)."""
+    title: str
+    """Inline heading text with the `#` markers and surrounding whitespace removed."""
 
 
 @dataclass(frozen=True)
@@ -128,6 +138,24 @@ def list_info_for(element: Element) -> ListInfo | None:
     )
 
 
+def _heading_text(element: Element) -> str:
+    """Concatenate the plain text of a heading's inline subtree (its `RawText` etc.)."""
+    children = getattr(element, "children", None)
+    if isinstance(children, str):
+        return children
+    if isinstance(children, list):
+        return "".join(_heading_text(child) for child in children)  # pyright: ignore[reportUnknownArgumentType]
+    return ""
+
+
+def heading_info_for(element: Element) -> HeadingInfo | None:
+    """`HeadingInfo` if `element` is an ATX or setext heading, else `None`. Level and title
+    are parser-authoritative (marko `.level` and the inline text), never a regex over `#`s."""
+    if not isinstance(element, (Heading, SetextHeading)):
+        return None
+    return HeadingInfo(level=int(element.level), title=_heading_text(element).strip())
+
+
 ## Tests
 
 
@@ -165,3 +193,13 @@ def test_list_info_extractor():
     flat = _parse_first("- a\n- b\n")
     assert list_info_for(flat) == ListInfo(ordered=False, start=None, max_depth=1, item_count=2)
     assert list_info_for(_parse_first("paragraph\n")) is None
+
+
+def test_heading_info_extractor():
+    assert heading_info_for(_parse_first("### Some `code` title\n")) == HeadingInfo(
+        level=3, title="Some code title"
+    )
+    # Setext headings carry a level too (1 for `===`, 2 for `---`).
+    assert heading_info_for(_parse_first("Title\n=====\n")) == HeadingInfo(level=1, title="Title")
+    assert heading_info_for(_parse_first("Sub\n---\n")) == HeadingInfo(level=2, title="Sub")
+    assert heading_info_for(_parse_first("paragraph\n")) is None

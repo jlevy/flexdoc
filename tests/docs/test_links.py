@@ -151,3 +151,72 @@ def test_autolink_is_single_link_node_not_inline_html():
     link_nodes = [k for k, _ in auto if k == NodeKind.link]
     html_nodes = [k for k, _ in auto if k == NodeKind.inline_html]
     assert link_nodes and not html_nodes
+
+
+def test_link_forms_are_classified():
+    from flexdoc.docs import LinkForm
+
+    src = dedent(
+        """
+        An [inline](https://in.example) and a [ref][r] link.
+
+        An <https://auto.example> autolink and a bare https://bare.example URL.
+
+        [r]: https://ref.example
+        """
+    ).strip()
+    doc = FlexDoc.from_text(src)
+    link_forms = {link.url: link.link_form for link in doc.links()}
+    assert link_forms["https://in.example"] == LinkForm.inline
+    assert link_forms["https://ref.example"] == LinkForm.reference
+    assert link_forms["https://auto.example"] == LinkForm.autolink
+    assert link_forms["https://bare.example"] == LinkForm.bare_url
+
+
+def test_images_and_reference_definitions_are_separate_from_links():
+    from flexdoc.docs import LinkForm
+
+    src = dedent(
+        """
+        Text with a [link](https://link.example) and an image ![alt text](https://img.example/x.png).
+
+        [d]: https://def.example "Title"
+        """
+    ).strip()
+    doc = FlexDoc.from_text(src)
+    # links() is navigable links only.
+    assert [link.url for link in doc.links()] == ["https://link.example"]
+    # images() exposes the image, with alt text in `text`.
+    images = doc.images()
+    assert [(img.text, img.url) for img in images] == [("alt text", "https://img.example/x.png")]
+    # Reference definitions are reachable via forms, not the default.
+    defs = doc.links(link_forms={LinkForm.reference_definition})
+    assert [(d.text, d.url, d.title) for d in defs] == [("d", "https://def.example", "Title")]
+
+
+def test_linked_image_is_a_pinned_degradation():
+    """`[![alt](i)](u)` (an image wrapped in a link) is a deliberate non-goal: flowmark's
+    atomic span for the outer link stops at the inner image's `)`, so the inner image is
+    unlocatable (`span=None`) and the outer surfaces as a plain navigable link, not an image.
+    Pinned so the known degradation stays visible (see the metrics-use-case plan)."""
+    doc = FlexDoc.from_text(
+        "A linked image [![alt](https://img.example/i.png)](https://target.example).\n"
+    )
+    (image,) = doc.images()
+    assert image.span is None  # the wrapped image cannot be located
+    nav = doc.links()
+    assert len(nav) == 1 and nav[0].span is not None  # the outer is located, but as a link
+
+
+def test_inline_link_near_unbalanced_backticks_is_not_bare_url():
+    """An unbalanced backtick run in one block must not corrupt link classification in a later
+    block. The atomic-span scan is bounded per leaf block, so the following `[x](url)` stays
+    `inline` instead of falling through to the bare-url branch (a cross-block variant of the
+    Bug-1 atomic-pairing family). Removing the trailing `` `runpool` `` backticks already
+    classified it correctly; this pins the bounded-scan fix."""
+    from flexdoc.docs import LinkForm
+
+    src = "text ```json\n\n[x](../../rel/) here\n\nmore `runpool` text\n"
+    (link,) = FlexDoc.from_text(src).links()
+    assert link.url == "../../rel/"
+    assert link.link_form == LinkForm.inline

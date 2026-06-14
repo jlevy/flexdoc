@@ -157,3 +157,58 @@ def test_heading_inside_code_fence_is_not_a_section():
     ).strip()
     doc = FlexDoc.from_text(md)
     assert [title for _, title, _ in doc.toc()] == ["Real"]
+
+
+def test_sections_recover_tight_and_marker_preceded_headings():
+    """Regression for the sections()/toc() heading-loss bug: a heading glued below
+    preceding text (tight) or preceded by a non-blank line (e.g. an HTML-comment marker)
+    is no longer dropped, because sections derive from the structural heading blocks, not
+    the blank-line paragraph view."""
+    tight = FlexDoc.from_text("# A\nintro\n## B\nbody\n")
+    assert [title for _level, title, _span in tight.toc()] == ["A", "B"]
+
+    marker = FlexDoc.from_text("# T\n\n<!-- marker -->\n## S\n\nbody\n")
+    assert [title for _level, title, _span in marker.toc()] == ["T", "S"]
+
+
+def test_tight_glued_sections_own_their_content():
+    """Deep fix for the section-content bug: in a fully glued document (no blank lines) a
+    heading still owns exactly its own content, derived from the structural region rather
+    than the blank-line paragraph view (which merges the whole document into one paragraph,
+    so the body would otherwise be attributed to no section)."""
+    doc = FlexDoc.from_text("# A\nintro\n## B\nbody\n")
+    (a,) = doc.sections()
+    (b,) = a.children
+    assert (a.level, a.title, b.level, b.title) == (1, "A", 2, "B")
+
+    assert [blk.type for blk in a.blocks()] == [BlockType.heading, BlockType.paragraph]
+    assert [blk.type for blk in b.blocks()] == [BlockType.heading, BlockType.paragraph]
+    a_own = "".join(p.original_text for p in a.own_paragraphs())
+    b_own = "".join(p.original_text for p in b.own_paragraphs())
+    assert "intro" in a_own and "body" not in a_own
+    assert "body" in b_own
+    # The body now counts under B, so own sizes are symmetric and the subtree is additive.
+    assert a.size(TextUnit.words, subtree=False) == b.size(TextUnit.words, subtree=False)
+    assert a.size(TextUnit.words, subtree=True) == a.size(TextUnit.words, subtree=False) + b.size(
+        TextUnit.words, subtree=True
+    )
+
+
+def test_marker_preceded_section_content_is_attributed():
+    """A heading preceded by a non-blank line (an HTML-comment marker) owns its content, and
+    the marker belongs to the preceding section rather than being merged with the heading."""
+    doc = FlexDoc.from_text("# T\n\n<!-- marker -->\n## S\n\nbody\n")
+    (t,) = doc.sections()
+    (s,) = t.children
+    assert (t.title, s.title) == ("T", "S")
+    t_own = "".join(p.original_text for p in t.own_paragraphs())
+    assert "<!-- marker -->" in t_own  # the marker is owned by T (it precedes S)
+    assert "## S" not in t_own  # S's heading is not part of T's content
+    assert "body" in "".join(p.original_text for p in s.own_paragraphs())
+
+
+def test_toc_matches_heading_block_count():
+    """Every top-level structural heading block yields exactly one toc entry."""
+    doc = FlexDoc.from_text(_DOC)
+    headings = [b for b in doc.blocks() if b.type == BlockType.heading]
+    assert len(doc.toc()) == len(headings)

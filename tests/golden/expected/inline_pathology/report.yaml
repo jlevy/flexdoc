@@ -1,0 +1,283 @@
+source:
+  sha256: 17b2904b6ab058ad343a50bed13c5c6ab67d53367ec0ebba519ea129eb78dc74
+  length: 362
+  size_summary: 361 bytes (13 lines, 6 paras, 6 sents, 53 words, ~95 tok)
+base_blocks:
+  cover_ok: true
+  uncovered_nonspace: 0
+  blocks:
+  - depth: 0
+    type: heading
+    span: 0:18
+    text: '# Inline pathology'
+  - depth: 0
+    type: paragraph
+    span: 20:115
+    text: |-
+      An empty fenced block immediately followed by a paragraph mixing inline code and
+      backtick runs:
+  - depth: 0
+    type: code
+    span: 117:130
+    text: |-
+      ```python
+      ```
+  - depth: 0
+    type: paragraph
+    span: 132:216
+    text: Then `` ```t `` inline, a `simple` span, and code with brackets 
+      `arr[0]` and `f(x)`.
+  - depth: 0
+    type: list_item
+    span: 218:264
+    text: '- Inline `Emphasis` text in a tight list item.'
+  - depth: 0
+    type: paragraph
+    span: 266:361
+    text: A plain [inline link](https://example.com) and an image ![alt 
+      text](https://img.example/i.png).
+sections:
+- level: 1
+  title: Inline pathology
+  span: 0:361
+  words: 53
+node_table:
+- id: n0001
+  layer: markdown
+  kind: heading
+  span: 0:18
+  attrs:
+    level: 1
+- id: n0002
+  layer: markdown
+  kind: paragraph
+  span: 20:115
+- id: n0003
+  layer: markdown
+  kind: code
+  span: 117:130
+  attrs:
+    language: python
+    line_count: 0
+- id: n0004
+  layer: markdown
+  kind: paragraph
+  span: 132:216
+- id: n0005
+  layer: markdown
+  kind: list
+  span: 218:264
+  attrs:
+    tight: true
+    ordered: false
+    max_depth: 1
+    item_count: 1
+- id: n0006
+  layer: markdown
+  kind: list_item
+  span: 218:264
+  parent: n0005
+- id: n0007
+  layer: markdown
+  kind: paragraph
+  span: 218:264
+  parent: n0006
+- id: n0008
+  layer: markdown
+  kind: paragraph
+  span: 266:361
+- id: n0009
+  layer: document
+  kind: section
+  span: 0:361
+  attrs:
+    level: 1
+    title: Inline pathology
+- id: n0010
+  layer: textual
+  kind: paragraph
+  span: 0:18
+- id: n0011
+  layer: textual
+  kind: sentence
+  span: 0:18
+  parent: n0010
+  attrs:
+    text: '# Inline pathology'
+- id: n0012
+  layer: textual
+  kind: paragraph
+  span: 20:115
+- id: n0013
+  layer: textual
+  kind: sentence
+  span: 20:115
+  parent: n0012
+  attrs:
+    text: 'An empty fenced block immediately followed by a paragraph mixing inline
+      code and backtick runs:'
+- id: n0014
+  layer: textual
+  kind: paragraph
+  span: 117:130
+- id: n0015
+  layer: textual
+  kind: sentence
+  span: 117:130
+  parent: n0014
+  attrs:
+    text: '```python ```'
+- id: n0016
+  layer: textual
+  kind: paragraph
+  span: 132:216
+- id: n0017
+  layer: textual
+  kind: sentence
+  span: 132:216
+  parent: n0016
+  attrs:
+    text: Then `` ```t `` inline, a `simple` span, and code with brackets 
+      `arr[0]` and `f(x)`.
+- id: n0018
+  layer: textual
+  kind: paragraph
+  span: 218:264
+- id: n0019
+  layer: textual
+  kind: sentence
+  span: 218:264
+  parent: n0018
+  attrs:
+    text: '- Inline `Emphasis` text in a tight list item.'
+- id: n0020
+  layer: textual
+  kind: paragraph
+  span: 266:361
+- id: n0021
+  layer: textual
+  kind: sentence
+  span: 266:361
+  parent: n0020
+  attrs:
+    text: A plain [inline link](https://example.com) and an image ![alt 
+      text](https://img.example/i.png).
+- id: n0022
+  layer: markdown
+  kind: link
+  span: 274:308
+  parent: n0008
+  attrs:
+    url: https://example.com
+    text: inline link
+    link_form: inline
+    section: n0009
+    sentence: n0021
+- id: n0023
+  layer: markdown
+  kind: image
+  span: 322:360
+  parent: n0008
+  attrs:
+    url: https://img.example/i.png
+    text: alt text
+    section: n0009
+    sentence: n0021
+- id: n0024
+  layer: markdown
+  kind: code_span
+  span: 137:142
+  parent: n0004
+  attrs:
+    content: ''
+    section: n0009
+    sentence: n0017
+- id: n0025
+  layer: markdown
+  kind: code_span
+  span: 142:146
+  parent: n0004
+  attrs:
+    content: t
+    section: n0009
+    sentence: n0017
+- id: n0026
+  layer: markdown
+  kind: code_span
+  span: 146:159
+  parent: n0004
+  attrs:
+    content: inline, a
+    section: n0009
+    sentence: n0017
+- id: n0027
+  layer: markdown
+  kind: code_span
+  span: 165:197
+  parent: n0004
+  attrs:
+    content: span, and code with brackets
+    section: n0009
+    sentence: n0017
+- id: n0028
+  layer: markdown
+  kind: code_span
+  span: 203:210
+  parent: n0004
+  attrs:
+    content: and
+    section: n0009
+    sentence: n0017
+- id: n0029
+  layer: markdown
+  kind: code_span
+  span: 227:237
+  parent: n0007
+  attrs:
+    content: Emphasis
+    section: n0009
+    sentence: n0019
+links:
+- kind: link
+  text: inline link
+  url: https://example.com
+  span: 274:308
+  section: Inline pathology
+- kind: image
+  text: alt text
+  url: https://img.example/i.png
+  span: 322:360
+  section: Inline pathology
+spanrefs:
+- id: n0022
+  exact: '[inline link](https://example.com)'
+  resolved: 274:308
+  ok: true
+- id: n0023
+  exact: '![alt text](https://img.example/i.png)'
+  resolved: 322:360
+  ok: true
+- id: n0024
+  exact: '`` ``'
+  resolved: 137:142
+  ok: true
+- id: n0025
+  exact: '`t `'
+  resolved: 142:146
+  ok: true
+- id: n0026
+  exact: '` inline, a `'
+  resolved: 146:159
+  ok: true
+- id: n0027
+  exact: '` span, and code with brackets `'
+  resolved: 165:197
+  ok: true
+- id: n0028
+  exact: '` and `'
+  resolved: 203:210
+  ok: true
+- id: n0029
+  exact: '`Emphasis`'
+  resolved: 227:237
+  ok: true

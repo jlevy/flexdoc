@@ -344,3 +344,14 @@ def test_textdoc_base_blocks_matches_free_function():
     method = td.base_blocks()
     fn = base_blocks_fn(text)
     assert [(b.block.span, b.depth) for b in method] == [(b.block.span, b.depth) for b in fn]
+
+
+def test_inline_kinds_collected_without_recursive():
+    """Requesting an inline kind no longer needs `recursive=True`: inline nodes are never
+    roots, so an inline-kind request widens the candidate set to all nodes. Previously this
+    silently returned []."""
+    doc = FlexDoc.from_text("Text with a [link](https://e.example) and `code`.\n")
+    assert len(doc.collect(kinds={NodeKind.link})) == 1
+    assert len(doc.collect(kinds={NodeKind.code_span})) == 1
+    # Explicit inline=True behaves the same.
+    assert len(doc.collect(kinds={NodeKind.link}, inline=True)) == 1
