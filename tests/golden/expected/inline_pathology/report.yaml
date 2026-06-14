@@ -170,7 +170,7 @@ node_table:
   attrs:
     url: https://example.com
     text: inline link
-    form: inline
+    link_form: inline
     section: n0009
     sentence: n0021
 - id: n0023

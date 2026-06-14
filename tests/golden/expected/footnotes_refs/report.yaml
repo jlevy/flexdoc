@@ -134,7 +134,7 @@ node_table:
   attrs:
     url: https://docs.example
     text: docs
-    form: reference
+    link_form: reference
     section: n0007
     sentence: n0011
 - id: n0019
@@ -145,7 +145,7 @@ node_table:
   attrs:
     url: https://spec.example
     text: spec
-    form: reference
+    link_form: reference
     title: Spec Title
     section: n0007
     sentence: n0011
@@ -157,7 +157,7 @@ node_table:
   attrs:
     url: https://auto.example
     text: https://auto.example
-    form: autolink
+    link_form: autolink
     section: n0007
     sentence: n0013
 - id: n0021
@@ -168,7 +168,7 @@ node_table:
   attrs:
     url: https://bare.example
     text: https://bare.example
-    form: bare_url
+    link_form: bare_url
     section: n0007
     sentence: n0013
 - id: n0022

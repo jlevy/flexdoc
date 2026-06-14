@@ -169,7 +169,7 @@ class Section:
         return [
             link
             for link in self._all_links()
-            if link.form in TRUE_LINK_FORMS
+            if link.link_form in TRUE_LINK_FORMS
             and link.span is not None
             and sec_start <= link.span[0]
             and link.span[1] <= sec_end

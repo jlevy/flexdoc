@@ -474,13 +474,13 @@ class FlexDoc:
             return block_links(source_text[content_offset:], content_offset)
         return block_links(source_text, 0, parsed=self._parsed())
 
-    def links(self, *, forms: set[LinkForm] | None = None) -> list[Link]:
+    def links(self, *, link_forms: set[LinkForm] | None = None) -> list[Link]:
         """
         Links in the document, in document order. By default returns only navigable links
-        (`TRUE_LINK_FORMS`: inline, reference, autolink, bare URL); pass `forms` to select
-        any `LinkForm`s instead — e.g. `links(forms={LinkForm.image})` for images, or
-        `links(forms={LinkForm.reference_definition})` for `[id]: url` definitions. Use
-        `images()` for the common image case.
+        (`TRUE_LINK_FORMS`: inline, reference, autolink, bare URL); pass `link_forms` to
+        select any `LinkForm`s instead — e.g. `links(link_forms={LinkForm.image})` for
+        images, or `links(link_forms={LinkForm.reference_definition})` for `[id]: url`
+        definitions. Use `images()` for the common image case.
 
         Derived from the document's single shared parse (see the class contract on
         read-time caching), so reference-style links (`[text][ref]` with `[ref]: url` in a
@@ -488,15 +488,15 @@ class FlexDoc:
         result cannot poison the cache (`Link` is frozen, so the shared elements are safe).
         See `Link`.
         """
-        selected = TRUE_LINK_FORMS if forms is None else forms
-        return [link for link in self._link_list() if link.form in selected]
+        selected = TRUE_LINK_FORMS if link_forms is None else link_forms
+        return [link for link in self._link_list() if link.link_form in selected]
 
     def images(self) -> list[Link]:
         """
         All images (`![alt](url)`), in document order; a convenience for
-        `links(forms={LinkForm.image})`. For each, `text` is the alt text. See `Link`.
+        `links(link_forms={LinkForm.image})`. For each, `text` is the alt text. See `Link`.
         """
-        return self.links(forms={LinkForm.image})
+        return self.links(link_forms={LinkForm.image})
 
     def prose_text(self) -> str:
         """

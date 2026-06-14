@@ -199,10 +199,10 @@ def test_model_invariants():
 
         # Link-form accounting: every links() entry is a true link, and the per-form lists
         # match the node-table node counts one-for-one.
-        assert all(link.form in TRUE_LINK_FORMS for link in td.links())
+        assert all(link.link_form in TRUE_LINK_FORMS for link in td.links())
         assert len(td.links()) == len(table.by_kind(NodeKind.link)), f"{where}: link count"
         assert len(td.images()) == len(table.by_kind(NodeKind.image)), f"{where}: image count"
-        assert len(td.links(forms={LinkForm.reference_definition})) == len(
+        assert len(td.links(link_forms={LinkForm.reference_definition})) == len(
             table.by_kind(NodeKind.link_ref_def)
         ), f"{where}: reference-definition count"
 

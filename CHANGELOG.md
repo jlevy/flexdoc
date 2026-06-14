@@ -40,10 +40,10 @@ the API additions below include breaking signature changes (see **Changed**).
   parser-authoritative `level` and `title`) and the `Block.heading_level` convenience;
   `HeadingInfo` is exported from `flexdoc.docs`. The node table reads heading level from it.
 - **Typed link forms**: `LinkForm` (`inline` / `reference` / `autolink` / `bare_url` /
-  `image` / `reference_definition`) and `Link.form`. `FlexDoc.links(forms=…)` selects any
+  `image` / `reference_definition`) and `Link.link_form`. `FlexDoc.links(link_forms=…)` selects any
   forms (default: navigable links only), and `FlexDoc.images()` is a convenience for image
   access. Reference definitions (`[id]: url`) are surfaced as `NodeKind.link_ref_def` nodes
-  and via `links(forms={LinkForm.reference_definition})`.
+  and via `links(link_forms={LinkForm.reference_definition})`.
 - **`FlexDoc.prose_text()`**: prose-only text for editorial linting — prose blocks with
   inline code dropped, links/images replaced by their text/alt, inline-HTML tags dropped
   (wrapped text kept), reference-definition lines excluded, from verbatim source slices so
@@ -61,10 +61,10 @@ the API additions below include breaking signature changes (see **Changed**).
 
 These are breaking, made cleanly (no aliases) given the preview status:
 
-- **`Link` gains a required `form: LinkForm` field.** Direct `Link(...)` construction must
+- **`Link` gains a required `link_form: LinkForm` field.** Direct `Link(...)` construction must
   pass it.
 - **`block_links()` returns all link-like constructs** (navigable links, images, and
-  reference definitions), each with a `form`; previously it returned navigable links only.
+  reference definitions), each with a `link_form`; previously it returned navigable links only.
   `FlexDoc.links()` filters to navigable links by default, so its default result is
   unchanged.
 - **`collect()` returns inline-kind nodes without `recursive=True`.** An inline-kind

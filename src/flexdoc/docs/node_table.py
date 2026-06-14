@@ -182,17 +182,17 @@ def _build_inline_nodes(
     ]
 
     # Links, images, and reference definitions via doc.links() (all forms).
-    for link in doc.links(forms=set(LinkForm)):
-        if link.form == LinkForm.image:
+    for link in doc.links(link_forms=set(LinkForm)):
+        if link.link_form == LinkForm.image:
             kind = NodeKind.image
-        elif link.form == LinkForm.reference_definition:
+        elif link.link_form == LinkForm.reference_definition:
             kind = NodeKind.link_ref_def
         else:
             kind = NodeKind.link
 
         attrs: dict[str, AttrValue] = {"url": link.url, "text": link.text}
         if kind == NodeKind.link:
-            attrs["form"] = link.form.value
+            attrs["link_form"] = link.link_form.value
         if link.title:
             attrs["title"] = link.title
 

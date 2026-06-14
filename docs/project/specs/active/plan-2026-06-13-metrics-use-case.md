@@ -44,7 +44,7 @@ linting — plus two small ergonomic gaps from #5.
 
 This is a **clean-design** release, not a compatibility-constrained one. flexdoc 0.1.0
 is a preview; nothing downstream is required to be preserved, so signatures are revised
-wherever a clearer shape exists (e.g. `Link` gains a required `form`; `collect()`'s
+wherever a clearer shape exists (e.g. `Link` gains a required `link_form`; `collect()`'s
 inline ergonomics are fixed rather than worked around). The guiding constraint is the
 spec's design language (single source of truth, parser-authoritative metadata, lenient
 input / strict internal contracts), not source-level compatibility.
@@ -60,7 +60,7 @@ input / strict internal contracts), not source-level compatibility.
 - **Heading level is first-class on the structural `Block`** (parser-authoritative
   `HeadingInfo`), mirroring `CodeInfo`/`TableInfo`/`ListInfo`, and becomes the single
   source the node table reads (retiring the hand-rolled `#`-counting in `node_table.py`).
-- **Links carry a typed `form`** (`inline` / `autolink` / `bare_url` / `reference` /
+- **Links carry a typed `link_form`** (`inline` / `autolink` / `bare_url` / `reference` /
   `image` / `reference_definition`), and **reference definitions are surfaced** as a
   typed node kind, so the metrics breakdown needs no heuristics.
 - **A prose-only text projection** that excludes frontmatter, code, and tables *and*
@@ -208,22 +208,22 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
 
 **Phase 2 — typed surface for metrics.**
 
-4. **Link `form`, image access, and reference definitions** (`links.py`, `node.py`,
+4. **Link `link_form`, image access, and reference definitions** (`links.py`, `node.py`,
    `node_table.py`, `collect.py`). Add `LinkForm` (`StrEnum`: `inline`, `autolink`,
-   `bare_url`, `reference`, `image`, `reference_definition`) and a required `Link.form`,
+   `bare_url`, `reference`, `image`, `reference_definition`) and a required `Link.link_form`,
    classified in `block_links` from how each identity was located: `inline` (a
    `markdown_link` atomic containing `](`), `reference` (resolved by text against a
    definition), `autolink` (surrounded by `<>`), `bare_url` (a verbatim URL, no brackets),
    `image` (preceded by `!`; covers inline `![alt](url)` and reference `![alt][id]`, alt
    text in `Link.text`).
    `links()` returns **true links only by default** — `inline`, `reference`, `autolink`,
-   `bare_url` — and takes `links(forms: set[LinkForm] | None = None)` to retrieve any form
-   set; `images()` is a documented convenience for `links(forms={LinkForm.image})`. Image
+   `bare_url` — and takes `links(link_forms: set[LinkForm] | None = None)` to retrieve any form
+   set; `images()` is a documented convenience for `links(link_forms={LinkForm.image})`. Image
    and image-link access is therefore first-class and easy, just not the `links()` default.
    Reference definitions come parser-authoritatively from marko's `Document.link_ref_defs`
    (`{id: (url, title)}`), spans recovered by locating the `[id]:` line; they are surfaced
    primarily as `NodeKind.link_ref_def` nodes (so `collect(kinds={NodeKind.link_ref_def})`
-   counts them) and are retrievable via `links(forms={LinkForm.reference_definition})` —
+   counts them) and are retrievable via `links(link_forms={LinkForm.reference_definition})` —
    kept out of the default `links()` since a definition is not a link occurrence.
 
 5. **Prose-text projection** (`flex_doc.prose_text()`). A method returning prose-only
@@ -251,15 +251,15 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
   property. New `HeadingInfo` and `heading_info_for` in `flexdoc.docs.block_info`
   (exported from `flexdoc.docs`).
 - `Link`: new required `form: LinkForm` field; new `LinkForm` enum (exported from
-  `flexdoc.docs`). `links()` defaults to true links; new `links(forms=...)` filter and
-  `images()` convenience; reference definitions are reached via `forms` or the node
+  `flexdoc.docs`). `links()` defaults to true links; new `links(link_forms=...)` filter and
+  `images()` convenience; reference definitions are reached via `link_forms` or the node
   table, not the default `links()`.
 - `NodeKind`: new `link_ref_def` member (a new kind in the cross-language `DocGraph`
   contract; any port must learn it).
 - `FlexDoc`: new `prose_text()` and `block_at_offset()` methods.
 - `collect()`: inline-kind requests no longer require `recursive=True`.
 - `node_table`: inline nodes scoped per block; markdown heading `level` sourced from
-  `HeadingInfo`; new `link_ref_def` nodes; link nodes carry `form`.
+  `HeadingInfo`; new `link_ref_def` nodes; link nodes carry `link_form`.
 
 ## Implementation Plan
 
@@ -283,9 +283,9 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
 
 ### Phase 2: Typed surface — links, prose text, ergonomics
 
-- [x] `LinkForm` + `Link.form`; classify forms in `block_links`; surface
+- [x] `LinkForm` + `Link.link_form`; classify forms in `block_links`; surface
       `reference_definition` from `Document.link_ref_defs` with recovered spans.
-- [x] `NodeKind.link_ref_def`; emit ref-def nodes and `form` on link nodes in
+- [x] `NodeKind.link_ref_def`; emit ref-def nodes and `link_form` on link nodes in
       `node_table`; export `LinkForm`; per-form tests including bare-URL vs autolink.
 - [x] `FlexDoc.prose_text()` (node-table-backed strip); tests for inline-code/link
       stripping and `" — "` preservation.
@@ -294,7 +294,7 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
       Hardening (a)/(b)): every `links()` entry has a true-link form; `len(links()) +
       len(images()) + #ref-defs` equals the table's `link`/`image`/`link_ref_def` count.
 - [x] `CHANGELOG.md` 0.2.0 section (Fixed: Bug 1, Bug 2; Added: heading level on `Block`,
-      `LinkForm`/`Link.form` + reference-definition surfacing/`link_ref_def`,
+      `LinkForm`/`Link.link_form` + reference-definition surfacing/`link_ref_def`,
       `prose_text()`, `block_at_offset()`, `collect()` inline ergonomics). Update
       `TODO.md` / spec references; tag `v0.2.0` per `docs/publishing.md`; close #6 (and
       the folded-in #5 items).
@@ -393,7 +393,7 @@ are part of the bead work below; this section is the rationale and the checklist
 ## Rollout Plan
 
 Single **0.2.0** release covering both phases. The release carries breaking signature
-changes (e.g. `Link.form` is required, not a defaulted add-on; `links()` / `collect()`
+changes (e.g. `Link.link_form` is required, not a defaulted add-on; `links()` / `collect()`
 defaults adjusted), so per `docs/publishing.md`'s pre-1.0 rule — breaking changes bump the
 **minor** version — this is a 0.2.0 minor bump, not a patch. As a preview-stage library with
 no downstream-compatibility obligations there are no compatibility shims or aliases.
@@ -406,9 +406,9 @@ per `docs/publishing.md`) is held pending final review.
 Settled in review (2026-06-13):
 
 - **Images stay out of the `links()` default.** `links()` returns true links only;
-  `images()` and `links(forms={...})` provide first-class, documented access to images
+  `images()` and `links(link_forms={...})` provide first-class, documented access to images
   and any other form. Reference definitions likewise come via the node table or
-  `links(forms=...)`, never the default — a definition is not a link occurrence.
+  `links(link_forms=...)`, never the default — a definition is not a link occurrence.
 - **`prose_text()` drops inline-HTML tags but keeps the text they wrap**
   (`<span>foo</span> bar` -> `foo bar`); inline code is dropped and links/images become
   their text/alt. It ships as a real method, not a `collect()` recipe.

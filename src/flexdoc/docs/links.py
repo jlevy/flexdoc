@@ -47,15 +47,15 @@ class Link:
     identity (reference links resolved, autolinks and bare URLs included); for an image
     `text` is the alt text and for a reference definition `text` is the definition id.
     `span` is the construct's absolute `[start, end)` offsets in the source when they could
-    be recovered (`None` only when the construct cannot be located). `form` discriminates
-    how it was written (see `LinkForm`).
+    be recovered (`None` only when the construct cannot be located). `link_form`
+    discriminates how it was written (see `LinkForm`).
     """
 
     text: str
     url: str
     title: str | None
     span: tuple[int, int] | None
-    form: LinkForm
+    link_form: LinkForm
 
 
 def _inline_text(element: object) -> str:
@@ -105,7 +105,7 @@ def block_links(block_text: str, doc_offset: int, *, parsed: Document | None = N
     char_cursor = 0
     for idn in identities:
         located: tuple[int, int] | None = None
-        form = LinkForm.inline
+        link_form = LinkForm.inline
 
         # Bracketed links: match the next unused `markdown_link` atomic by URL (inline)
         # or by link text (reference links, where the URL is in a separate definition).
@@ -114,9 +114,9 @@ def block_links(block_text: str, doc_offset: int, *, parsed: Document | None = N
                 continue
             sp = link_spans[j]
             if idn.url and idn.url in sp.text:
-                located, form = (sp.start, sp.end), LinkForm.inline
+                located, link_form = (sp.start, sp.end), LinkForm.inline
             elif idn.text and idn.text in sp.text and sp.text.startswith("["):
-                located, form = (sp.start, sp.end), LinkForm.reference
+                located, link_form = (sp.start, sp.end), LinkForm.reference
             else:
                 continue
             used.add(j)
@@ -135,9 +135,9 @@ def block_links(block_text: str, doc_offset: int, *, parsed: Document | None = N
                     and end < len(block_text)
                     and block_text[end] == ">"
                 ):
-                    start, end, form = start - 1, end + 1, LinkForm.autolink
+                    start, end, link_form = start - 1, end + 1, LinkForm.autolink
                 else:
-                    form = LinkForm.bare_url
+                    link_form = LinkForm.bare_url
                 located = (start, end)
 
         if located is not None:
@@ -145,7 +145,7 @@ def block_links(block_text: str, doc_offset: int, *, parsed: Document | None = N
             span: tuple[int, int] | None = (doc_offset + located[0], doc_offset + located[1])
         else:
             span = None
-        result.append(Link(idn.text, idn.url, idn.title, span, form))
+        result.append(Link(idn.text, idn.url, idn.title, span, link_form))
 
     # Images: identities from the AST, spans from the `!`-prefixed atomics in document
     # order. The image span includes the leading `!` (the atomic starts at the `[`).

@@ -336,7 +336,7 @@ node_table:
   attrs:
     url: https://a.example
     text: inline link
-    form: inline
+    link_form: inline
     section: n0023
     sentence: n0029
 - id: n0045

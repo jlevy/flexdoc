@@ -156,7 +156,7 @@ node_table:
   attrs:
     url: https://inline.example
     text: inline link
-    form: inline
+    link_form: inline
     section: n0009
     sentence: n0013
 - id: n0021
@@ -167,7 +167,7 @@ node_table:
   attrs:
     url: https://reference.example
     text: reference link
-    form: reference
+    link_form: reference
     title: Reference title
     section: n0009
     sentence: n0013
@@ -179,7 +179,7 @@ node_table:
   attrs:
     url: https://shortcut.example
     text: shortcut
-    form: reference
+    link_form: reference
     section: n0009
     sentence: n0013
 - id: n0023
@@ -190,7 +190,7 @@ node_table:
   attrs:
     url: https://auto.example
     text: https://auto.example
-    form: autolink
+    link_form: autolink
     section: n0009
     sentence: n0015
 - id: n0024
@@ -201,7 +201,7 @@ node_table:
   attrs:
     url: https://bare.example
     text: https://bare.example
-    form: bare_url
+    link_form: bare_url
     section: n0009
     sentence: n0015
 - id: n0025

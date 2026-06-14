@@ -166,11 +166,11 @@ def test_link_forms_are_classified():
         """
     ).strip()
     doc = FlexDoc.from_text(src)
-    forms = {link.url: link.form for link in doc.links()}
-    assert forms["https://in.example"] == LinkForm.inline
-    assert forms["https://ref.example"] == LinkForm.reference
-    assert forms["https://auto.example"] == LinkForm.autolink
-    assert forms["https://bare.example"] == LinkForm.bare_url
+    link_forms = {link.url: link.link_form for link in doc.links()}
+    assert link_forms["https://in.example"] == LinkForm.inline
+    assert link_forms["https://ref.example"] == LinkForm.reference
+    assert link_forms["https://auto.example"] == LinkForm.autolink
+    assert link_forms["https://bare.example"] == LinkForm.bare_url
 
 
 def test_images_and_reference_definitions_are_separate_from_links():
@@ -190,7 +190,7 @@ def test_images_and_reference_definitions_are_separate_from_links():
     images = doc.images()
     assert [(img.text, img.url) for img in images] == [("alt text", "https://img.example/x.png")]
     # Reference definitions are reachable via forms, not the default.
-    defs = doc.links(forms={LinkForm.reference_definition})
+    defs = doc.links(link_forms={LinkForm.reference_definition})
     assert [(d.text, d.url, d.title) for d in defs] == [("d", "https://def.example", "Title")]
 
 
