@@ -206,3 +206,17 @@ def test_linked_image_is_a_pinned_degradation():
     assert image.span is None  # the wrapped image cannot be located
     nav = doc.links()
     assert len(nav) == 1 and nav[0].span is not None  # the outer is located, but as a link
+
+
+def test_inline_link_near_unbalanced_backticks_is_not_bare_url():
+    """An unbalanced backtick run in one block must not corrupt link classification in a later
+    block. The atomic-span scan is bounded per leaf block, so the following `[x](url)` stays
+    `inline` instead of falling through to the bare-url branch (a cross-block variant of the
+    Bug-1 atomic-pairing family). Removing the trailing `` `runpool` `` backticks already
+    classified it correctly; this pins the bounded-scan fix."""
+    from flexdoc.docs import LinkForm
+
+    src = "text ```json\n\n[x](../../rel/) here\n\nmore `runpool` text\n"
+    (link,) = FlexDoc.from_text(src).links()
+    assert link.url == "../../rel/"
+    assert link.link_form == LinkForm.inline

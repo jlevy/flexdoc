@@ -11,12 +11,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import NamedTuple
 
 from flowmark import flowmark_markdown
 from flowmark.atomic_spans import iter_atomic_spans
 from flowmark.markdown_ast import block_span, extract_links, walk_elements
 from marko import inline
 from marko.block import Document, LinkRefDef
+
+from flexdoc.docs.block_tree import parse_blocks, walk_blocks
+from flexdoc.docs.block_types import BlockType
 
 
 class LinkForm(StrEnum):
@@ -68,6 +72,32 @@ def _inline_text(element: object) -> str:
     return ""
 
 
+class _Span(NamedTuple):
+    """A located atomic span with absolute offsets into the scanned text."""
+
+    start: int
+    end: int
+    text: str
+
+
+def _markdown_link_atomics(block_text: str, parsed: Document) -> list[_Span]:
+    """The `markdown_link` atomic spans in `block_text`, scanned per leaf structural block so
+    inline backtick/code-span pairing stays bounded to one block. A whole-text scan lets an
+    unbalanced backtick run in one block pair across a later block and swallow a link there,
+    flipping an inline `[t](u)` to the bare-url fallback; per-block scanning prevents that (the
+    same scoping the node table uses for inline discovery). Offsets are absolute into
+    `block_text`, and leaf blocks stay in document order so `block_links`' alignment holds."""
+    spans: list[_Span] = []
+    for block, _depth in walk_blocks(parse_blocks(block_text, parsed)):
+        if block.children or block.type in (BlockType.code, BlockType.thematic_break):
+            continue
+        start, _end = block.span
+        for sp in iter_atomic_spans(block_text[start : block.span[1]]):
+            if sp.is_atomic and sp.name == "markdown_link":
+                spans.append(_Span(start + sp.start, start + sp.end, sp.text))
+    return spans
+
+
 def block_links(block_text: str, doc_offset: int, *, parsed: Document | None = None) -> list[Link]:
     """
     All link-like constructs in a text region, in document order, each with a `LinkForm`:
@@ -89,12 +119,12 @@ def block_links(block_text: str, doc_offset: int, *, parsed: Document | None = N
     doc = parsed if parsed is not None else flowmark_markdown().parse(block_text)
     identities = extract_links(doc)
 
-    # `markdown_link` atomics are the bracketed `[...]` constructs. Those preceded by `!`
-    # are images; the rest are navigable bracketed links. Autolinks come through as
-    # `html_open_tag` and bare URLs are not atomic, so both use the literal fallback below.
-    markdown_atomics = [
-        sp for sp in iter_atomic_spans(block_text) if sp.is_atomic and sp.name == "markdown_link"
-    ]
+    # `markdown_link` atomics are the bracketed `[...]` constructs (images when preceded by
+    # `!`, navigable links otherwise). The scan is bounded per leaf block so an unbalanced
+    # backtick run cannot pair across a block boundary and swallow a later link (which would
+    # flip an inline link to the bare-url fallback). Autolinks come through as `html_open_tag`
+    # and bare URLs are not atomic, so both use the literal fallback below.
+    markdown_atomics = _markdown_link_atomics(block_text, doc)
     link_spans = [sp for sp in markdown_atomics if not _preceded_by_bang(block_text, sp.start)]
     image_spans = [sp for sp in markdown_atomics if _preceded_by_bang(block_text, sp.start)]
 
