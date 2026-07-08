@@ -40,6 +40,12 @@ Fixes from the 2026-07 pre-promotion design review
 - **`graph()` accepts any set.** `FlexDoc.graph()` and `build_doc_graph()` annotate
   `include`/`detail` as `collections.abc.Set`, so plain `set` literals type-check
   (matching `collect()`); behavior is unchanged.
+- **`TextUnit` is a `StrEnum`**, matching every other public enum, so
+  `TextUnit.words == "words"` now holds. Source-compatible for enum-member access;
+  only `str()`/equality-with-string behavior changes.
+
+Remaining pre-1.0 design decisions and future mechanisms are collected in
+`docs/project/specs/active/plan-2026-07-08-post-review-refinements.md`.
 
 ## 0.2.0 (2026-06-14)
 

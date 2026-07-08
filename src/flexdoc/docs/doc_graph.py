@@ -118,6 +118,10 @@ class DocGraph(BaseModel):
 
     The `schema` JSON key carries the version string; in Python it is accessed
     as `schema_` (with `Field(alias="schema")`).
+
+    `annotations`, `layout`, and `provenance` are reserved for later phases
+    (flexdoc-spec section 14): the builder never populates them and consumers
+    must not, until their schemas are defined in a future DocGraph version.
     """
 
     model_config = ConfigDict(populate_by_name=True)
