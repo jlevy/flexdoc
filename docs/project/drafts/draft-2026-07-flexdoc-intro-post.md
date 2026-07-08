@@ -105,8 +105,9 @@ flexdoc is a Python library (`uv add flexdoc`), extracted from and used by
 filtering and windowed LLM transforms on top of it.
 It has a [full design spec](https://github.com/jlevy/flexdoc/blob/main/docs/flexdoc-spec.md),
 a golden-test corpus pinning its behavior on malformed input (parsing never throws;
-degradation is deterministic and visible), and deterministic node ids intended to
-make ports (TypeScript, Rust) implementations of one frozen contract.
+degradation is deterministic and visible), and deterministic node ids designed so
+future cross-language ports (TypeScript, Rust) can implement the same `DocGraph`
+contract.
 
 It is not a renderer, not an editor, and not another Markdown AST — it is the layer
 those tools share: one source of truth for *where everything is* in a document.
