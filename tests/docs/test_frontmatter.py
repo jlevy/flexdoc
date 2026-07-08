@@ -120,3 +120,19 @@ def test_doc_report_base_blocks_exclude_frontmatter():
     assert all("title: Hello" not in text for text in texts)
     assert report["base_blocks"]["cover_ok"]
     assert report["base_blocks"]["uncovered_nonspace"] == 0
+
+
+def test_frontmatter_markdown_constructs_cannot_leak_into_body():
+    # A YAML block scalar containing a code fence must not open a fenced block that
+    # swallows the body (the frontmatter region is blanked out of the shared parse).
+    doc = FlexDoc.from_text("---\ncode: |\n  ```\n---\n\n# Heading\n\nParagraph.\n")
+    types = [b.type.value for b in doc.blocks()]
+    assert types == ["heading", "paragraph"]
+    assert len(doc.sections()) == 1
+    assert doc.sections()[0].title == "Heading"
+    assert doc.prose_text() == "Heading\n\nParagraph."
+
+    # Same guarantee for the base-block partition and the node table.
+    assert [bb.block.type.value for bb in doc.base_blocks()] == ["heading", "paragraph"]
+    heading_nodes = doc.node_table().by_kind(NodeKind.heading)
+    assert len(heading_nodes) == 1

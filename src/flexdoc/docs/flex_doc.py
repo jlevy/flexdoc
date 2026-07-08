@@ -7,6 +7,7 @@ from __future__ import annotations
 import threading
 from collections import defaultdict
 from collections.abc import Callable, Generator, Iterable, Iterator
+from collections.abc import Set as AbstractSet
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import wraps
@@ -298,8 +299,21 @@ class FlexDoc:
         The single shared marko parse of `source_text`, computed once. `blocks()` and
         `links()` (and `base_blocks()`) derive from this one parse rather than each
         re-parsing the whole document. See the class contract on read-time caching.
+
+        A leading frontmatter region is blanked out (non-newline characters replaced
+        with spaces) before parsing: frontmatter is non-content, and parsing it as
+        Markdown lets constructs inside it leak into the body (e.g. a YAML block
+        scalar containing a code fence opens a fenced block that swallows the rest of
+        the document). Blanking preserves every body offset while guaranteeing the
+        region contributes no blocks.
         """
-        return flowmark_markdown().parse(self.source_text or self.reassemble())
+        text = self.source_text or self.reassemble()
+        content_offset = self._content_offset()
+        if content_offset:
+            frontmatter_region = text[:content_offset]
+            blanked = "".join(c if c == "\n" else " " for c in frontmatter_region)
+            text = blanked + text[content_offset:]
+        return flowmark_markdown().parse(text)
 
     @_memoized_derivation("_cached_node_table")
     def node_table(self) -> NodeTable:
@@ -322,7 +336,17 @@ class FlexDoc:
         `p.offsets.doc_offset` with length `len(p.original_text)` round-trips to
         `p.original_text`. `reassemble()` produces normalized editable text, not a
         byte-for-byte copy of the full input.
+
+        Line endings are normalized at parse: `\\r\\n` and lone `\\r` become `\\n`, and
+        `source_text` retains the normalized string. Offsets therefore index the
+        normalized text. (marko computes block positions against LF-only text, so
+        retaining CRLF would desynchronize every structural span from the source;
+        normalizing once at the entry point keeps the whole model in one offset space.)
         """
+        # Normalize line endings so marko's block spans and flexdoc's own paragraph
+        # spans share a single offset space (see docstring).
+        if "\r" in text:
+            text = text.replace("\r\n", "\n").replace("\r", "\n")
         # A leading YAML frontmatter block is isolated as a non-content region: paragraphs
         # (and thus sentences, sizes, and prose counts) are built over the body only, with
         # absolute offsets into the full `text` (kept as `source_text`). See `frontmatter`.
@@ -980,14 +1004,15 @@ class FlexDoc:
     def graph(
         self,
         *,
-        include: frozenset[Layer] | None = None,
-        detail: frozenset[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
+        include: AbstractSet[Layer] | None = None,
+        detail: AbstractSet[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
     ) -> DocGraph:
         """
         Build a `DocGraph` projection of this document. `include` selects which
         layers to serialize (default: markdown + document); `detail` controls
-        payload richness (see `Detail`). See `flexdoc.docs.doc_graph` for the
-        full contract.
+        payload richness (see `Detail`). Both accept any set (plain `set` literals
+        work; they are never mutated). See `flexdoc.docs.doc_graph` for the full
+        contract.
         """
         effective_include = include if include is not None else DEFAULT_INCLUDE
         return build_doc_graph(self.node_table(), include=effective_include, detail=detail)

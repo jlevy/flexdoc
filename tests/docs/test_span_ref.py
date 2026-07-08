@@ -154,6 +154,36 @@ def test_resolve_returns_none_for_missing_text():
     assert result is None
 
 
+def test_resolve_returns_none_for_ambiguous_quote():
+    """An ambiguous quote (multiple occurrences, no disambiguating context) resolves
+    to None rather than guessing an occurrence (spec section 11 error posture)."""
+    text = "alpha beta gamma. alpha beta gamma."
+    assert resolve(SpanRef(exact="beta"), text) is None
+    # Context matching neither occurrence better is still ambiguous.
+    assert resolve(SpanRef(exact="beta", prefix="zzz", suffix="qqq"), text) is None
+    # Identical context around both occurrences (a repeated sentence) is a tie.
+    assert resolve(SpanRef(exact="beta", prefix="alpha ", suffix=" gamma"), text) is None
+    # A unique quote needs no context.
+    unique = resolve(SpanRef(exact="gamma. alpha"), text)
+    assert unique == (text.find("gamma. alpha"), text.find("gamma. alpha") + len("gamma. alpha"))
+    # A suffix that fully matches only the first occurrence singles it out.
+    first = resolve(SpanRef(exact="beta", suffix=" gamma. alpha"), text)
+    assert first == (text.find("beta"), text.find("beta") + len("beta"))
+
+
+def test_resolve_disambiguates_with_unique_context():
+    """Context unique to one occurrence picks that occurrence."""
+    text = "one target here. two target there."
+    result = resolve(SpanRef(exact="target", prefix="two "), text)
+    assert result == (text.find("target", 5), text.find("target", 5) + len("target"))
+
+
+def test_resolve_returns_none_for_empty_exact():
+    """A zero-width quote anchors nothing, with or without offsets."""
+    assert resolve(SpanRef(exact=""), _DOC_TEXT) is None
+    assert resolve(SpanRef(exact="", start=5, end=5), _DOC_TEXT) is None
+
+
 def test_to_text_fragment():
     """to_text_fragment produces a Chrome-style text fragment with encoded components."""
     ref = SpanRef(exact="sample link", prefix="A [", suffix="]")

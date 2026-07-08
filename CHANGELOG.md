@@ -4,6 +4,43 @@ All notable changes to flexdoc are documented here.
 This project uses [semantic versioning](https://semver.org/); while pre-1.0, breaking
 changes bump the **minor** version (see `docs/publishing.md`).
 
+## Unreleased
+
+Fixes from the 2026-07 pre-promotion design review
+(`docs/project/review/senior-engineering-review-flexdoc-2026-07.md`).
+
+### Fixed
+
+- **CRLF input no longer corrupts the structural views.** marko computes block
+  positions against LF-only text, so `\r` in the input desynchronized every structural
+  span (`blocks()`, `sections()`, `base_blocks()`, `links()`, `prose_text()`, the node
+  table) from `source_text`, silently garbling content and violating the base-block
+  cover invariant. `from_text` now normalizes `\r\n` and lone `\r` to `\n` and retains
+  the normalized string as `source_text`, so all layers share one offset space. Callers
+  anchoring offsets to an external CRLF original must normalize it the same way first.
+- **Markdown constructs inside frontmatter can no longer swallow the body.** The shared
+  parse previously included the frontmatter region, so e.g. a YAML block scalar
+  containing a code fence opened a fenced block spanning the rest of the document,
+  leaving `blocks()` empty. The frontmatter region is now blanked out of the shared
+  parse (offsets preserved); frontmatter remains a non-content region.
+- **`resolve()` no longer guesses on ambiguous quotes.** Per the spec's error posture
+  (§11), a `SpanRef` quote that occurs multiple times with no disambiguating
+  prefix/suffix (or a tied context score) now resolves to `None` instead of silently
+  anchoring to the first occurrence. A zero-width quote (`exact=""`) also resolves to
+  `None` on both the fast and slow paths.
+- **`collect(overlaps=...)` treats empty intervals as empty.** A degenerate `[x, x)`
+  region (or node span) now overlaps nothing, matching half-open interval semantics;
+  point queries use `(x, x + 1)`.
+- **Render helpers harden their HTML output.** `render_node_attrs` attribute-escapes
+  `node.id`, and `wrap_with_node_attrs` validates the tag name (raising `ValueError`),
+  matching the validation in the `flexdoc.html` tag helpers.
+
+### Changed
+
+- **`graph()` accepts any set.** `FlexDoc.graph()` and `build_doc_graph()` annotate
+  `include`/`detail` as `collections.abc.Set`, so plain `set` literals type-check
+  (matching `collect()`); behavior is unchanged.
+
 ## 0.2.0 (2026-06-14)
 
 Correctness fixes and a completed inline/heading/link surface for the document-metrics

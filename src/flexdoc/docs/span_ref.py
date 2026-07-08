@@ -103,13 +103,21 @@ class SpanRef:
 def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
     """
     Resolve a `SpanRef` against `source_text`, returning the `(start, end)`
-    offsets or None if the span cannot be found. Pure: it does not mutate
-    `span_ref` (use `resolve_and_update` to also write the offsets back).
+    offsets or None if the span cannot be found or remains ambiguous. Pure: it
+    does not mutate `span_ref` (use `resolve_and_update` to also write the
+    offsets back).
 
     Fast path: if `start`/`end` are present and the text at those offsets
     matches `exact`, return immediately. Otherwise, search the full text for
-    `exact`, disambiguating with `prefix`/`suffix` if needed.
+    `exact`, disambiguating with `prefix`/`suffix`. When the quote occurs more
+    than once and the context does not single out one occurrence (no context,
+    or a tied best score), the result is None rather than a guess — resolution
+    failure is a visible value, never a silent wrong anchor (spec section 11).
     """
+    # A zero-width quote anchors nothing; reject it on both paths.
+    if not span_ref.exact:
+        return None
+
     # Fast path: offsets are valid.
     if span_ref.start is not None and span_ref.end is not None:
         s, e = span_ref.start, span_ref.end
@@ -118,8 +126,6 @@ def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
 
     # Slow path: search for the exact text in the source.
     exact = span_ref.exact
-    if not exact:
-        return None
 
     # Collect all occurrences.
     occurrences: list[int] = []
@@ -137,8 +143,13 @@ def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
     if len(occurrences) == 1:
         best = occurrences[0]
     else:
-        # Disambiguate with prefix/suffix scoring.
-        best = _best_match(occurrences, exact, span_ref.prefix, span_ref.suffix, source_text)
+        # Disambiguate with prefix/suffix scoring; ambiguous stays unresolved.
+        best_or_none = _best_match(
+            occurrences, exact, span_ref.prefix, span_ref.suffix, source_text
+        )
+        if best_or_none is None:
+            return None
+        best = best_or_none
 
     return (best, best + len(exact))
 
@@ -162,13 +173,16 @@ def _best_match(
     prefix: str | None,
     suffix: str | None,
     source_text: str,
-) -> int:
+) -> int | None:
     """
     Among multiple occurrences of `exact`, pick the one best matching the
-    prefix/suffix context. Returns the start offset of the best match.
+    prefix/suffix context. Returns the start offset of the unique best match,
+    or None when no occurrence scores strictly better than the rest (no
+    context to score with, or a tie) — the caller treats that as ambiguous.
     """
-    best_idx = occurrences[0]
+    best_idx: int | None = None
     best_score = -1
+    tied = False
     for idx in occurrences:
         score = 0
         if prefix is not None:
@@ -189,4 +203,9 @@ def _best_match(
         if score > best_score:
             best_score = score
             best_idx = idx
+            tied = False
+        elif score == best_score:
+            tied = True
+    if tied or best_score <= 0:
+        return None
     return best_idx

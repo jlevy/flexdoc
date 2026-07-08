@@ -1,0 +1,83 @@
+schema: DocGraph/v0.1
+source:
+  format: markdown
+  offset_unit: unicode_code_points
+  sha256: fa6743b2e12eeced64dce029aacadcfeec92ef5115a81e5f21d2aa3b4f54dbca
+nodes:
+- id: n0001
+  kind: paragraph
+  layer: markdown
+  source_span:
+    start: 0
+    end: 76
+- id: n0002
+  kind: list
+  layer: markdown
+  children:
+  - n0003
+  - n0005
+  source_span:
+    start: 78
+    end: 121
+  attrs:
+    tight: true
+    ordered: false
+    max_depth: 1
+    item_count: 2
+- id: n0003
+  kind: list_item
+  layer: markdown
+  parent: n0002
+  children:
+  - n0004
+  source_span:
+    start: 78
+    end: 94
+- id: n0004
+  kind: paragraph
+  layer: markdown
+  parent: n0003
+  source_span:
+    start: 78
+    end: 94
+- id: n0005
+  kind: list_item
+  layer: markdown
+  parent: n0002
+  children:
+  - n0006
+  source_span:
+    start: 95
+    end: 121
+- id: n0006
+  kind: paragraph
+  layer: markdown
+  parent: n0005
+  source_span:
+    start: 95
+    end: 121
+- id: n0007
+  kind: blockquote
+  layer: markdown
+  children:
+  - n0008
+  source_span:
+    start: 123
+    end: 187
+- id: n0008
+  kind: paragraph
+  layer: markdown
+  parent: n0007
+  source_span:
+    start: 123
+    end: 187
+views:
+  blocks:
+  - n0001
+  - n0002
+  - n0003
+  - n0004
+  - n0005
+  - n0006
+  - n0007
+  - n0008

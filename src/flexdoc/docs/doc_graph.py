@@ -16,6 +16,7 @@ with no validation overhead. The split is intentional, not drift.
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Set as AbstractSet
 from enum import StrEnum
 from io import StringIO
 from typing import Literal
@@ -149,8 +150,8 @@ DEFAULT_INCLUDE: frozenset[Layer] = frozenset({Layer.markdown, Layer.document})
 def build_doc_graph(
     table: NodeTable,
     *,
-    include: frozenset[Layer] = DEFAULT_INCLUDE,
-    detail: frozenset[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
+    include: AbstractSet[Layer] = DEFAULT_INCLUDE,
+    detail: AbstractSet[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
 ) -> DocGraph:
     """
     Build a `DocGraph` from a `NodeTable`.

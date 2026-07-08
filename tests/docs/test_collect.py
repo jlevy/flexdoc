@@ -335,6 +335,11 @@ def test_overlaps_matches_only_intersecting_spans():
     heading_only = doc.collect(overlaps=(0, 3), layer={Layer.markdown}, recursive=True)
     assert all(n.kind != NodeKind.paragraph for n in heading_only)
 
+    # An empty region [x, x) contains no points, so it overlaps nothing; point
+    # queries use a width-1 region (x, x + 1).
+    assert doc.collect(overlaps=(5, 5), recursive=True) == []
+    assert doc.collect(overlaps=(5, 6), layer={Layer.markdown}, recursive=True)
+
 
 def test_textdoc_base_blocks_matches_free_function():
     from flexdoc.docs.base_blocks import base_blocks as base_blocks_fn
