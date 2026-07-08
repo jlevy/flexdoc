@@ -155,7 +155,7 @@ Each layer’s section ends with its specific cases.
    `attrs`) are checked and **raise** on violation — these indicate bugs in the model,
    never bad input, so failing loudly is correct.
    Where opt-in strictness on *input* exists it is explicit (e.g. the HTML tag finder’s
-   `strict=True` raises on unparseable candidates instead of skipping them).
+   `strict=True` raises on unparsable candidates instead of skipping them).
    A uniform opt-in strict-validation / diagnostics pass over a whole parse is specified
    direction, not yet built (§14).
 
@@ -258,7 +258,7 @@ contributing nodes tagged with their `layer`:
 
 | Layer | Produces | Depends on | Nesting guarantee |
 | --- | --- | --- | --- |
-| **textual** | paragraphs, sentences, word tokens | — | ordered list |
+| **textual** | paragraphs, sentences (wordtoks are a stream view, not nodes) | — | ordered list |
 | **markdown** | block elements (recursive) and inline (links, code, emphasis) | — | tree |
 | **document** | section / heading hierarchy and TOC | markdown (headings) | tree |
 | **synthetic** | marker-tag regions (see below) | — | tree |
@@ -352,6 +352,8 @@ model fixes it to code points.)
 Documents built from synthetic content rather than a source string (e.g.
 `from_wordtoks`, or after `append_sent`) have no original source; for them `source_text`
 is the reassembled working text, and the invariant holds against that.
+Similarly, `from_text` normalizes line endings (`\r\n` and lone `\r` become `\n`) before
+retaining `source_text`, so the invariant holds against the normalized string (§4.5).
 
 ### 4.2 The document object: `FlexDoc`
 
@@ -391,8 +393,8 @@ A **node** is the uniform record of one parsed element, from any layer:
   identical ids. This determinism is part of the cross-language contract and is pinned by
   test.
 - `kind` — the element’s type: the Markdown block kinds of §5, the inline kinds of §8
-  (`link`, `code_span`, `image`, `inline_html`, `footnote_ref`), the document-layer
-  `section`, and the textual-layer `sentence`.
+  (`link`, `code_span`, `image`, `inline_html`, `footnote_ref`, `link_ref_def`), the
+  document-layer `section`, and the textual-layer `sentence`.
 - `layer` — which parse dimension produced it (§3).
 - `parent` / `children` — **within-layer** containment edges (node ids).
   Cross-layer relationships are never stored; they are offset queries (P3).
@@ -449,8 +451,11 @@ The textual layer accepts *any* string; there is no invalid input.
 - **Empty or whitespace-only input** parses to a document with zero paragraphs; sizes
   are zero; iteration yields nothing (boundary sentinels are still emitted for the
   wordtok stream so downstream alignment has stable endpoints).
-- **Line endings:** `\r\n` input is tolerated; blank-line detection and frontmatter
-  delimiters treat a trailing `\r` as part of the line break.
+- **Line endings:** `\r\n` and lone `\r` are normalized to `\n` by `from_text`, and
+  `source_text` retains the normalized string, so every layer shares one offset space.
+  (The underlying Markdown parser computes positions against LF-only text; retaining
+  `\r` would desynchronize structural spans from the source.) Callers anchoring offsets
+  to an external CRLF original must normalize it the same way first.
 - **Sentence segmentation is heuristic** (P16): abbreviations or unusual punctuation can
   mis-split. The degradation is visible, not corrupting — every sentence still carries an
   exact verbatim span, so a “wrong” boundary is a presentation choice, never a wrong
@@ -485,11 +490,13 @@ lists, so `len(list.children)` and any tally are density-invariant.
 Density is metadata, not structure: a `tight: bool` on the list (CommonMark semantics);
 the flag never enters a tally.
 
-**Typed per-block metadata.** Code, table, and list blocks carry parser-authoritative
-typed metadata (`flexdoc.docs.block_info`): `CodeInfo` (`language`, `line_count`),
-`TableInfo` (`rows`, `cols`, `cells`, `alignments`), and `ListInfo` (`ordered`, `start`,
-`max_depth`, `item_count`). It is computed once where the marko element is in hand and
-exposed on the structural `Block` (`Block.code_info`/`.table_info`/`.list_info` — the
+**Typed per-block metadata.** Code, table, list, and heading blocks carry
+parser-authoritative typed metadata (`flexdoc.docs.block_info`): `CodeInfo`
+(`language`, `line_count`), `TableInfo` (`rows`, `cols`, `cells`, `alignments`),
+`ListInfo` (`ordered`, `start`, `max_depth`, `item_count`), and `HeadingInfo`
+(`level`, `title`). It is computed once where the marko element is in hand and
+exposed on the structural `Block`
+(`Block.code_info`/`.table_info`/`.list_info`/`.heading_info` — the
 density-invariant source of truth) and, as a convenience carrying the editing-view
 density caveat, on `Paragraph`. The same facts are flattened into the markdown node’s
 `attrs`, so they flow into `collect()`/`DocGraph`. Extraction is parser-authoritative
@@ -1010,7 +1017,15 @@ This spec stands alone; the following are background, not dependencies.
   `flowmark.markdown_ast` (`block_span`, `walk_elements`, `extract_links`, `Link`).
 - Source: `src/flexdoc/docs/flex_doc.py` (the `FlexDoc` core), with the editing units in
   `paragraphs.py`, link extraction in `links.py`, sections in `sections.py`, and the
-  structural layer in `block_tree.py`, `block_types.py`, `block_info.py`.
+  structural layer in `block_tree.py`, `block_types.py`, `block_info.py`. The node/query
+  surface is `node.py` (`Node`, `NodeKind`, `Layer`, `NodeTable`), `node_table.py`
+  (`build_node_table`), `collect.py` (the `collect()` primitive), and
+  `interval_index.py`; serialization is `doc_graph.py` (the `DocGraph` schema and
+  builder) with the render helpers in `render.py` and reports in `debug.py`; references
+  are `span_ref.py` (`SpanRef` and resolvers). Supporting modules: `base_blocks.py` (the
+  sequential partition), `sizes.py` (`TextUnit`), `frontmatter.py` (frontmatter
+  isolation), and the wordtok/diff machinery in `wordtoks.py`, `token_diffs.py`,
+  `token_mapping.py`, `search_tokens.py`.
 
 * * *
 

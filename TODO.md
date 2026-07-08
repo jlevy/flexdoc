@@ -11,11 +11,21 @@ has the full detail; this file is the summary.
   (`flexdoc-t5rh`). Concretely mapped in the extraction plan, Stage 4, including the
   open overlap-policy decision.
   Spec: `docs/flexdoc-spec.md` §3, §14.
+- **Supply-chain refresh before promotion** (`flexdoc-pcac`): bump the stale
+  `exclude-newer` cutoff, drop the expired per-package overrides, re-lock, and clear
+  the pip-audit ignore if it no longer applies.
+- **Pre-1.0 API design decisions** (`flexdoc-lcuh`): the batch of cheap-now breaking
+  cleanups from the 2026-07 review
+  (`docs/project/review/senior-engineering-review-flexdoc-2026-07.md` §5).
+- **AI annotation/commenting workflow mechanisms** (`flexdoc-86iy`): `Annotation`
+  record type for the reserved DocGraph slot, `SpanRef.from_quote`/`resolve_batch`,
+  `Section.text`/`section_outline()`/`section_at_offset` (review §6).
 
-## Release Steps
+## Downstream Work (in chopdiff, not this repo)
 
-- Merge PR #1; configure the PyPI Trusted Publisher for `jlevy/flexdoc`; tag and publish
-  `flexdoc 0.1.0` (extraction plan, Step 4).
+0.1.0 and 0.2.0 are published to PyPI with tags `v0.1.0`/`v0.2.0` (extraction plan,
+Step 4 — done). Remaining:
+
 - Rewire chopdiff to the published flexdoc — its intended breaking release, one-pass
   migration `chopdiff.docs.TextDoc` → `flexdoc.FlexDoc` (extraction plan, Step 5). Note:
   depending on freshly-published flexdoc needs a supply-chain cool-off exception in

@@ -2,8 +2,9 @@
 
 [project.urls]
 Repository = "https://github.com/jlevy/flexdoc"
-# Homepage = "https://..."
-# Documentation = "https://..."
+Homepage = "https://github.com/jlevy/flexdoc"
+Documentation = "https://github.com/jlevy/flexdoc/blob/main/docs/flexdoc-spec.md"
+Changelog = "https://github.com/jlevy/flexdoc/blob/main/CHANGELOG.md"
 
 [project]
 name = "flexdoc"
@@ -15,11 +16,20 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11,<4.0"
 dynamic = ["version"]
+keywords = [
+    "markdown",
+    "document-model",
+    "parsing",
+    "text-processing",
+    "nlp",
+    "sentences",
+    "annotations",
+    "spans",
+    "llm",
+]
 
 # https://pypi.org/classifiers/
-# Adjust as needed:
 classifiers = [
-    # Adjust as needed:
     "Development Status :: 4 - Beta",
     # "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -31,6 +41,8 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
+    "Topic :: Text Processing :: Markup :: Markdown",
+    "Topic :: Software Development :: Libraries :: Python Modules",
     # Include this to avoid accidentally publishing to PyPI:
     # "Private :: Do Not Upload",
 ]

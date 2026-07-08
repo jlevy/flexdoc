@@ -1,3 +1,11 @@
+"""
+Backfill timestamps into an edited transcript: align the edited document to its
+timestamped HTML source with a wordtok-level `TokenMapping`, then look up the source
+offset (and thus the enclosing timestamp) for any sentence of the edited text.
+
+Run from the repository checkout with: `uv run python examples/backfill_timestamps.py`
+"""
+
 import logging
 from textwrap import dedent
 

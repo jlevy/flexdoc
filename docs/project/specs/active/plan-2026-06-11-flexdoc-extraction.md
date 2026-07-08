@@ -1,6 +1,6 @@
 # Feature: FlexDoc Package Extraction (Staged)
 
-**Date:** 2026-06-11 (last updated 2026-06-12)
+**Date:** 2026-06-11 (last updated 2026-07-08)
 
 **Author:** Joshua Levy
 
@@ -10,7 +10,8 @@ refinement, from the 2026-06-12 review) are done in this repo, tracked as beads
 `flexdoc-7yfb/gvzk/3xhq/hqi1/32s0/ 6a5i/6off/tfg8/mbdt` (closed), plus the 2.5 addendum
 (`TextDoc` → `FlexDoc` rename and root entry point; beads `flexdoc-bx3j/jfiq` closed).
 The root-surface definition and implementation remain open as beads `flexdoc-l0lc` →
-`flexdoc-bift`. Steps 4–5 (publish + rewire chopdiff) are pending.
+`flexdoc-bift`. Step 4 (publish) is done: 0.1.0 (2026-06-12) and 0.2.0 (2026-06-14)
+are live on PyPI with tags `v0.1.0`/`v0.2.0`. Step 5 (rewire chopdiff) is pending.
 Stages 3–5 are forward-looking.
 
 > **Repo note.** This is flexdoc’s copy of the extraction plan.
@@ -413,15 +414,15 @@ chopdiff’s Step 5 rewire gains the class rename (46 occurrences across 7 files
 mechanical) in the same already-breaking release; the migration note is one pass:
 `chopdiff.docs.TextDoc` → `flexdoc.FlexDoc`.
 
-### Step 4 — publish flexdoc (pending; maintainer-gated; after Stage 2.5)
+### Step 4 — publish flexdoc (done: 0.1.0 published 2026-06-12, 0.2.0 on 2026-06-14)
 
-- [ ] Land Stage 2.5 first, so 0.1.0’s first published API is the refined one (no
+- [x] Land Stage 2.5 first, so 0.1.0’s first published API is the refined one (no
   deprecated aliases, settled exports, closed naming seam) and chopdiff’s rewire targets
   the final names in one pass.
-- [ ] Confirm the distribution name `flexdoc` is available on PyPI — verified available
-  2026-06-12 (pypi.org returns 404 for `flexdoc`); re-check at publish time.
-  Resolve the flexdoc-spec §13 name collision (Stage 2.5 / Open Questions).
-  Configure the PyPI Trusted Publisher for `jlevy/flexdoc` (`docs/publishing.md`).
+- [x] Confirm the distribution name `flexdoc` is available on PyPI — verified available
+  2026-06-12 (pypi.org returns 404 for `flexdoc`); the name is now claimed by this
+  package. The Trusted Publisher for `jlevy/flexdoc` is configured (first
+  `publish.yml` run succeeded).
 - [x] Tagged and published `flexdoc 0.1.0` (2026-06-12): release-notes PR merged, GitHub
   release v0.1.0 created, `publish.yml` succeeded on its first trusted-publishing run,
   and the package was verified live on PyPI (wheel + sdist) with a clean-venv install
