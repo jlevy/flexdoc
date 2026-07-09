@@ -119,8 +119,11 @@ Suggested sequencing: `Annotation` + `from_quote`/`resolve_batch` first, then
 - [ ] **Supply-chain refresh** (maintainer-gated by policy): bump `exclude-newer`
   from 2026-05-11 to (today − 14 days); remove the expired strif/flowmark/idna
   per-package overrides and their SUPPLY-CHAIN-SECURITY.md entries; `make upgrade`;
-  re-run `pip-audit` and drop the `PYSEC-2026-196` `--ignore-vuln` from ci.yml if it
-  clears. Deliberately kept off the review branch (lockfile churn).
+  re-run `pip-audit` and drop both audit-gate ignores from ci.yml if they clear
+  (`PYSEC-2026-196` in pip; `GHSA-6v7p-g79w-8964` in msgpack, added 2026-07-08 when
+  the advisory landed mid-review — both are pip-audit-only transitive deps and both
+  fixes are already past their 14-day windows). Deliberately kept off the review
+  branch (lockfile churn).
 - [ ] **CI matrix vs. classifier**: add one macOS job (single Python version) or
   drop `Operating System :: OS Independent`.
 - [ ] **Release runbook note**: local wheel builds need `git fetch --tags`

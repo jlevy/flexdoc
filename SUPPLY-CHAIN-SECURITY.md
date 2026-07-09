@@ -137,6 +137,15 @@ It does not change dependency resolution or the cool-off.
   Ignored at the audit gate to keep CI green; **pending explicit maintainer
   ratification.** Remove the `--ignore-vuln PYSEC-2026-196` once the cutoff advances
   past pip 26.1.2’s release (it then resolves normally and the advisory clears).
+- **GHSA-6v7p-g79w-8964 in `msgpack`.** Same situation: `msgpack` is present only as a
+  transitive dependency of `pip-audit` (audit group, via `cachecontrol[filecache]`); it
+  is never a flexdoc runtime/dev dependency and never shipped in the wheel.
+  The fix (`msgpack` 1.2.1, released 2026-06-18) is newer than the `exclude-newer`
+  cutoff (2026-05-11), so there is no within-policy bump.
+  Ignored at the audit gate 2026-07-08; **pending explicit maintainer ratification.**
+  Remove the `--ignore-vuln GHSA-6v7p-g79w-8964` once the cutoff advances past
+  msgpack 1.2.1’s release (already past its 14-day window, so the next routine
+  cutoff bump clears it).
 
 ## Untrusted Repositories
 

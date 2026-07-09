@@ -98,8 +98,15 @@ jobs:
       # is no within-policy bump; this ignore does not touch dependency resolution or the
       # cool-off. Remove it once the cutoff advances past pip 26.1.2's release. See
       # SUPPLY-CHAIN-SECURITY.md (Audit-Gate Ignores).
+      # --ignore-vuln GHSA-6v7p-g79w-8964: same situation in `msgpack`, a transitive
+      # dependency of pip-audit only (via cachecontrol[filecache]); the fix (msgpack
+      # 1.2.1, released 2026-06-18) is newer than the cutoff. Remove once the cutoff
+      # advances past it. See SUPPLY-CHAIN-SECURITY.md (Audit-Gate Ignores).
       - name: Audit dependencies for known vulnerabilities
-        run: uv run --frozen --group audit pip-audit --ignore-vuln PYSEC-2026-196
+        run: >
+          uv run --frozen --group audit pip-audit
+          --ignore-vuln PYSEC-2026-196
+          --ignore-vuln GHSA-6v7p-g79w-8964
 
   # Packaging check: the flexdoc wheel must import cleanly from an isolated install, not
   # just from the source tree. Guards against missing package data or accidental reliance
