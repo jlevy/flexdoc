@@ -107,21 +107,29 @@ def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
     does not mutate `span_ref` (use `resolve_and_update` to also write the
     offsets back).
 
-    Fast path: if `start`/`end` are present and the text at those offsets
-    matches `exact`, return immediately. Otherwise, search the full text for
-    `exact`, disambiguating with `prefix`/`suffix`. When the quote occurs more
-    than once and the context does not single out one occurrence (no context,
-    or a tied best score), the result is None rather than a guess — resolution
-    failure is a visible value, never a silent wrong anchor (spec section 11).
+    Fast path: if `start`/`end` are present, the text at those offsets matches
+    `exact`, and any captured `prefix`/`suffix` also matches the surrounding
+    text there, return immediately. The context check is what keeps a *stale*
+    hint from silently anchoring to a different duplicate of the quote after an
+    edit; a hint whose context disagrees falls through to the quote search.
+    Otherwise, search the full text for `exact`, disambiguating with
+    `prefix`/`suffix`. When the quote occurs more than once and the context
+    does not single out one occurrence (no context, or a tied best score), the
+    result is None rather than a guess — resolution failure is a visible value,
+    never a silent wrong anchor (spec section 11).
     """
     # A zero-width quote anchors nothing; reject it on both paths.
     if not span_ref.exact:
         return None
 
-    # Fast path: offsets are valid.
+    # Fast path: offsets are valid and any captured context corroborates them.
     if span_ref.start is not None and span_ref.end is not None:
         s, e = span_ref.start, span_ref.end
-        if 0 <= s <= e <= len(source_text) and source_text[s:e] == span_ref.exact:
+        if (
+            0 <= s <= e <= len(source_text)
+            and source_text[s:e] == span_ref.exact
+            and _context_matches_at(span_ref, source_text, s, e)
+        ):
             return (s, e)
 
     # Slow path: search for the exact text in the source.
@@ -152,6 +160,24 @@ def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
         best = best_or_none
 
     return (best, best + len(exact))
+
+
+def _context_matches_at(span_ref: SpanRef, source_text: str, start: int, end: int) -> bool:
+    """
+    True when every *captured* context window (`prefix`/`suffix`) matches the
+    text around `[start, end)`. A `None` window cannot disqualify (no context
+    was captured, e.g. at a document edge or on a hand-built ref); a present
+    window must match exactly for an offset hint to be trusted.
+    """
+    if span_ref.prefix is not None:
+        pre_start = max(0, start - len(span_ref.prefix))
+        if source_text[pre_start:start] != span_ref.prefix:
+            return False
+    if span_ref.suffix is not None:
+        suf_end = min(len(source_text), end + len(span_ref.suffix))
+        if source_text[end:suf_end] != span_ref.suffix:
+            return False
+    return True
 
 
 def resolve_and_update(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:

@@ -11,17 +11,16 @@ has the full detail; this file is the summary.
   (`flexdoc-t5rh`). Concretely mapped in the extraction plan, Stage 4, including the
   open overlap-policy decision.
   Spec: `docs/flexdoc-spec.md` §3, §14.
-- **Post-review refinements** — the 2026-07 review's open decisions and future
+- **Post-review refinements** — the 2026-07 review’s open decisions and future
   mechanisms, consolidated in one plan:
   [plan-2026-07-08-post-review-refinements.md](docs/project/specs/active/plan-2026-07-08-post-review-refinements.md).
-  Beads: `flexdoc-pcac` (supply-chain refresh before promotion), `flexdoc-lcuh`
-  (pre-1.0 API design decisions), `flexdoc-86iy` (AI annotation/commenting
-  workflow mechanisms).
+  Beads: `flexdoc-pcac` (supply-chain refresh before promotion), `flexdoc-lcuh` (pre-1.0
+  API design decisions), `flexdoc-86iy` (AI annotation/commenting workflow mechanisms).
 
 ## Downstream Work (in chopdiff, not this repo)
 
-0.1.0 and 0.2.0 are published to PyPI with tags `v0.1.0`/`v0.2.0` (extraction plan,
-Step 4 — done). Remaining:
+0.1.0 and 0.2.0 are published to PyPI with tags `v0.1.0`/`v0.2.0` (extraction plan, Step
+4 — done). Remaining:
 
 - Rewire chopdiff to the published flexdoc — its intended breaking release, one-pass
   migration `chopdiff.docs.TextDoc` → `flexdoc.FlexDoc` (extraction plan, Step 5). Note:

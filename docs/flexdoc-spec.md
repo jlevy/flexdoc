@@ -259,7 +259,7 @@ contributing nodes tagged with their `layer`:
 | Layer | Produces | Depends on | Nesting guarantee |
 | --- | --- | --- | --- |
 | **textual** | paragraphs, sentences (wordtoks are a stream view, not nodes) | — | ordered list |
-| **markdown** | block elements (recursive) and inline (links, code, emphasis) | — | tree |
+| **markdown** | block elements (recursive) and inline (links, code spans, images, inline HTML, footnote refs; emphasis is not modeled as nodes) | — | tree |
 | **document** | section / heading hierarchy and TOC | markdown (headings) | tree |
 | **synthetic** | marker-tag regions (see below) | — | tree |
 
@@ -359,28 +359,31 @@ retaining `source_text`, so the invariant holds against the normalized string (�
 
 `FlexDoc` is the package’s entry point and the owner of one parse:
 
-- **Construction:** `FlexDoc.from_text(text)` retains `text` as `source_text`, isolates
-  any leading frontmatter, and builds the editing view (paragraphs and sentences)
-  eagerly. All other projections are built lazily on first use and cached against the
-  immutable source (P15).
+- **Construction:** `FlexDoc.from_text(text)` normalizes line endings (§4.1, §4.5) and
+  retains the result as `source_text`, isolates any leading frontmatter, and builds the
+  editing view (paragraphs and sentences) eagerly.
+  All other projections are built lazily on first use and cached against the immutable
+  source (P15).
 - **Owned views:** the `paragraphs` list (the editing view, §4.4); and the derived,
   lazily-cached projections — `blocks()` (§6), `base_blocks()` (§6), `sections()` (§7),
   `links()` (§8), `node_table()` (§4.3), `collect()` (§9), and `graph()` (§10).
 - **Offset inversion:** `paragraph_at_offset(o)` and `sentence_at_offset(o)` map an
-  absolute offset back to the editing-view unit containing it, and `block_at_offset(o)` to
-  the innermost structural `Block` (each `None` for offsets in inter-unit whitespace or
-  outside the document). Structural blocks are otherwise addressed by their own spans or via
+  absolute offset back to the editing-view unit containing it, and `block_at_offset(o)`
+  to the innermost structural `Block` (each `None` for offsets in inter-unit whitespace
+  or outside the document).
+  Structural blocks are otherwise addressed by their own spans or via
   `collect(overlaps=...)`.
 - **Frontmatter:** `FlexDoc.frontmatter` is the verbatim leading YAML block or `None`
   (§3).
 - **Sizing:** `size(unit)` and `size_summary()` measure the document in any `TextUnit`
   (see Terminology), including the approximate LLM `tokens` estimate.
 - **Prose projection:** `prose_text(include_tables=False)` returns prose-only text for
-  editorial linting and metrics — prose-bearing blocks (paragraphs/headings, and table cells
-  when `include_tables=True`) with inline code/footnote refs dropped, links/images reduced to
-  their text/alt, inline-HTML tags removed (wrapped text kept), and heading/blockquote/list
-  markers and reference-definition lines stripped. Slices are verbatim (line wrapping
-  preserved, never reflowed), so editorial spacing (e.g. a spaced em-dash) survives.
+  editorial linting and metrics — prose-bearing blocks (paragraphs/headings, and table
+  cells when `include_tables=True`) with inline code/footnote refs dropped, links/images
+  reduced to their text/alt, inline-HTML tags removed (wrapped text kept), and
+  heading/blockquote/list markers and reference-definition lines stripped.
+  Slices are verbatim (line wrapping preserved, never reflowed), so editorial spacing
+  (e.g. a spaced em-dash) survives.
 
 ### 4.3 Nodes, kinds, layers, and the node table
 
@@ -454,8 +457,9 @@ The textual layer accepts *any* string; there is no invalid input.
 - **Line endings:** `\r\n` and lone `\r` are normalized to `\n` by `from_text`, and
   `source_text` retains the normalized string, so every layer shares one offset space.
   (The underlying Markdown parser computes positions against LF-only text; retaining
-  `\r` would desynchronize structural spans from the source.) Callers anchoring offsets
-  to an external CRLF original must normalize it the same way first.
+  `\r` would desynchronize structural spans from the source.)
+  Callers anchoring offsets to an external CRLF original must normalize it the same way
+  first.
 - **Sentence segmentation is heuristic** (P16): abbreviations or unusual punctuation can
   mis-split. The degradation is visible, not corrupting — every sentence still carries an
   exact verbatim span, so a “wrong” boundary is a presentation choice, never a wrong
@@ -491,12 +495,11 @@ Density is metadata, not structure: a `tight: bool` on the list (CommonMark sema
 the flag never enters a tally.
 
 **Typed per-block metadata.** Code, table, list, and heading blocks carry
-parser-authoritative typed metadata (`flexdoc.docs.block_info`): `CodeInfo`
-(`language`, `line_count`), `TableInfo` (`rows`, `cols`, `cells`, `alignments`),
-`ListInfo` (`ordered`, `start`, `max_depth`, `item_count`), and `HeadingInfo`
-(`level`, `title`). It is computed once where the marko element is in hand and
-exposed on the structural `Block`
-(`Block.code_info`/`.table_info`/`.list_info`/`.heading_info` — the
+parser-authoritative typed metadata (`flexdoc.docs.block_info`): `CodeInfo` (`language`,
+`line_count`), `TableInfo` (`rows`, `cols`, `cells`, `alignments`), `ListInfo`
+(`ordered`, `start`, `max_depth`, `item_count`), and `HeadingInfo` (`level`, `title`).
+It is computed once where the marko element is in hand and exposed on the structural
+`Block` (`Block.code_info`/`.table_info`/`.list_info`/`.heading_info` — the
 density-invariant source of truth) and, as a convenience carrying the editing-view
 density caveat, on `Paragraph`. The same facts are flattened into the markdown node’s
 `attrs`, so they flow into `collect()`/`DocGraph`. Extraction is parser-authoritative
@@ -710,20 +713,22 @@ Inline elements (links, code spans, images, inline HTML, footnote references, �
 `section`/`sentence` associations, so block↔inline relationships are node edges, and
 “links in section 3” is a scoped `collect(kinds={link})`.
 
-- `Link(text, url, title, span, link_form)`: identity from `flowmark.markdown_ast.extract_links`
-  (reference links resolved, escapes honored), an AST walk for images, and marko's
-  `LinkRefDef` elements for definitions. Each carries a `LinkForm` discriminator — `inline`,
-  `reference`, `autolink`, `bare_url`, `image`, or `reference_definition` — so consumers count
-  by form without heuristics. flexdoc recovers each exact `[start, end)` by reconciling the
-  ordered identities with the name-tagged atomic spans from
-  `flowmark.atomic_spans.iter_atomic_spans` (and a trimmed `block_span` for definitions); an
-  identity that cannot be located keeps its identity with `span=None`.
+- `Link(text, url, title, span, link_form)`: identity from
+  `flowmark.markdown_ast.extract_links` (reference links resolved, escapes honored), an
+  AST walk for images, and marko’s `LinkRefDef` elements for definitions.
+  Each carries a `LinkForm` discriminator — `inline`, `reference`, `autolink`,
+  `bare_url`, `image`, or `reference_definition` — so consumers count by form without
+  heuristics. flexdoc recovers each exact `[start, end)` by reconciling the ordered
+  identities with the name-tagged atomic spans from
+  `flowmark.atomic_spans.iter_atomic_spans` (and a trimmed `block_span` for
+  definitions); an identity that cannot be located keeps its identity with `span=None`.
 - **`links()` returns navigable links only by default** (`TRUE_LINK_FORMS`: `inline`,
-  `reference`, `autolink`, `bare_url`); `links(link_forms=…)` selects any forms and `images()` is
-  the convenience for `LinkForm.image`. **Reference definitions** (`[id]: url`) are surfaced
-  as `NodeKind.link_ref_def` nodes — parented to their containing block, so a block-scoped
-  `collect()` finds them — and via `links(link_forms={LinkForm.reference_definition})`, never the
-  default `links()` (a definition is not a link occurrence).
+  `reference`, `autolink`, `bare_url`); `links(link_forms=…)` selects any forms and
+  `images()` is the convenience for `LinkForm.image`. **Reference definitions**
+  (`[id]: url`) are surfaced as `NodeKind.link_ref_def` nodes — parented to their
+  containing block, so a block-scoped `collect()` finds them — and via
+  `links(link_forms={LinkForm.reference_definition})`, never the default `links()` (a
+  definition is not a link occurrence).
 - `link → sentence` via `sentence_at_offset(link.span[0])`.
 - **`footnote_ref`**: a footnote reference `[^label]` is a first-class inline node
   (`NodeKind.footnote_ref`) carrying its `label` in `attrs` and an exact span, collected
@@ -854,8 +859,10 @@ SpanRef = {
   Within one parse the offset is exact (the fast path); across edits the quote recovers
   the target.
 - **Resolution.** model→source is total (a node fills both span and quote).
-  source→model is an exact offset fast path, then an exact quote search disambiguated by
-  prefix/suffix; `resolve()` is pure (it does not mutate the ref), and
+  source→model is an offset fast path — accepted only when the quote *and* any captured
+  prefix/suffix match at the hinted offsets, so a stale hint that lands on a different
+  duplicate of the quote cannot silently misanchor — then an exact quote search
+  disambiguated by prefix/suffix; `resolve()` is pure (it does not mutate the ref), and
   `resolve_and_update()` is the explicit variant that writes the recomputed offsets
   back. Fuzzy/edit-distance re-anchoring is deferred (not yet implemented).
 - **Persistence** is quote-canonical and source-grounded; offsets are an optional
@@ -1022,12 +1029,13 @@ This spec stands alone; the following are background, not dependencies.
   (`build_node_table`), `collect.py` (the `collect()` primitive), and
   `interval_index.py`; serialization is `doc_graph.py` (the `DocGraph` schema and
   builder) with the render helpers in `render.py` and reports in `debug.py`; references
-  are `span_ref.py` (`SpanRef` and resolvers). Supporting modules: `base_blocks.py` (the
-  sequential partition), `sizes.py` (`TextUnit`), `frontmatter.py` (frontmatter
-  isolation), and the wordtok/diff machinery in `wordtoks.py`, `token_diffs.py`,
-  `token_mapping.py`, `search_tokens.py`.
+  are `span_ref.py` (`SpanRef` and resolvers).
+  Supporting modules: `base_blocks.py` (the sequential partition), `sizes.py`
+  (`TextUnit`), `frontmatter.py` (frontmatter isolation), and the wordtok/diff machinery
+  in `wordtoks.py`, `token_diffs.py`, `token_mapping.py`, `search_tokens.py`.
 
 * * *
 
-*This document follows the tbd
-[writing style guidelines](https://github.com/jlevy/tbd).*
+<!-- This document follows common-doc-guidelines.md.
+See github.com/jlevy/practical-prose and review guidelines before editing.
+-->

@@ -10,8 +10,8 @@ refinement, from the 2026-06-12 review) are done in this repo, tracked as beads
 `flexdoc-7yfb/gvzk/3xhq/hqi1/32s0/ 6a5i/6off/tfg8/mbdt` (closed), plus the 2.5 addendum
 (`TextDoc` → `FlexDoc` rename and root entry point; beads `flexdoc-bx3j/jfiq` closed).
 The root-surface definition and implementation remain open as beads `flexdoc-l0lc` →
-`flexdoc-bift`. Step 4 (publish) is done: 0.1.0 (2026-06-12) and 0.2.0 (2026-06-14)
-are live on PyPI with tags `v0.1.0`/`v0.2.0`. Step 5 (rewire chopdiff) is pending.
+`flexdoc-bift`. Step 4 (publish) is done: 0.1.0 (2026-06-12) and 0.2.0 (2026-06-14) are
+live on PyPI with tags `v0.1.0`/`v0.2.0`. Step 5 (rewire chopdiff) is pending.
 Stages 3–5 are forward-looking.
 
 > **Repo note.** This is flexdoc’s copy of the extraction plan.
@@ -376,20 +376,21 @@ cross-layer edit phases), which the class docstring’s contract addresses.
 
 - [x] **Root-level API surface, defined and implemented** (beads `flexdoc-l0lc`,
   `flexdoc-bift`; maintainer-directed 2026-06-12, designed against the two checked-out
-  downstream users in `attic/`). The root exports the working set:
-  `FlexDoc`, `DocGraph`, `Detail`, `SpanRef`, `BlockType`, `NodeKind`, `Layer`,
-  `TextUnit`. Evidence: chopdiff's imports are dominated by `FlexDoc`/`TextUnit`/
-  `BlockType`; practical-prose-style document evaluation needs textual-layer metrics
-  (`TextUnit`), `SpanRef` annotation of exact sentences, and `DocGraph` with `Detail`
-  payloads for source-linked UI rendering. Criteria held: a symbol earns root placement
-  only if it appears in the first lines of typical use. Exclusions, deliberate: unit
-  types (`Paragraph`/`Sentence`/`Section`/`Block`/`Node`) are reached from a parsed
-  doc, not imported; `resolve`/`resolve_and_update` keep module context in
-  `flexdoc.docs` (bare `resolve` at root is too generic); the free `collect` (the
-  method covers it); `DEFAULT_INCLUDE`; wordtok/diff machinery and html helpers stay
-  submodule-only. Also: the render helpers (`render_node_attrs`,
-  `wrap_with_node_attrs`, `parse_source_span_attr`) became public in `flexdoc.docs`,
-  since the source-linked UI flow the spec §12 describes depends on them.
+  downstream users in `attic/`). The root exports the working set: `FlexDoc`,
+  `DocGraph`, `Detail`, `SpanRef`, `BlockType`, `NodeKind`, `Layer`, `TextUnit`.
+  Evidence: chopdiff’s imports are dominated by `FlexDoc`/`TextUnit`/ `BlockType`;
+  practical-prose-style document evaluation needs textual-layer metrics (`TextUnit`),
+  `SpanRef` annotation of exact sentences, and `DocGraph` with `Detail` payloads for
+  source-linked UI rendering.
+  Criteria held: a symbol earns root placement only if it appears in the first lines of
+  typical use. Exclusions, deliberate: unit types
+  (`Paragraph`/`Sentence`/`Section`/`Block`/`Node`) are reached from a parsed doc, not
+  imported; `resolve`/`resolve_and_update` keep module context in `flexdoc.docs` (bare
+  `resolve` at root is too generic); the free `collect` (the method covers it);
+  `DEFAULT_INCLUDE`; wordtok/diff machinery and html helpers stay submodule-only.
+  Also: the render helpers (`render_node_attrs`, `wrap_with_node_attrs`,
+  `parse_source_span_attr`) became public in `flexdoc.docs`, since the source-linked UI
+  flow the spec §12 describes depends on them.
   `tests/test_root_api.py` pins identity and the exact surface.
 
 - [x] **Spec revision to a standalone definitive reference** (maintainer notes
@@ -421,14 +422,13 @@ mechanical) in the same already-breaking release; the migration note is one pass
   the final names in one pass.
 - [x] Confirm the distribution name `flexdoc` is available on PyPI — verified available
   2026-06-12 (pypi.org returns 404 for `flexdoc`); the name is now claimed by this
-  package. The Trusted Publisher for `jlevy/flexdoc` is configured (first
-  `publish.yml` run succeeded).
+  package. The Trusted Publisher for `jlevy/flexdoc` is configured (first `publish.yml`
+  run succeeded).
 - [x] Tagged and published `flexdoc 0.1.0` (2026-06-12): release-notes PR merged, GitHub
   release v0.1.0 created, `publish.yml` succeeded on its first trusted-publishing run,
   and the package was verified live on PyPI (wheel + sdist) with a clean-venv install
   exercising the root API. Note: the install check must run outside the repo, since the
-  project's own cool-off excludes the just-published version.
-
+  project’s own cool-off excludes the just-published version.
 
 ### Step 5 — rewire chopdiff to the external flexdoc (pending; the breaking release)
 

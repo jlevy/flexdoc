@@ -184,6 +184,41 @@ def test_resolve_returns_none_for_empty_exact():
     assert resolve(SpanRef(exact="", start=5, end=5), _DOC_TEXT) is None
 
 
+def test_stale_offset_hint_on_wrong_duplicate_falls_through_to_quote_search():
+    """A stale offset hint that lands on a different duplicate of the quote must not
+    fast-path: the captured context disagrees there, so resolution falls through to
+    the quote search and re-anchors to the right occurrence (PR #9 review, issue 1)."""
+    old = "A target. B target."
+    start = old.find("target", old.find("target") + 1)
+    ref = SpanRef.from_span(old, start, start + len("target"))
+
+    # Prepending shifts the document; the stale hint (12, 18) now lands on the
+    # FIRST "target" occurrence, which still reads "target".
+    new = "0123456789" + old
+    expected = (start + 10, start + 10 + len("target"))
+    assert resolve(ref.to_persisted(), new) == expected
+    assert resolve(ref, new) == expected
+
+
+def test_valid_offset_hint_with_matching_context_fast_paths():
+    """An offset hint whose quote and context both match is accepted as-is."""
+    text = "one target here. two target there."
+    start = text.find("target", 5)
+    ref = SpanRef.from_span(text, start, start + len("target"))
+    assert resolve(ref, text) == (start, start + len("target"))
+
+
+def test_offset_hint_with_edited_context_still_reanchors_by_quote():
+    """Editing the text around a still-valid offset invalidates the context check;
+    resolution falls through to the quote search, which re-anchors a unique quote."""
+    text = "alpha unique-quote omega."
+    start = text.find("unique-quote")
+    ref = SpanRef.from_span(text, start, start + len("unique-quote"))
+    # Same offsets still hold the quote, but the prefix text changed.
+    edited = "ALPHA unique-quote omega."
+    assert resolve(ref, edited) == (start, start + len("unique-quote"))
+
+
 def test_to_text_fragment():
     """to_text_fragment produces a Chrome-style text fragment with encoded components."""
     ref = SpanRef(exact="sample link", prefix="A [", suffix="]")

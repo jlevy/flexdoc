@@ -40,8 +40,8 @@ prose = doc.prose_text()
 prose_with_tables = doc.prose_text(include_tables=True)
 ```
 
-This is the projection to use for editorial linting, prose metrics, and preparing
-clean text for LLM prompts or embeddings.
+This is the projection to use for editorial linting, prose metrics, and preparing clean
+text for LLM prompts or embeddings.
 
 ### Inspect Markdown Structure
 
@@ -95,9 +95,9 @@ Its nodes carry source spans where they can be located.
 
 ### Serialize a DocGraph
 
-Use `graph()` when a UI or service boundary needs a JSON-safe document projection. The
-textual layer adds ordered paragraph and sentence views, both as node ids over the same
-source offsets as Markdown blocks and document sections.
+Use `graph()` when a UI or service boundary needs a JSON-safe document projection.
+The textual layer adds ordered paragraph and sentence views, both as node ids over the
+same source offsets as Markdown blocks and document sections.
 
 ```python
 from flexdoc import Detail, Layer

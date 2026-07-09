@@ -25,7 +25,7 @@ known cruft in 0.1.0 is higher.
 
 * * *
 
-## 1. Executive verdict
+## 1. Executive Verdict
 
 The architecture is settled and right, and the extraction did not bend it: one immutable
 source string and one Unicode-code-point offset space as the canonical substrate, with
@@ -48,7 +48,7 @@ extraction plan) and land it before tagging 0.1.0, so the first published API is
 we want to keep. Defer the deep redesigns (wordtok sentinel typing, analyzer interface,
 annotation layer) to Stage 3 as planned — none of them block a clean 0.1.0.
 
-## 2. Status of the v0.3.1 review findings (verified in this tree)
+## 2. Status of the v0.3.1 Review Findings (Verified in This Tree)
 
 | v0.3.1 finding | Status now | Evidence |
 | --- | --- | --- |
@@ -67,7 +67,7 @@ by a documented, tested caching contract (`tests/docs/test_caching_threadsafe.py
 is a legitimate lighter-weight answer.
 Do not build the snapshot type speculatively; reconsider only if real misuse shows up.
 
-## 3. Findings to fix before 0.1.0 (P1)
+## 3. Findings to Fix Before 0.1.0 (P1)
 
 ### F1. Deprecated aliases must not ship in a first release
 
@@ -133,7 +133,7 @@ genuinely returns structural `Block`s. After this, “block” always means the 
 layer, “paragraph” always means the editing view, and the spec’s terminology matches the
 API everywhere.
 
-## 4. Medium-priority findings (P2 — pre-publish preferred, not blocking)
+## 4. Medium-Priority Findings (P2 — Pre-Publish Preferred, Not Blocking)
 
 ### F4. Split `text_doc.py`
 
@@ -174,7 +174,7 @@ among siblings) turns a future synthetic-layer bug into an immediate error inste
 silent contract violation.
 Matters before the synthetic layer lands (extraction plan Stage 4).
 
-## 5. Lower-priority findings (P3) and explicit non-actions
+## 5. Lower-Priority Findings (P3) and Explicit Non-Actions
 
 - **Linear offset lookups.** `block_at_offset`/`sentence_at_offset` scan
   (`text_doc.py:736,748`); `collect()`'s interval relations scan all nodes
@@ -216,7 +216,7 @@ Matters before the synthetic layer lands (extraction plan Stage 4).
   cool-off exception for the fresh release (maintainer sign-off required).
   Until then the module is correct and tested; do not swap early.
 
-## 6. Corrections to the breadth inventory (claims that did not verify)
+## 6. Corrections to the Breadth Inventory (Claims That Did Not Verify)
 
 Two findings from the API-surface inventory pass were checked and are **not** issues:
 
@@ -228,7 +228,7 @@ Two findings from the API-surface inventory pass were checked and are **not** is
   recompute of a pure function with atomic attribute assignment, explicitly covered by
   the documented read contract (`text_doc.py:592-597`). No action.
 
-## 7. Recommended action plan
+## 7. Recommended Action Plan
 
 Land as **Stage 2.5 — pre-publish design refinement** in the extraction plan, before
 tagging 0.1.0 (checklist there is normative; summary):
@@ -250,7 +250,7 @@ Python surfaces, not parse behavior).
 After Stage 2.5: publish 0.1.0 (plan Step 4), then rewire chopdiff (Step 5) against the
 refined names in one pass.
 
-## 8. Bottom line
+## 8. Bottom Line
 
 The model is the right shape and the hard work (the boundary, the layered substrate, the
 query/partition split) is done and verified.

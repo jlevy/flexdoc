@@ -7,20 +7,20 @@
 
 A Markdown parser gives you a block AST but no sentences, sizes, or exact source
 offsets. An NLP toolkit gives you sentences but no Markdown structure.
-If you need to know which sentence is in which section, how many words (or LLM
-tokens) a section holds, or exactly where a link sits in the original text, you end
-up gluing tools together — and the glue breaks on the first edit.
+If you need to know which sentence is in which section, how many words (or LLM tokens) a
+section holds, or exactly where a link sits in the original text, you end up gluing
+tools together — and the glue breaks on the first edit.
 
-flexdoc parses a document once into a single source-grounded model, **`FlexDoc`**,
-and exposes its structure as layers over one shared coordinate space: exact
-`[start, end)` offsets into one retained source string.
+flexdoc parses a document once into a single source-grounded model, **`FlexDoc`**, and
+exposes its structure as layers over one shared coordinate space: exact `[start, end)`
+offsets into one retained source string.
 The **Markdown layer** (blocks, inline elements, typed attributes), the **textual
 layer** (paragraphs, sentences, word tokens), and the **document layer** (heading
-hierarchy, table of contents) are independent parses of the same text, so
-cross-cutting questions are simple offset queries.
-One query primitive (`collect()`) spans all layers; **`DocGraph`** serializes any
-slice as language-neutral JSON; **`SpanRef`** anchors spans by quoted text so
-references survive edits and reparses.
+hierarchy, table of contents) are independent parses of the same text, so cross-cutting
+questions are simple offset queries.
+One query primitive (`collect()`) spans all layers; **`DocGraph`** serializes any slice
+as language-neutral JSON; **`SpanRef`** anchors spans by quoted text so references
+survive edits and reparses.
 
 flexdoc is a standalone library.
 [chopdiff](https://github.com/jlevy/chopdiff) builds its diff-filtering and
@@ -36,8 +36,8 @@ uv add flexdoc
 ## Status
 
 **Beta** (0.2.x). The model and spec are settled; the API surface may still take
-breaking changes before 1.0 (pre-1.0, breaking changes bump the minor version), so
-pin a minor version. See the
+breaking changes before 1.0 (pre-1.0, breaking changes bump the minor version), so pin a
+minor version. See the
 [changelog](https://github.com/jlevy/flexdoc/blob/main/CHANGELOG.md).
 
 ## Usage
@@ -68,15 +68,15 @@ print(link.attrs["url"], link.source_span)
 print(doc.reassemble())
 ```
 
-Every unit — block, paragraph, sentence, section, link — satisfies
-`source_text[start:end] == unit.original_text`, so structure always maps back to
-the exact source.
+Every source-backed unit — block, paragraph, sentence, section, link — carries an exact
+`[start, end)` span into the retained source text (paragraphs and sentences also expose
+the slice as `original_text`), so structure always maps back to the exact source.
 
 flexdoc delegates Markdown parsing to [marko](https://github.com/frostming/marko)
 (CommonMark + GFM tables and footnotes) via
 [flowmark](https://github.com/jlevy/flowmark), and adds sentence segmentation, the
-section hierarchy, the flat node table, offset-grounded queries, serialization, and
-span anchoring on top. Parsing any input never raises: malformed Markdown degrades
+section hierarchy, the flat node table, offset-grounded queries, serialization, and span
+anchoring on top. Parsing any input never raises: malformed Markdown degrades
 deterministically and visibly (see the
 [spec](https://github.com/jlevy/flexdoc/blob/main/docs/flexdoc-spec.md) and the
 golden-test corpus that pins this behavior).
@@ -90,9 +90,9 @@ The full public surfaces live in the submodules:
   extractor, and timestamp extraction.
 - `flexdoc.util` — read-time and token-count estimation.
 
-See [usage.md](https://github.com/jlevy/flexdoc/blob/main/docs/usage.md) for the
-main workflows, and the worked examples (run with
-`uv run python examples/<name>.py` from a checkout):
+See [usage.md](https://github.com/jlevy/flexdoc/blob/main/docs/usage.md) for the main
+workflows, and the worked examples (run with `uv run python examples/<name>.py` from a
+checkout):
 
 - [`doc_structure.py`](https://github.com/jlevy/flexdoc/blob/main/examples/doc_structure.py)
   — section hierarchy, size rollups, offset lookups, and the block tree.

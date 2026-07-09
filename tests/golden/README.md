@@ -55,3 +55,7 @@ runs.
 Node ids (`n0001…`) are deterministic and meaningful, so they appear verbatim in the
 goldens (not pattern-matched).
 Spans are Unicode code points, rendered `start:end`.
+
+<!-- This document follows common-doc-guidelines.md.
+See github.com/jlevy/practical-prose and review guidelines before editing.
+-->

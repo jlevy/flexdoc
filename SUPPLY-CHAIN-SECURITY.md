@@ -143,9 +143,9 @@ It does not change dependency resolution or the cool-off.
   The fix (`msgpack` 1.2.1, released 2026-06-18) is newer than the `exclude-newer`
   cutoff (2026-05-11), so there is no within-policy bump.
   Ignored at the audit gate 2026-07-08; **pending explicit maintainer ratification.**
-  Remove the `--ignore-vuln GHSA-6v7p-g79w-8964` once the cutoff advances past
-  msgpack 1.2.1’s release (already past its 14-day window, so the next routine
-  cutoff bump clears it).
+  Remove the `--ignore-vuln GHSA-6v7p-g79w-8964` once the cutoff advances past msgpack
+  1.2.1’s release (already past its 14-day window, so the next routine cutoff bump
+  clears it).
 
 ## Untrusted Repositories
 
@@ -153,3 +153,7 @@ Treat any freshly cloned third-party repo as untrusted.
 Don’t run `install` / `build` / `test` / `run` against it on a machine with credentials
 until you’ve reviewed it: `build` backends, import-time code, and test files all execute
 code. Prefer a container or sandbox.
+
+<!-- This document follows common-doc-guidelines.md.
+See github.com/jlevy/practical-prose and review guidelines before editing.
+-->
