@@ -55,6 +55,8 @@ def test_tally_by_kind_via_counter():
     assert tally[NodeKind.table] >= 1
     assert tally[NodeKind.code] >= 1
     assert tally[NodeKind.list] >= 1
+    assert tally[NodeKind.link] >= 2
+    assert tally[NodeKind.code_span] >= 1
 
 
 def test_nested_table_in_blockquote_found_recursively():
@@ -99,13 +101,21 @@ def test_explicit_link_kind_implies_inline():
     assert len(with_inline) == len(links)
 
 
-def test_inline_excluded_by_default_without_explicit_kind():
-    """A query that does not name an inline kind still excludes inline nodes by default."""
+def test_recursive_includes_inline_unless_explicitly_excluded():
+    """Recursive traversal includes every descendant unless `inline=False`."""
     _, table = _doc_and_table()
     all_default = collect(table, recursive=True)
-    assert all(n.kind not in {NodeKind.link, NodeKind.code_span} for n in all_default)
-    # Opting in with inline=True surfaces them.
-    assert any(n.kind == NodeKind.link for n in collect(table, recursive=True, inline=True))
+    assert any(n.kind == NodeKind.link for n in all_default)
+    assert any(n.kind == NodeKind.code_span for n in all_default)
+
+    block_only = collect(table, recursive=True, inline=False)
+    assert all(n.kind not in {NodeKind.link, NodeKind.code_span} for n in block_only)
+
+
+def test_explicit_inline_false_overrides_an_inline_kind_filter():
+    """An explicit exclusion remains observable even when `kinds` names inline nodes."""
+    _, table = _doc_and_table()
+    assert collect(table, kinds={NodeKind.link}, recursive=True, inline=False) == []
 
 
 def test_collect_single_link_minimal_doc():

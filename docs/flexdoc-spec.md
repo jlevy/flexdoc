@@ -755,7 +755,7 @@ The surface is **one general query primitive, no blessed per-kind rollups**:
 
 ```python
 collect(*, subtree_of=None, within=None, overlaps=None,
-        kinds=None, where=None, recursive=False, inline=False, layer=None) -> list[Node]
+        kinds=None, where=None, recursive=False, inline=None, layer=None) -> list[Node]
 ```
 
 Available as `doc.collect(...)` (and as the free `collect(table, ...)` over a node
@@ -768,9 +768,12 @@ The **interval** relations are cross-layer and offset-based, each accepting a no
 merely intersects the region.
 Supplying an interval relation scans the whole document, so `within=section_id` needs no
 `recursive=True`. `kinds=` selects by node kind (the typed common case); `where=` is a
-`Node -> bool` predicate escape hatch; `inline` includes inline nodes (an explicit
-inline `kinds` such as `{NodeKind.link}` implies this); `layer=` restricts to parse
-layers. It returns **nodes** (each with `span`, `attrs`, edges).
+`Node -> bool` predicate escape hatch.
+When `inline` is omitted, recursive traversal and an explicit inline `kinds` selection
+include inline nodes; `inline=False` explicitly excludes them, and `inline=True`
+includes them for any query.
+`layer=` restricts parse layers.
+It returns **nodes** (each with `span`, `attrs`, edges).
 **Counts, values, and groupings are standard Python** over the result, documented with
 worked examples, not separate methods:
 

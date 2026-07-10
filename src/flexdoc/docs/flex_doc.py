@@ -981,7 +981,7 @@ class FlexDoc:
         kinds: set[NodeKind] | None = None,
         where: Callable[[Node], bool] | None = None,
         recursive: bool = False,
-        inline: bool = False,
+        inline: bool | None = None,
         layer: set[Layer] | None = None,
     ) -> list[Node]:
         """

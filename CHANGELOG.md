@@ -55,6 +55,11 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
   `TextUnit.words == "words"` now holds.
   Source-compatible for enum-member access; only `str()`/equality-with-string behavior
   changes.
+- **Recursive `collect()` includes inline descendants by default.** The `inline`
+  parameter is now tri-state: omission follows recursive traversal or an explicit
+  inline-kind filter, `inline=False` excludes inline nodes, and `inline=True` includes
+  them for any query. Callers that need the previous block-only recursive result must
+  pass `inline=False`.
 
 Remaining pre-1.0 design decisions and future mechanisms are collected in
 `docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md`.

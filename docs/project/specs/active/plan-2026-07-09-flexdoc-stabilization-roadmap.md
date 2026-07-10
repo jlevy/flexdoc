@@ -56,10 +56,8 @@ The follow-up review also found and fixed a remaining double parse: documents wi
 frontmatter built links from a second body-only parse even though the blanked shared
 parse was already safe to reuse.
 
-The review also confirmed three planning gaps:
+The review also confirmed two planning gaps:
 
-- The proposed `collect(recursive=True)` behavior needs a tri-state API if callers are
-  to distinguish an omitted `inline` option from an explicit `inline=False` override.
 - An `Annotation` model alone does not define who owns annotations or how they enter a
   `DocGraph`; the builder currently receives only a `NodeTable`.
 - A `SuggestedEdit` record alone does not define batch application, overlap conflicts,
@@ -156,7 +154,7 @@ source contract.
 | `flexdoc-qire` | Reject context-free hints over duplicate quotes; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-lcuh` | Group the eight pre-1.0 API cleanup beads | `flexdoc-lv8m` establishes the baseline |
 | `flexdoc-ltzx` | Make paragraph heading metadata properties | `flexdoc-lv8m` |
-| `flexdoc-ikm6` | Define recursive inline collection semantics | `flexdoc-lv8m` |
+| `flexdoc-ikm6` | Make recursive collection include inline descendants by default; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-buw9` | Make cached structural views mutation-safe | `flexdoc-lv8m` |
 | `flexdoc-0cbm` | Rename the navigable-link form constant | `flexdoc-lv8m` |
 | `flexdoc-p60e` | Put resolution beside the public `SpanRef` API | `flexdoc-qire` |
@@ -231,8 +229,6 @@ workflow APIs and the Chopdiff migration.
 
 ## Open Questions
 
-- Should recursive collection include inline nodes by default, and what explicit API
-  excludes them?
 - Should cached structural objects be immutable, or should public methods return deep
   copies?
 - Who owns annotations, and how are they supplied to `DocGraph` serialization?
