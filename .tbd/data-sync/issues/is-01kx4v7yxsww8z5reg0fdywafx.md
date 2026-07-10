@@ -3,9 +3,9 @@ type: is
 id: is-01kx4v7yxsww8z5reg0fdywafx
 title: Put SpanRef resolution beside the public SpanRef API
 kind: task
-status: open
+status: closed
 priority: 1
-version: 2
+version: 4
 spec_path: docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md
 labels:
   - api
@@ -16,6 +16,8 @@ dependencies:
     target: is-01kx4v808gd28tns09r81qhs5q
 parent_id: is-01kx1w32h8f8920d8kp9xh8ngc
 created_at: 2026-07-10T01:45:59.992Z
-updated_at: 2026-07-10T01:47:38.747Z
+updated_at: 2026-07-10T02:34:40.189Z
+closed_at: 2026-07-10T02:34:40.188Z
+close_reason: "Added root-usable SpanRef.resolve and resolve_and_update methods in 0c66135, de-promoted generic resolver names from flexdoc.docs, migrated internal use/tests/docs/example/changelog, make lint passed, all 347 tests passed, and PR #10 CI passed."
 ---
 After context-free hint semantics are settled, add SpanRef resolution methods or deliberately export the resolver functions from the package root. Prefer methods to avoid generic root names. Done when root API tests, docs, examples, and migration notes establish one obvious resolution path without duplicating logic.
