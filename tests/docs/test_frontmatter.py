@@ -1,8 +1,9 @@
 """
-Frontmatter isolation (editing view): a leading YAML block is a non-content region —
-excluded from paragraphs/sentences/size and exposed verbatim via `FlexDoc.frontmatter`,
-while `source_text` keeps the full original and spans stay absolute. Detector unit tests
-live inline in `flexdoc.docs.frontmatter`; structural-view exclusion is tested separately.
+Frontmatter isolation (editing view): a leading YAML block is a non-content region,
+excluded from paragraphs/sentences/size and exposed through `FlexDoc.frontmatter`, while
+`source_text` keeps the full normalized source and spans stay absolute. Detector unit
+tests live inline in `flexdoc.docs.frontmatter`; structural-view exclusion is tested
+separately.
 """
 
 from __future__ import annotations
@@ -108,6 +109,18 @@ def test_frontmatter_links_are_not_content_links():
         "https://bodyref.example",
     }
     assert all(n.source_span is None or n.source_span[0] >= len(fm) for n in link_nodes)
+
+
+def test_body_bare_url_does_not_reuse_matching_frontmatter_text():
+    url = "https://same.example"
+    fm = f"---\nsource: {url}\n---\n\n"
+    body = f"Visit {url} for details.\n"
+    doc = FlexDoc.from_text(fm + body)
+
+    links = doc.links()
+    assert len(links) == 1
+    expected_start = len(fm) + body.index(url)
+    assert links[0].span == (expected_start, expected_start + len(url))
 
 
 def test_doc_report_base_blocks_exclude_frontmatter():

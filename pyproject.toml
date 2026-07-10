@@ -204,7 +204,7 @@ reportUnknownLambdaType = false
 reportPrivateUsage = false
 
 [tool.codespell]
-ignore-words-list = "Numbe"
+ignore-words-list = "Bitap,Numbe"
 # skip = "foo.py,bar.py"
 
 [tool.pytest.ini_options]

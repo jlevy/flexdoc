@@ -220,7 +220,7 @@ def test_offset_hint_with_edited_context_still_reanchors_by_quote():
 
 
 def test_to_text_fragment():
-    """to_text_fragment produces a Chrome-style text fragment with encoded components."""
+    """`to_text_fragment()` percent-encodes each URL text-directive component."""
     ref = SpanRef(exact="sample link", prefix="A [", suffix="]")
     frag = ref.to_text_fragment()
     assert frag == "#:~:text=A%20%5B-,sample%20link,-%5D"

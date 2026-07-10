@@ -231,10 +231,11 @@ class FlexDoc:
       `paragraphs`/`sentences` lists expose this document's live objects.
 
     - `source_text` is the document text the offsets index into. For a parsed doc it is
-      the unmodified input; `sub_doc`/`sub_paras`/`filtered` carry the same `source_text`
-      (their offsets still point into it). Docs built from synthetic content
-      (`from_wordtoks`) set it to the reassembled text. `paragraph_at_offset` /
-      `sentence_at_offset` map an absolute offset back to the unit that contains it.
+      the input after line endings are normalized to `\n`; `sub_doc`/`sub_paras`/
+      `filtered` carry the same `source_text` (their offsets still point into it). Docs
+      built from synthetic content (`from_wordtoks`) set it to the reassembled text.
+      `paragraph_at_offset` / `sentence_at_offset` map an absolute offset back to the
+      unit that contains it.
 
     - Read-time thread-safety. The derived views — `blocks()`, `links()`, `sections()`,
       `base_blocks()`, `node_table()`, `graph()`, `collect()`, and the size/TOC helpers —
@@ -293,19 +294,11 @@ class FlexDoc:
         self._cached_links = None
         self._cached_sections = None
 
-    @_memoized_derivation("_cached_parsed")
-    def _parsed(self) -> Document:
+    def _markdown_source_text(self) -> str:
         """
-        The single shared marko parse of `source_text`, computed once. `blocks()` and
-        `links()` (and `base_blocks()`) derive from this one parse rather than each
-        re-parsing the whole document. See the class contract on read-time caching.
-
-        A leading frontmatter region is blanked out (non-newline characters replaced
-        with spaces) before parsing: frontmatter is non-content, and parsing it as
-        Markdown lets constructs inside it leak into the body (e.g. a YAML block
-        scalar containing a code fence opens a fenced block that swallows the rest of
-        the document). Blanking preserves every body offset while guaranteeing the
-        region contributes no blocks.
+        `source_text` with a leading frontmatter region blanked out. Blanking prevents
+        Markdown constructs and repeated URL text in metadata from affecting body
+        parsing or link location while preserving every body offset.
         """
         text = self.source_text or self.reassemble()
         content_offset = self._content_offset()
@@ -313,7 +306,16 @@ class FlexDoc:
             frontmatter_region = text[:content_offset]
             blanked = "".join(c if c == "\n" else " " for c in frontmatter_region)
             text = blanked + text[content_offset:]
-        return flowmark_markdown().parse(text)
+        return text
+
+    @_memoized_derivation("_cached_parsed")
+    def _parsed(self) -> Document:
+        """
+        The single shared marko parse, computed once from `_markdown_source_text()`.
+        `blocks()`, `links()`, and `base_blocks()` derive from it rather than reparsing.
+        See the class contract on read-time caching.
+        """
+        return flowmark_markdown().parse(self._markdown_source_text())
 
     @_memoized_derivation("_cached_node_table")
     def node_table(self) -> NodeTable:
@@ -357,10 +359,11 @@ class FlexDoc:
     @property
     def frontmatter(self) -> str | None:
         """
-        The verbatim leading YAML frontmatter block (both `---` delimiters included), or
-        `None` if the document has none. Frontmatter is a non-content region: excluded from
-        `paragraphs`, `blocks()`, `sections()`, the node table, and every size/prose count,
-        but `source_text` retains it so the document round-trips.
+        The leading YAML frontmatter block from normalized `source_text` (both `---`
+        delimiters included), or `None` if the document has none. Frontmatter is a
+        non-content region: excluded from `paragraphs`, `blocks()`, `sections()`, the node
+        table, and every size/prose count, but retained so the document round-trips after
+        line-ending normalization.
         """
         return split_frontmatter(self.source_text)[0]
 
@@ -518,11 +521,7 @@ class FlexDoc:
 
     @_memoized_derivation("_cached_links")
     def _link_list(self) -> list[Link]:
-        source_text = self.source_text or self.reassemble()
-        content_offset = self._content_offset()
-        if content_offset:
-            return block_links(source_text[content_offset:], content_offset)
-        return block_links(source_text, 0, parsed=self._parsed())
+        return block_links(self._markdown_source_text(), 0, parsed=self._parsed())
 
     def links(self, *, link_forms: set[LinkForm] | None = None) -> list[Link]:
         """

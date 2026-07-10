@@ -7,7 +7,8 @@ changes bump the **minor** version (see `docs/publishing.md`).
 ## Unreleased
 
 Fixes from the 2026-07 pre-promotion design review
-(`docs/project/review/senior-engineering-review-flexdoc-2026-07.md`).
+(`docs/project/review/senior-engineering-review-flexdoc-2026-07.md`). These changes
+alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch.
 
 ### Fixed
 
@@ -25,6 +26,8 @@ Fixes from the 2026-07 pre-promotion design review
   leaving `blocks()` empty.
   The frontmatter region is now blanked out of the shared parse (offsets preserved);
   frontmatter remains a non-content region.
+  Link extraction now reuses that blanked parse instead of reparsing the body for
+  frontmatter documents.
 - **`resolve()` no longer guesses on ambiguous quotes.** Per the spec’s error posture
   (§11), a `SpanRef` quote that occurs multiple times with no disambiguating
   prefix/suffix (or a tied context score) now resolves to `None` instead of silently
@@ -71,9 +74,9 @@ API additions below include breaking signature changes (see **Changed**).
   tight headings and headings preceded by a non-blank line (e.g. an HTML-comment
   marker), and section content was bucketed from that same view, so a heading glued to
   its body lost the body.
-  Sections now derive entirely from the structural block tree — the heading set *and*
-  each section’s own content (`own_paragraphs()` / `blocks()` / sizes) come from the
-  section’s source region — so tight and marker-preceded headings own exactly their
+  Sections now derive entirely from the structural block tree—the heading set *and* each
+  section’s own content (`own_paragraphs()` / `blocks()` / sizes) come from the
+  section’s source region—so tight and marker-preceded headings own exactly their
   content.
 - **Section spans nest correctly** even when a blank-line paragraph straddles a later
   heading (e.g. an embedded `---` block marko reads as a setext heading): each section
@@ -123,7 +126,7 @@ These are breaking, made cleanly (no aliases) given the preview status:
   result is unchanged.
 - **`collect()` returns inline-kind nodes without `recursive=True`.** An inline-kind
   request (e.g. `collect(kinds={NodeKind.link})`) now widens the candidate set instead
-  of silently returning `[]` — matching the documented behavior.
+  of silently returning `[]`—matching the documented behavior.
 
 ## 0.1.0 (2026-06-12)
 
@@ -133,10 +136,10 @@ First release.
 
 - **Initial flexdoc package**, extracted from
   [chopdiff](https://github.com/jlevy/chopdiff) as its own standalone distribution.
-  This is the document/markdown layer — `FlexDoc`, paragraphs/sentences, the block tree
+  This is the document/markdown layer—`FlexDoc`, paragraphs/sentences, the block tree
   and block types, sections, the node table, `collect()`, `DocGraph`, `SpanRef`, token
-  diffs/mappings, word tokenization, html-in-md, and read-time/token estimation — with
-  no dependency on chopdiff’s diff and windowed-transform machinery.
+  diffs/mappings, word tokenization, html-in-md, and read-time/token estimation—with no
+  dependency on chopdiff’s diff and windowed-transform machinery.
 
   The import roots are `flexdoc.docs`, `flexdoc.html`, and `flexdoc.util`. Parse
   behavior is unchanged from the `flexdoc.*` modules that previously shipped inside the
@@ -145,20 +148,20 @@ First release.
 
 - **A deliberate root API**: the working set is importable from the package root —
   `FlexDoc`, `DocGraph`, `Detail`, `SpanRef`, `BlockType`, `NodeKind`, `Layer`,
-  `TextUnit` — designed against the known downstream users and pinned by contract tests.
+  `TextUnit`—designed against the known downstream users and pinned by contract tests.
   The render helpers for source-linked HTML (`render_node_attrs`,
   `wrap_with_node_attrs`, `parse_source_span_attr`) are public in `flexdoc.docs`.
 
 - **DocGraph paragraph view**: `Views.paragraphs` joins `toc`/`blocks`/`links`/
   `sentences` in the serialized projection.
 
-### Changed (relative to the modules as shipped in chopdiff)
+### Changed (Relative to the Modules as Shipped in Chopdiff)
 
 The first standalone release also refines the API surface (the pre-publish design
 review, `docs/project/review/senior-engineering-review-flexdoc-standalone-2026-06.md`);
 these are intentional hard cuts with no compatibility aliases:
 
-- **`TextDoc` is renamed `FlexDoc`** — the package’s single entry point, named for the
+- **`TextDoc` is renamed `FlexDoc`**—the package’s single entry point, named for the
   model it carries (all layered projections hang off it).
   It is importable from the package root: `from flexdoc import FlexDoc`. The module is
   `flexdoc.docs.flex_doc` (was `chopdiff.docs.text_doc`), and the design of record is

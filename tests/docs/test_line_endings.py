@@ -1,6 +1,6 @@
 """
-Line-ending normalization: `from_text` normalizes `\r\n` and lone `\r` to `\n` so
-every layer — editing view and structural views — shares one offset space.
+Line-ending normalization: `from_text` normalizes `\r\n` and lone `\r` to `\n` so the
+editing and structural views share one offset space.
 Before normalization, marko's LF-based block positions desynchronized structural
 spans from a CRLF `source_text`, corrupting `blocks()`, `sections()`,
 `base_blocks()`, and `prose_text()` (while the regex-based paragraph view stayed

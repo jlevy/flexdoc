@@ -17,6 +17,7 @@ DOC_PATHS = [
     "docs/development.md",
     "docs/flexdoc-spec.md",
     "docs/installation.md",
+    "docs/project",
     "docs/publishing.md",
     "docs/usage.md",
 ]

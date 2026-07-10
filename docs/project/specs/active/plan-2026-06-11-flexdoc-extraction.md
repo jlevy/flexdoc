@@ -9,9 +9,11 @@ Stage 2 Steps 1–3 (extract + scaffold + verify) and Stage 2.5 (pre-publish des
 refinement, from the 2026-06-12 review) are done in this repo, tracked as beads
 `flexdoc-7yfb/gvzk/3xhq/hqi1/32s0/ 6a5i/6off/tfg8/mbdt` (closed), plus the 2.5 addendum
 (`TextDoc` → `FlexDoc` rename and root entry point; beads `flexdoc-bx3j/jfiq` closed).
-The root-surface definition and implementation remain open as beads `flexdoc-l0lc` →
-`flexdoc-bift`. Step 4 (publish) is done: 0.1.0 (2026-06-12) and 0.2.0 (2026-06-14) are
-live on PyPI with tags `v0.1.0`/`v0.2.0`. Step 5 (rewire chopdiff) is pending.
+The root-surface definition and implementation beads (`flexdoc-l0lc` and `flexdoc-bift`)
+are closed: the exports are documented and pinned by `tests/test_root_api.py`. Step 4
+(publish) is done: 0.1.0 (2026-06-12) and 0.2.0 (2026-06-14) are live on PyPI with tags
+`v0.1.0`/`v0.2.0`. Step 5 (rewire Chopdiff) is pending and incorporated into the 2026-07
+stabilization roadmap.
 Stages 3–5 are forward-looking.
 
 > **Repo note.** This is flexdoc’s copy of the extraction plan.
@@ -23,16 +25,16 @@ Stages 3–5 are forward-looking.
 
 ## Overview
 
-The document/markdown model that chopdiff grew — `TextDoc`, the block/section/inline
-structure, the node table and `DocGraph`, span references, html-in-md, frontmatter — is
-a general, reusable *document layer* that does not depend on chopdiff’s diff and
+The document/markdown model that chopdiff grew—`TextDoc`, the block/section/inline
+structure, the node table and `DocGraph`, span references, html-in-md, frontmatter—is a
+general, reusable *document layer* that does not depend on chopdiff’s diff and
 windowed-transform machinery.
 This plan extracts it into a standalone package (**flexdoc**) so it can be used and
 evolved on its own, and so chopdiff becomes a thin diff/transform layer built **on**
 flexdoc.
 
 flexdoc’s north star reaches past the extraction: to be one of the most flexible
-foundations in Python for processing and understanding complex documents — for careful
+foundations in Python for processing and understanding complex documents—for careful
 editing and for deep analysis alike.
 The aim is to identify and understand a complex Markdown document at a genuinely
 granular level along several independent axes at once: its **Markdown syntax** (blocks,
@@ -48,19 +50,19 @@ already settled (see North star below).
 
 The work is split into stages, each on its own branch (and, from Stage 2, its own repo):
 
-1. **Stage 1 — in-repo refactor (done, in chopdiff).** A pure, behavior-preserving split
+1. **Stage 1—in-repo refactor (done, in chopdiff).** A pure, behavior-preserving split
    into two import roots (`src/flexdoc/` and `src/chopdiff/`) shipped in a single wheel,
    proving and *enforcing* a one-way dependency cut (`flexdoc` imports nothing from
    `chopdiff`).
-2. **Stage 2 — extract and publish (this repo).** Lift `src/flexdoc/` and its tests into
-   a standalone package, give it its own packaging and dependency subset, publish to
-   PyPI, then rewire chopdiff to depend on it (the single intended breaking release).
+2. **Stage 2—extract and publish (this repo).** Lift `src/flexdoc/` and its tests into a
+   standalone package, give it its own packaging and dependency subset, publish to PyPI,
+   then rewire chopdiff to depend on it (the single intended breaking release).
    **Stage 2.5** sits between extraction and publish: the pre-publish design refinement
    driven by the standalone review, taken now because breaking changes are free before
    0.1.0 (chopdiff adapts once, at rewire).
-3. **Stage 3 — flexdoc as a first-class, extensible document-layer API** (later).
-4. **Stage 4 — fold in the synthetic layer** (optional, later).
-5. **Stage 5 — standalone cleanup and polish** (the immediate post-extraction tidy; see
+3. **Stage 3—flexdoc as a first-class, extensible document-layer API** (later).
+4. **Stage 4—fold in the synthetic layer** (optional, later).
+5. **Stage 5—standalone cleanup and polish** (the immediate post-extraction tidy; see
    the final phase).
 
 ## Goals
@@ -69,8 +71,8 @@ The work is split into stages, each on its own branch (and, from Stage 2, its ow
   (parse → `TextDoc`/`DocGraph`, `collect()`, spans/`SpanRef`, sections, frontmatter,
   render, html-in-md), usable with no dependency on chopdiff.
 - **Granular, multi-axis understanding.** Expose a document’s structure at a fine grain
-  across independent axes — Markdown syntax, linguistic structure, and other layered
-  structures — over one shared, source-grounded coordinate space.
+  across independent axes—Markdown syntax, linguistic structure, and other layered
+  structures—over one shared, source-grounded coordinate space.
 - **Flexible and extensible by construction.** New parse layers, node kinds, typed
   attributes, and analyzers are additive; they extend the model without reshaping its
   core.
@@ -116,8 +118,8 @@ almost entirely forced, not a matter of taste:
   can sit on either side.
   Resolved: stays in chopdiff (see Resolved Decisions).
 
-A consequence of moving whole modules to preserve code: `docs/token_diffs.py` — the diff
-*primitives* — travels into flexdoc with the rest of `docs/`, because it is cyclically
+A consequence of moving whole modules to preserve code: `docs/token_diffs.py`—the diff
+*primitives*—travels into flexdoc with the rest of `docs/`, because it is cyclically
 tied to `docs.text_doc`. So flexdoc carries the token-diff *algorithm*; chopdiff keeps
 the diff *filters* and windowed transforms.
 Relocating `token_diffs` later is a separate finer refactor (Stage 3 candidate).
@@ -132,9 +134,9 @@ Relocating `token_diffs` later is a separate finer refactor (Stage 3 candidate).
 | `transforms/` | **chopdiff** | Diff filters + windowed transforms; depend on flexdoc. |
 | `divs/` | **chopdiff** | Pure consumer; becomes flexdoc’s synthetic layer at Stage 4. |
 
-`lemmatize` was moved out of flexdoc into `chopdiff.util` in Stage 1 (PR #26) — it is
-used only by the diff filters, not the document model — so `simplemma` is chopdiff’s
-optional extra, not flexdoc’s, keeping the flexdoc core dependency-light.
+`lemmatize` was moved out of flexdoc into `chopdiff.util` in Stage 1 (PR #26)—it is used
+only by the diff filters, not the document model—so `simplemma` is chopdiff’s optional
+extra, not flexdoc’s, keeping the flexdoc core dependency-light.
 
 ### Dependency partition (verified)
 
@@ -159,7 +161,7 @@ way):
 - **`simplemma` is intentionally absent** (lemmatize is now `chopdiff.util`).
 - No optional extras.
 
-## Stage 1 — pure in-repo refactor (done, in chopdiff)
+## Stage 1: Pure In-Repo Refactor (Done, in Chopdiff)
 
 One wheel, two import roots, behavior preserved, boundary enforced.
 Shipped on chopdiff’s `main` (PR #26). It moved `docs/`/`html/`/`util/` under
@@ -168,14 +170,14 @@ tree, added `tests/test_package_boundary.py` (asserts via `ast`, stdlib only, th
 `src/flexdoc` module imports `chopdiff`), set the wheel target to both roots, and kept
 `make lint`/`make test` green.
 
-## Stage 2 — extract flexdoc to its own repo and publish (this repo)
+## Stage 2: Extract FlexDoc to Its Own Repo and Publish (This Repo)
 
 With the boundary proven, this is copy-and-rewire plus packaging.
 The partition was computed from the merged Stage-1 tree; **re-verify each fact against
 the source before relying on it** (this refinement records the facts as re-verified on
 2026-06-12).
 
-### Step 1 — copy the package, tests, examples, and design history (done)
+### Step 1: Copy the Package, Tests, Examples, and Design History (Done)
 
 - [x] Copy `src/flexdoc/` verbatim (the whole package: `docs/`, `html/`, `util/`,
   `__init__.py`, `py.typed`). Inline tests (`## Tests` sections) travel with their
@@ -185,17 +187,17 @@ the source before relying on it** (this refinement records the facts as re-verif
   copy `tests/test_package_boundary.py` (the boundary becomes a real package
   dependency). `tests/divs/`, `tests/transforms/`, and `tests/util/` stay in chopdiff.
 - [x] **Correction to the original runbook:**
-  `tests/html/test_html_validation_and_classes.py` was a *mixed* file — one flexdoc test
+  `tests/html/test_html_validation_and_classes.py` was a *mixed* file—one flexdoc test
   (`tag_with_attrs`) plus one chopdiff test (`parse_divs`, importing `chopdiff.divs`).
   Copying `tests/html/` wholesale therefore pulled a cross-boundary import that fails to
   collect in the standalone package.
   The flexdoc test was kept and the divs test dropped (chopdiff retains its copy).
   **General rule:** after copying tests, grep the copied tree for any `chopdiff` import
-  and prune or relocate it — do not assume a test directory is purely on one side of the
+  and prune or relocate it—do not assume a test directory is purely on one side of the
   cut.
 - [x] `tests/test_supply_chain.py` is **repo-agnostic** (it reads
   `pyproject.toml`/`uv.lock`/ the marker doc), so it is copied as-is rather than
-  rewritten — a simplification over the original runbook’s “write a fresh one.”
+  rewritten—a simplification over the original runbook’s “write a fresh one.”
 - [x] Copy the flexdoc-only **examples** (`normalized_form.py`, `doc_structure.py`,
   `backfill_timestamps.py`; verified to import only `flexdoc.*`).
   `insert_para_breaks.py` uses `chopdiff.transforms`, so it stays in chopdiff.
@@ -209,7 +211,7 @@ the source before relying on it** (this refinement records the facts as re-verif
   `plan-2026-05-31-doc-model-refinements.md`, `plan-2026-05-31-golden-doc-testing.md`,
   and this extraction plan.
 
-### Step 2 — scaffold the new repo’s tooling (done)
+### Step 2: Scaffold the New Repo’s Tooling (Done)
 
 This repo was bootstrapped from the same `simple-modern-uv` template as chopdiff, so the
 Makefile, `devtools/lint.py`, ruff/basedpyright/pytest config, and workflows already
@@ -231,7 +233,7 @@ chopdiff-equivalent.
   A `tests/test_supply_chain.py` guard checks the lock cutoff matches config and that
   every exception is documented.
 - [x] **uv resolution-stability gotcha (worth recording):** a per-package
-  `exclude-newer` exception does **not** move an already-locked version on its own — uv
+  `exclude-newer` exception does **not** move an already-locked version on its own—uv
   keeps the locked version if it still satisfies constraints.
   The first `uv lock` (under the global 2026-05-11 cutoff) pinned `idna 3.14`; widening
   only idna’s exception left it at 3.14. Forcing the CVE fix required
@@ -241,7 +243,7 @@ chopdiff-equivalent.
 - [x] `devtools/lint.py`: added `examples` to `SRC_PATHS` (matching chopdiff) so
   examples are linted and type-checked.
 - [x] CI (`ci.yml`): `build` (3.11–3.14, `uv sync --locked`, lint `--check`, pytest),
-  `audit` (`pip-audit --ignore-vuln PYSEC-2026-196`), and `wheel-smoke` — the smoke job
+  `audit` (`pip-audit --ignore-vuln PYSEC-2026-196`), and `wheel-smoke`—the smoke job
   imports **only** `flexdoc` from an isolated wheel install (chopdiff’s smoke imported
   both roots). `publish.yml` mirrors chopdiff’s `--locked` (fixed-cutoff) form.
 - [x] Fresh `README.md` and `CHANGELOG.md`; `SUPPLY-CHAIN-SECURITY.md`; `AGENTS.md`
@@ -253,7 +255,7 @@ chopdiff-equivalent.
   standalone library.
 - [x] `uv lock` (committed) and `make install`.
 
-### Step 3 — verify flexdoc standalone (done)
+### Step 3: Verify FlexDoc Standalone (Done)
 
 - [x] `make lint` clean (66 source files, 0 errors) and `make test` green (305 passed —
   the document-model suite, the goldens, and the supply-chain guard).
@@ -262,7 +264,7 @@ chopdiff-equivalent.
   `import flexdoc; from flexdoc.docs import TextDoc; from flexdoc.html import html_to_plaintext; TextDoc.from_text(...)`.
   The boundary is now structural: flexdoc has no chopdiff dependency at all.
 
-### Stage 2.5 — pre-publish design refinement (between Steps 3 and 4)
+### Stage 2.5: Pre-Publish Design Refinement (Between Steps 3 and 4)
 
 Driven by the standalone review
 ([`senior-engineering-review-flexdoc-standalone-2026-06.md`](../../review/senior-engineering-review-flexdoc-standalone-2026-06.md)),
@@ -346,8 +348,8 @@ examples run, `uv build` + isolated-venv wheel smoke test exercising the new API
 
 Maintainer-decided after a naming review: the package’s central class should carry the
 package’s name. The deciding argument is that the two names’ accuracy trends in opposite
-directions — `TextDoc` gets more wrong as the annotation/synthetic/layout layers land,
-`FlexDoc` gets more right — and the pre-publish window plus the pending chopdiff rewire
+directions—`TextDoc` gets more wrong as the annotation/synthetic/layout layers land,
+`FlexDoc` gets more right—and the pre-publish window plus the pending chopdiff rewire
 makes this the one nearly-free moment for the rename.
 The known caveat is recorded honestly: `FlexDoc` slightly over-promises on editing (only
 the textual layer is mutable; structural layers are read-only projections until the
@@ -399,8 +401,8 @@ cross-layer edit phases), which the class docstring’s contract addresses.
   and other plans reference *it*; a Terminology section
   (sizes/words/approximate-LLM-token estimates first; `wordtok` defined as the
   lower-level lexical unit); the synthetic layer redefined from first principles
-  (configured XML-style tag whitelist — hyphenated extension tags, `div`/`span`, comment
-  directives — compositional with future layers) instead of by reference to divs; §4 and
+  (configured XML-style tag whitelist—hyphenated extension tags, `div`/`span`, comment
+  directives—compositional with future layers) instead of by reference to divs; §4 and
   §7 rewritten to define their components rigorously; an “Error posture” principle
   (lenient deterministic input, visible degradation, strict internal contracts, opt-in
   strictness) with per-layer error-handling subsections ending each layer’s coverage,
@@ -415,12 +417,12 @@ chopdiff’s Step 5 rewire gains the class rename (46 occurrences across 7 files
 mechanical) in the same already-breaking release; the migration note is one pass:
 `chopdiff.docs.TextDoc` → `flexdoc.FlexDoc`.
 
-### Step 4 — publish flexdoc (done: 0.1.0 published 2026-06-12, 0.2.0 on 2026-06-14)
+### Step 4: Publish FlexDoc (Done: 0.1.0 Published 2026-06-12, 0.2.0 on 2026-06-14)
 
 - [x] Land Stage 2.5 first, so 0.1.0’s first published API is the refined one (no
   deprecated aliases, settled exports, closed naming seam) and chopdiff’s rewire targets
   the final names in one pass.
-- [x] Confirm the distribution name `flexdoc` is available on PyPI — verified available
+- [x] Confirm the distribution name `flexdoc` is available on PyPI—verified available
   2026-06-12 (pypi.org returns 404 for `flexdoc`); the name is now claimed by this
   package. The Trusted Publisher for `jlevy/flexdoc` is configured (first `publish.yml`
   run succeeded).
@@ -430,12 +432,12 @@ mechanical) in the same already-breaking release; the migration note is one pass
   exercising the root API. Note: the install check must run outside the repo, since the
   project’s own cool-off excludes the just-published version.
 
-### Step 5 — rewire chopdiff to the external flexdoc (pending; the breaking release)
+### Step 5: Rewire Chopdiff to External FlexDoc (Pending; the Breaking Release)
 
 - [ ] In chopdiff: `git rm -r src/flexdoc/` and the moved tests
   (`tests/{docs,html,golden}/`, `tests/test_package_boundary.py`); keep
   `tests/{divs,transforms,util}/`. The `chopdiff.{transforms,divs,util}` code already
-  imports `flexdoc.*`, so **no import rewrite is needed** — those imports now resolve to
+  imports `flexdoc.*`, so **no import rewrite is needed**—those imports now resolve to
   the external package.
   (Note: the `tests/html/...validation_and_classes` divs test that flexdoc dropped stays
   valid in chopdiff, which still has `chopdiff.divs`.)
@@ -447,12 +449,12 @@ mechanical) in the same already-breaking release; the migration note is one pass
   Set the wheel target back to `["src/chopdiff"]`. `uv lock`.
 - [ ] `make lint`/`make test` green against the published flexdoc; the chopdiff
   `wheel-smoke` now imports only `chopdiff` (with `flexdoc` pulled as a dependency).
-- [ ] `CHANGELOG.md`: chopdiff’s first release depending on external flexdoc — a
+- [ ] `CHANGELOG.md`: chopdiff’s first release depending on external flexdoc—a
   **breaking** release (the `chopdiff.docs|html|util.*` paths are gone).
   Note the migration (`pip install flexdoc`; `chopdiff.docs.* -> flexdoc.docs.*`).
   Merging/releasing is the maintainer’s call.
 
-## North star: a layered, extensible document model
+## North Star: A Layered, Extensible Document Model
 
 What makes flexdoc flexible is a shape: a **stable node table over a single
 source-grounded coordinate space**, with the document’s many structures expressed as
@@ -466,9 +468,9 @@ The granularity the vision asks for falls out of three properties:
   `{id, kind, layer, parent, children, source_span, attrs}`. Layers coexist by span, so
   overlapping/cross-cutting structures are all representable without forcing one
   hierarchy.
-- **One query, any grain.** A single `collect()` primitive — by `kinds`/`where`, by
+- **One query, any grain.** A single `collect()` primitive—by `kinds`/`where`, by
   within-layer subtree, or by cross-layer offset-containment (`within`/`overlaps`),
-  restricted by `layer` — answers everything; values, counts, and relationships are
+  restricted by `layer`—answers everything; values, counts, and relationships are
   ordinary Python over the result.
 - **One reference type.** `SpanRef` (quote-canonical, offset-hinted) anchors annotations
   and edits to the text so they survive reparse.
@@ -480,15 +482,15 @@ keep this flexible without becoming heavy: **keep the core light, make enrichmen
 pluggable** (heavier analysis attaches through an analyzer interface as optional
 extras), and **extend by adding layers and kinds, never by reshaping the core**.
 
-## Stage 3 — flexdoc as a first-class, extensible document-layer API (later)
+## Stage 3: FlexDoc as a First-Class, Extensible Document-Layer API (Later)
 
 This is where flexdoc takes up its role; thorough and careful, detailed in flexdoc’s own
 forthcoming specs rather than frozen here.
 
 - [ ] Settle and document flexdoc’s public surface (including the deferred root-level
   re-exports) as one coherent document-layer API.
-- [ ] Make the driving use cases first-class and tested — deep textual analysis,
-  source-grounded annotation/cleanup, reparse-stable editing — with worked examples.
+- [ ] Make the driving use cases first-class and tested—deep textual analysis,
+  source-grounded annotation/cleanup, reparse-stable editing—with worked examples.
 - [ ] Land the remaining unified-document-model phases (annotation, cross-layer edits,
   layout) in flexdoc; the model core already ships (flexdoc-spec §14).
 - [ ] Add the optional **analyzer interface** for the grammar/language axis (opt-in
@@ -497,7 +499,7 @@ forthcoming specs rather than frozen here.
 - [ ] Document the extension contract (add a `Layer`/`NodeKind`/`attrs`/analyzer);
   revisit `token_diffs` placement.
 
-## Stage 4 — fold in the synthetic layer (later; mapped 2026-06-12)
+## Stage 4: Fold In the Synthetic Layer (Later; Mapped 2026-06-12)
 
 Re-express marker-tag regions as flexdoc’s synthetic layer, per the spec’s
 first-principles definition (`docs/flexdoc-spec.md` §3): a configured whitelist of
@@ -508,7 +510,7 @@ Tracked as bead `flexdoc-t5rh`. Today’s implementation lives in chopdiff
 not keyed into the node table.
 
 The concrete step map (moderate difficulty; no node-table/`collect()`/schema changes
-expected — the `synthetic` `Layer` value is already reserved):
+expected—the `synthetic` `Layer` value is already reserved):
 
 - [ ] Move `chopdiff.divs` into flexdoc (module move + import rewrite), with
   `tests/divs/` following; chopdiff then imports it from flexdoc (a breaking chopdiff
@@ -527,11 +529,11 @@ expected — the `synthetic` `Layer` value is already reserved):
   layer’s docgraph/report output is pinned like the other layers.
 
 Effort estimate: the move is mechanical; the builder pass and overlap-policy fixtures
-are the real work — on the order of one focused stage, comparable to Stage 2.5’s
-mid-size items, assuming the lenient-drop policy (the guarantee-relaxation variant costs
-more because ordered-list projection of regions needs its own view decisions).
+are the real work—on the order of one focused stage, comparable to Stage 2.5’s mid-size
+items, assuming the lenient-drop policy (the guarantee-relaxation variant costs more
+because ordered-list projection of regions needs its own view decisions).
 
-## Stage 5 — standalone cleanup and polish (final phase)
+## Stage 5: Standalone Cleanup and Polish (Final Phase)
 
 The immediate post-extraction tidy: small, behavior-preserving improvements that make
 flexdoc clean *as its own package*, separate from Stage 3’s larger forward design.
@@ -543,16 +545,16 @@ Most can land before or alongside Stage 3.
   extraction; all were cosmetic, none functional): the `text_doc.py` markup-check
   comment, the `block_tree.py` block-boundary docstring, the `test_block_types.py`
   offset comment, and the `doc_structure.py` sample prose now say flexdoc.
-  The one remaining mention — `flexdoc/__init__.py` noting that chopdiff builds on
-  flexdoc — is deliberate, describing the package relationship.
+  The one remaining mention—`flexdoc/__init__.py` noting that chopdiff builds on
+  flexdoc—is deliberate, describing the package relationship.
 - [x] **Decide flexdoc’s top-level public surface (superseded 2026-06-12).** Initially
   resolved as “keep submodule-only,” matching the docstring’s design-once intent.
   Amended by maintainer decision with the `FlexDoc` rename: the root now exports the
   single entry point (`from flexdoc import FlexDoc`; see the Stage 2.5 addendum), and
   the *full* root surface is defined deliberately via beads `flexdoc-l0lc` (definition,
   gating) and `flexdoc-bift` (implementation).
-- [x] **Resolve the FlexDoc naming collision / trim the design-history docs** — moved
-  into Stage 2.5’s docs-and-polish sweep, since both must land before 0.1.0 publishes.
+- [x] **Resolve the FlexDoc naming collision / trim the design-history docs**—moved into
+  Stage 2.5’s docs-and-polish sweep, since both must land before 0.1.0 publishes.
 - [ ] **Audit docstrings/`README` examples** for correctness against the standalone API
   (the import-path portion lands with Stage 2.5’s export pass) and add a couple of
   runnable examples specific to flexdoc’s use cases.
@@ -577,10 +579,9 @@ Most can land before or alongside Stage 3.
 - **Stage 1** shipped nothing (unreleased refactor inside chopdiff); it is the
   correctness gate for everything after.
 - **Stage 2** publishes flexdoc on its own version line (starting at `0.1.0`), then
-  makes chopdiff’s first release depending on the external flexdoc — **breaking**,
-  because the document-model import paths moved (`chopdiff.docs.*` → `flexdoc.*`);
-  flagged in chopdiff’s `CHANGELOG.md` with a migration note under the pre-1.0
-  minor-bump policy.
+  makes chopdiff’s first release depending on the external flexdoc—**breaking**, because
+  the document-model import paths moved (`chopdiff.docs.*` → `flexdoc.*`); flagged in
+  chopdiff’s `CHANGELOG.md` with a migration note under the pre-1.0 minor-bump policy.
 - Each repo keeps its own supply-chain `exclude-newer` cool-off, kept in sync.
 
 ## Resolved Decisions
@@ -613,7 +614,7 @@ Most can land before or alongside Stage 3.
   which further symbols earn root placement is the open definition task (bead
   `flexdoc-l0lc`, gating `flexdoc-bift`), feeding Stage 3’s full surface design.
 - **Depth and backends of the grammar/language axis**, **which “other structures” to
-  prioritize**, and **the extension-interface shape** — flexdoc Stage-3 decisions,
+  prioritize**, and **the extension-interface shape**—flexdoc Stage-3 decisions,
   constrained by the light-core and supply-chain principles.
 
 ## References

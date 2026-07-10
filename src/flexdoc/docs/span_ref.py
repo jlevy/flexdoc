@@ -2,10 +2,14 @@
 `SpanRef`: a durable, source-canonical span reference type.
 
 The quoted text (`exact` plus optional `prefix`/`suffix` context) is the
-CANONICAL durable anchor; the offsets (`start`/`end`) are a recomputable hint.
-Resolution uses an exact offset fast path (check `source_text[start:end]`),
-falling back to a quote search with prefix/suffix disambiguation. A `SpanRef`
-survives reparsing and re-anchors after edits that shift offsets.
+canonical durable anchor; the offsets (`start`/`end`) are a recomputable hint.
+Resolution accepts an offset fast path only when `exact` and any captured context
+match, then falls back to quote search with prefix/suffix disambiguation.
+
+Context-free refs are a deliberate boundary: an exact-matching offset is accepted
+because no context can corroborate or reject it. Callers persisting a ref across edits
+should use `from_span()`/`from_node()` so context is captured, or drop the offsets with
+`to_persisted()`.
 """
 
 from __future__ import annotations
@@ -86,10 +90,12 @@ class SpanRef:
 
     def to_text_fragment(self) -> str:
         """
-        Produce a Chrome-style `#:~:text=` URL text-fragment directive.
-        Format: `#:~:text=[prefix-,]exact[,-suffix]`, with each component
-        percent-encoded. This is a lossy projection (prose, word-boundary,
-        case-insensitive).
+        Produce a `#:~:text=` URL text-fragment directive. Format:
+        `#:~:text=[prefix-,]exact[,-suffix]`, with each component percent-encoded.
+
+        Browsers match rendered page text, not Markdown source. This direct projection
+        therefore works for visible prose; callers targeting rendered Markdown must
+        supply a ref whose quote and context already use the rendered text.
         """
         parts: list[str] = []
         if self.prefix:
@@ -115,8 +121,12 @@ def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
     Otherwise, search the full text for `exact`, disambiguating with
     `prefix`/`suffix`. When the quote occurs more than once and the context
     does not single out one occurrence (no context, or a tied best score), the
-    result is None rather than a guess — resolution failure is a visible value,
+    result is None rather than a guess; resolution failure is a visible value,
     never a silent wrong anchor (spec section 11).
+
+    With neither `prefix` nor `suffix`, an exact-matching offset is trusted. Such a ref
+    cannot detect that an edit moved its intended occurrence onto another duplicate;
+    durable refs should capture context or omit the position hint.
     """
     # A zero-width quote anchors nothing; reject it on both paths.
     if not span_ref.exact:
@@ -204,7 +214,7 @@ def _best_match(
     Among multiple occurrences of `exact`, pick the one best matching the
     prefix/suffix context. Returns the start offset of the unique best match,
     or None when no occurrence scores strictly better than the rest (no
-    context to score with, or a tie) — the caller treats that as ambiguous.
+    context to score with, or a tie); the caller treats that as ambiguous.
     """
     best_idx: int | None = None
     best_score = -1
