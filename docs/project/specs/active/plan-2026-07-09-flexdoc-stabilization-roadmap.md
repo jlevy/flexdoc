@@ -4,7 +4,7 @@
 
 **Author:** Joshua Levy and Codex
 
-**Status:** Draft; maintainer decisions remain open.
+**Status:** Draft; execution beads are mapped and maintainer decisions remain open.
 
 ## Overview
 
@@ -76,13 +76,17 @@ refresh before promotion.
 
 ## Tracking
 
-- `flexdoc-r634`: Phase 1, 0.3.0 API stabilization and release gates
-- `flexdoc-qire`: context-free `SpanRef` offset-hint ambiguity (child of `flexdoc-r634`)
-- `flexdoc-6582`: Phase 2, source-grounded AI workflow primitives
-- `flexdoc-p6xv`: rendered-text URL fragment projection (child of `flexdoc-6582`)
-- `flexdoc-ww1i`: Phase 3, extensions, downstream adoption, and promotion
-- `flexdoc-t5rh`: synthetic-layer implementation, linked to Phase 3
-- `flexdoc-5bux`: PR #9 follow-up review and branch refinements
+- `flexdoc-aqjg`: top-level execution epic for this specification
+- `flexdoc-r634`: Phase 1, stabilize and release FlexDoc 0.3.0
+- `flexdoc-6582`: Phase 2, add source-grounded workflow APIs and release 0.4.0
+- `flexdoc-ww1i`: Phase 3, complete extensions, downstream adoption, and promotion
+- `flexdoc-z09f`: optional fuzzy anchoring after the normalized matching corpus; not a
+  0.4.0 release gate
+- `flexdoc-le2a`: preparation of the execution graph in this document
+
+The PR #9 follow-up review (`flexdoc-5bux`) is complete.
+The broad AI-workflow placeholder (`flexdoc-86iy`) is superseded by the bounded Phase 2
+beads below.
 
 ## Design
 
@@ -120,76 +124,94 @@ observable behavior and belong in the documented pre-1.0 minor release.
 
 ## Implementation Plan
 
+The graph separates work that can proceed in parallel from gates that require a released
+contract. Every implementation bead includes focused tests, documentation, and an
+explicit completion condition; testing is part of each change rather than a later
+cleanup pass.
+
+```mermaid
+flowchart TD
+    PR9["flexdoc-lv8m: Merge PR #9"] --> Anchor["flexdoc-qire: Settle anchor hints"]
+    PR9 --> API["flexdoc-lcuh: API cleanup children"]
+    Anchor --> Resolver["flexdoc-p60e: Public resolution path"]
+    Resolver --> R03["flexdoc-63p5: Release 0.3.0"]
+    API --> R03
+    Supply["flexdoc-pcac: Supply-chain gate"] --> R03
+    Platform["flexdoc-ek6u: Platform contract"] --> R03
+    Runbook["flexdoc-44b1: Release workflow"] --> R03
+    R03 --> AI["Phase 2 API beads"]
+    AI --> Examples["flexdoc-vav2: Workflow validation"]
+    Examples --> R04["flexdoc-f4mz: Release 0.4.0"]
+    R03 --> Synthetic["flexdoc-t5rh: Synthetic layer"]
+    Synthetic --> Chopdiff["flexdoc-19h2: Chopdiff migration"]
+    Chopdiff --> Pilot["flexdoc-b8a4: Downstream pilot"]
+    R04 --> Pilot
+    Pilot --> Publish["flexdoc-v4eq: Publish validated claims"]
+    Publish --> Archive["flexdoc-9z3m: Archive and close"]
+```
+
 ### Phase 1: Stabilize the 0.3.0 Contract and Release Gates
 
-- [ ] Ratify normalize-at-parse for CRLF/lone-CR input and frontmatter blanking as the
-  supported coordinate model; keep the current regression corpus
-- [ ] Resolve context-free offset hints in `SpanRef`:
-  - Option A, recommended: when `exact` is duplicated and no context or source identity
-    corroborates the hint, return `None`
-  - Option B: add source identity/revision data and trust the hint only when it matches
-  - Do not keep the current blanket “stale hints are harmless” claim without one of
-    these constraints
-- [ ] Settle the pre-1.0 API batch:
-  - Convert `Paragraph.heading_level()` and `heading_title()` to properties
-  - Rename `TRUE_LINK_FORMS` to `NAVIGABLE_LINK_FORMS`
-  - Put resolution beside `SpanRef` through methods or deliberate root exports
-  - Decide recursive inline semantics; use `inline: bool | None` or an equivalent mode
-    if explicit exclusion must differ from the default
-  - Freeze `Section` and `Block` graphs or return defensive deep copies
-  - Tier `flexdoc.docs` exports in coordination with the Chopdiff rewire
-  - Decide trailing-whitespace tolerance for frontmatter delimiters
-  - Extract paragraph-size aggregation so `Section.size()` avoids a temporary `FlexDoc`
-- [ ] Refresh the supply-chain cutoff and lockfile under maintainer review, remove
-  expired package overrides, and remove audit ignores that the refreshed environment no
-  longer needs; otherwise record explicit maintainer ratification for each temporary
-  ignore
-- [ ] Add one macOS CI job or remove the OS-independent classifier
-- [ ] Update the release runbook to fetch tags before local dynamic-version builds
-- [x] Close stale root-API beads whose implementation and contract tests already landed
-  (`flexdoc-l0lc`, `flexdoc-bift`; closed 2026-07-09)
-- [ ] Run lint, the full suite, golden regeneration, wheel smoke, and the unignored
-  audit; publish 0.3.0 only when the chosen security gate passes
+The merge baseline and three release-mechanics tasks can proceed in parallel.
+The breaking API changes wait for PR #9 so their branches start from the normalized
+source contract.
+
+| Bead | Deliverable | Blocked By |
+| --- | --- | --- |
+| `flexdoc-lv8m` | Merge PR #9 and ratify normalized source coordinates | None |
+| `flexdoc-qire` | Resolve context-free `SpanRef` hint ambiguity | `flexdoc-lv8m` |
+| `flexdoc-lcuh` | Group the eight pre-1.0 API cleanup beads | `flexdoc-lv8m` establishes the baseline |
+| `flexdoc-ltzx` | Make paragraph heading metadata properties | `flexdoc-lv8m` |
+| `flexdoc-ikm6` | Define recursive inline collection semantics | `flexdoc-lv8m` |
+| `flexdoc-buw9` | Make cached structural views mutation-safe | `flexdoc-lv8m` |
+| `flexdoc-0cbm` | Rename the navigable-link form constant | `flexdoc-lv8m` |
+| `flexdoc-p60e` | Put resolution beside the public `SpanRef` API | `flexdoc-qire` |
+| `flexdoc-s85t` | Tier the `flexdoc.docs` export surface | `flexdoc-lv8m` |
+| `flexdoc-aaow` | Decide frontmatter delimiter whitespace tolerance | `flexdoc-lv8m` |
+| `flexdoc-uogy` | Remove the temporary `FlexDoc` from `Section.size()` | `flexdoc-lv8m` |
+| `flexdoc-pcac` | Refresh or explicitly ratify the supply-chain gate | None; maintainer-gated |
+| `flexdoc-ek6u` | Align CI coverage with the platform classifier | None |
+| `flexdoc-44b1` | Harden the tag-aware local release workflow | None |
+| `flexdoc-63p5` | Validate and publish 0.3.0 | Every preceding Phase 1 deliverable |
+
+`TextUnit` is not in the API batch because its `StrEnum` conversion landed on PR #9. The
+stale root-API beads `flexdoc-l0lc` and `flexdoc-bift` are also closed because their
+implementation and contract tests already landed.
 
 ### Phase 2: Add Source-Grounded AI Workflow Primitives
 
-- [ ] Define annotation ownership before the model:
-  - Decide whether annotations live on `FlexDoc`, are passed to `graph()`, or remain an
-    external collection serialized alongside `DocGraph`
-  - Define ids, kinds, body format, JSON-safe attributes, provenance, and validation
-  - Version the schema and specify v0.1/v0.2 reader behavior
-- [ ] Add `SpanRef.from_quote()` and `resolve_batch()` with the same ambiguity contract
-  as single resolution; measure before adding a shared occurrence index
-- [ ] Define rendered-text fragment export: either accept an explicit rendered-text ref
-  or add a source-to-rendered-text projection, with tests for Markdown links, emphasis,
-  code, and plain prose
-- [ ] Add `Section.text`, `Section.own_text`, `FlexDoc.preamble_text`,
-  `section_at_offset()`, and a JSON-serializable `section_outline()`
-- [ ] Define `SuggestedEdit` and batch application semantics:
-  - Resolve every anchor against the same source revision
-  - Reject or explicitly order overlapping edits
-  - Apply accepted edits from highest to lowest offset
-  - Return per-edit outcomes and avoid partial mutation on batch failure
-- [ ] Keep approximate re-anchoring separate from `resolve()` and return the strategy
-  and score; begin with normalization-only matching and add fuzzy matching only with
-  corpus evidence
-- [ ] Add runnable annotation, suggestion, grounded-citation, and budget-aware chunking
-  examples to `docs/usage.md`
-- [ ] Extend unit, invariant, and golden coverage for ambiguity, batch conflicts, schema
-  compatibility, and round trips
+Phase 2 implementation begins after 0.3.0 publishes.
+The annotation, anchoring, fragment, structure, and normalized-matching beads can then
+proceed in parallel; suggestion batches require both the annotation schema and batch
+resolution contract.
+
+| Bead | Deliverable | Blocked By |
+| --- | --- | --- |
+| `flexdoc-jl5b` | Define annotation ownership and `DocGraph/v0.2` | `flexdoc-63p5` |
+| `flexdoc-rbvu` | Add quote construction and batch `SpanRef` resolution | `flexdoc-63p5` |
+| `flexdoc-p6xv` | Define rendered-text URL fragment projection | `flexdoc-63p5` |
+| `flexdoc-hc17` | Add structural text accessors and section outlines | `flexdoc-63p5` |
+| `flexdoc-i229` | Add opt-in normalized re-anchoring with corpus evidence | `flexdoc-63p5` |
+| `flexdoc-zdu2` | Define `SuggestedEdit` and atomic batch application | `flexdoc-jl5b`, `flexdoc-rbvu` |
+| `flexdoc-vav2` | Validate AI workflows with runnable examples and compatibility tests | All preceding Phase 2 API beads |
+| `flexdoc-f4mz` | Validate and publish 0.4.0 | `flexdoc-vav2` |
+
+`flexdoc-z09f` evaluates fuzzy or edit-distance recovery only after `flexdoc-i229` has a
+representative corpus.
+It remains opt-in backlog work and does not block 0.4.0.
 
 ### Phase 3: Complete Extensions, Downstream Adoption, and Promotion
 
-- [ ] Implement the synthetic marker-tag layer with a documented partial-overlap policy
-  and node-table nesting invariants
-- [ ] Rewire Chopdiff to the external FlexDoc release and the tiered export surface in
-  one migration
-- [ ] Exercise the annotation and chunking APIs in at least one downstream workflow
-  before presenting them as established capabilities
-- [ ] Update and publish the introduction post with runnable examples that use released
-  APIs
-- [ ] Archive implemented and superseded plans; keep the spec, this roadmap, TODO, and
-  beads mutually consistent
+The synthetic layer can begin after 0.3.0. Promotion waits for both the released 0.4.0
+workflow APIs and the Chopdiff migration.
+
+| Bead | Deliverable | Blocked By |
+| --- | --- | --- |
+| `flexdoc-t5rh` | Implement the synthetic marker-tag layer | `flexdoc-63p5` |
+| `flexdoc-19h2` | Migrate Chopdiff once to the released surface | `flexdoc-t5rh` |
+| `flexdoc-b8a4` | Exercise annotation and chunking APIs downstream | `flexdoc-19h2`, `flexdoc-f4mz` |
+| `flexdoc-v4eq` | Publish the validated introduction and public claims | `flexdoc-b8a4` |
+| `flexdoc-9z3m` | Archive superseded plans and close the roadmap | `flexdoc-v4eq` |
 
 ## Testing Strategy
 

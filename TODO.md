@@ -14,9 +14,9 @@ has the full detail; this file is the summary.
 - **Stabilization and promotion roadmap:** the 2026-07 review’s open decisions and
   future mechanisms are consolidated in
   [plan-2026-07-09-flexdoc-stabilization-roadmap.md](docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md).
-  Beads: `flexdoc-r634` (0.3.0 API and release gates), `flexdoc-qire` (context-free
-  offset hints), `flexdoc-6582` (AI workflow primitives), and `flexdoc-ww1i`
-  (extensions, downstream adoption, and promotion).
+  Epic: `flexdoc-aqjg`, with `flexdoc-r634` (0.3.0 contract and release), `flexdoc-6582`
+  (source-grounded workflow APIs and 0.4.0), and `flexdoc-ww1i` (extensions, downstream
+  adoption, and promotion).
 
 ## Downstream Work (in Chopdiff, Not This Repo)
 
