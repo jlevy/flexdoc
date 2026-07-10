@@ -14,13 +14,12 @@ own, so there is no regex scanner and no per-line heuristic.
 
 Containers (lists, list items, blockquotes) fully populate their block children
 recursively, so a table inside a blockquote or a paragraph inside a list item is
-reachable in the tree. The top-level `blocks()`/`parse_blocks` ordering and the `Block`
-dataclass shape are unchanged.
+reachable in the tree. The top-level `blocks()`/`parse_blocks` ordering is unchanged.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass, field
 
 from flowmark import flowmark_markdown
@@ -42,7 +41,7 @@ from flexdoc.docs.block_info import (
 from flexdoc.docs.block_types import BlockType, block_type_for
 
 
-@dataclass
+@dataclass(frozen=True)
 class Block:
     """
     A structural block with an exact `[start, end)` span into the source.
@@ -64,11 +63,14 @@ class Block:
     kind (`code` / `table` / `list`/`ordered_list` / `heading`). They are derived facts
     about the same source span, so they do not participate in equality or `repr` (a block's
     identity is its type/span/children).
+
+    Blocks are frozen and `children` is a tuple, so the cached graph can be shared by
+    every structural projection without exposing mutable cache state.
     """
 
     type: BlockType
     span: tuple[int, int]
-    children: list[Block] = field(default_factory=list)
+    children: tuple[Block, ...] = ()
     tight: bool | None = None
     code_info: CodeInfo | None = field(default=None, compare=False, repr=False)
     table_info: TableInfo | None = field(default=None, compare=False, repr=False)
@@ -91,7 +93,7 @@ def parse_blocks(text: str, parsed: Element | None = None) -> list[Block]:
     return _blocks_from(text, parsed if parsed is not None else flowmark_markdown().parse(text))
 
 
-def walk_blocks(blocks: list[Block], _depth: int = 0) -> Iterator[tuple[Block, int]]:
+def walk_blocks(blocks: Sequence[Block], _depth: int = 0) -> Iterator[tuple[Block, int]]:
     """
     Depth-first traversal of a block tree, yielding `(block, depth)` pairs.
     Top-level blocks have depth 0; their children have depth 1, and so on.
@@ -131,12 +133,12 @@ def _blocks_from(text: str, parent: Element) -> list[Block]:
         span = _trim(text, *block_span(element), keep_leading=isinstance(element, CodeBlock))
         tight: bool | None = None
         if isinstance(element, List):
-            sub = _blocks_from(text, element)
+            sub = tuple(_blocks_from(text, element))
             tight = element.tight
         elif isinstance(element, (ListItem, MarkoQuote)):
-            sub = _blocks_from(text, element)
+            sub = tuple(_blocks_from(text, element))
         else:
-            sub = []
+            sub = ()
         blocks.append(
             Block(
                 block_type,

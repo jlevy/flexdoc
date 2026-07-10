@@ -46,8 +46,8 @@ class TableInfo:
     """Columns (marko `Table.num_of_cols`)."""
     cells: int
     """`rows * cols`."""
-    alignments: list[Alignment]
-    """Per-column alignment, length `cols`."""
+    alignments: tuple[Alignment, ...]
+    """Immutable per-column alignments, length `cols`."""
 
 
 @dataclass(frozen=True)
@@ -109,7 +109,7 @@ def table_info_for(element: Element) -> TableInfo | None:
     header_cells = (
         [c for c in table_rows[0].children if isinstance(c, TableCell)] if table_rows else []
     )
-    alignments: list[Alignment] = [_alignment(c) for c in header_cells]
+    alignments: tuple[Alignment, ...] = tuple(_alignment(c) for c in header_cells)
     rows = len(table_rows)
     return TableInfo(rows=rows, cols=cols, cells=rows * cols, alignments=alignments)
 
@@ -178,11 +178,11 @@ def test_code_info_extractor():
 def test_table_info_extractor():
     table = _parse_first("| a | b | c |\n|:--|:-:|--:|\n| 1 | 2 | 3 |\n| 4 | 5 | 6 |\n")
     info = table_info_for(table)
-    assert info == TableInfo(rows=3, cols=3, cells=9, alignments=["left", "center", "right"])
+    assert info == TableInfo(rows=3, cols=3, cells=9, alignments=("left", "center", "right"))
     # Columns with no alignment marker are "default", never empty/None.
     plain = _parse_first("| a | b |\n| - | - |\n| 1 | 2 |\n")
     assert table_info_for(plain) == TableInfo(
-        rows=2, cols=2, cells=4, alignments=["default", "default"]
+        rows=2, cols=2, cells=4, alignments=("default", "default")
     )
     assert table_info_for(_parse_first("paragraph\n")) is None
 

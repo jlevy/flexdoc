@@ -6,6 +6,7 @@ and its flow into markdown node `attrs`. Extractor unit tests live inline in
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from textwrap import dedent
 
 from flexdoc.docs import FlexDoc
@@ -33,7 +34,7 @@ DOC = dedent("""
     """).strip()
 
 
-def _find(blocks: list[Block], btype: BlockType) -> Block | None:
+def _find(blocks: Sequence[Block], btype: BlockType) -> Block | None:
     for b in blocks:
         if b.type == btype:
             return b
@@ -54,7 +55,7 @@ def test_block_typed_metadata():
     table = _find(blocks, BlockType.table)
     assert table is not None
     assert table.table_info == TableInfo(
-        rows=2, cols=3, cells=6, alignments=["left", "center", "right"]
+        rows=2, cols=3, cells=6, alignments=("left", "center", "right")
     )
 
     olist = _find(blocks, BlockType.ordered_list)

@@ -18,6 +18,7 @@ projections sharing the same source/offset substrate.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
 from flowmark.atomic_spans import iter_atomic_spans
@@ -62,7 +63,7 @@ def _node_kind_for_block(block: Block) -> NodeKind:
 
 
 def _build_markdown_nodes(
-    blocks: list[Block],
+    blocks: Sequence[Block],
     parent_id: str | None,
     counter: list[int],
     nodes: dict[str, Node],

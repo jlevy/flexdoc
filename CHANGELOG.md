@@ -60,6 +60,13 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
   inline-kind filter, `inline=False` excludes inline nodes, and `inline=True` includes
   them for any query. Callers that need the previous block-only recursive result must
   pass `inline=False`.
+- **Cached structural views are mutation-safe.** `Block` is now frozen, `Block.children`
+  and `TableInfo.alignments` are tuples, and `sections()` returns recursively isolated
+  section/paragraph copies.
+  Code constructing blocks directly must pass child tuples; code comparing or building
+  table metadata must use alignment tuples.
+  Mutation of a returned section remains local to that view and does not persist to a
+  later call.
 
 Remaining pre-1.0 design decisions and future mechanisms are collected in
 `docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md`.

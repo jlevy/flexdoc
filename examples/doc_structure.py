@@ -5,6 +5,7 @@ size stats, the flat table of contents, and exact source spans / offset lookups.
 Run from the repository checkout with: `uv run python examples/doc_structure.py`
 """
 
+from collections.abc import Sequence
 from textwrap import dedent
 
 from flexdoc.docs import Block, BlockType, FlexDoc, TextUnit
@@ -84,7 +85,7 @@ def main() -> None:
     print("\n--- Structural block tree (whole-document view) ---")
     block_doc = FlexDoc.from_text(_BLOCK_SAMPLE)
 
-    def show_blocks(blocks: list[Block], depth: int = 0) -> None:
+    def show_blocks(blocks: Sequence[Block], depth: int = 0) -> None:
         for block in blocks:
             preview = _BLOCK_SAMPLE[block.span[0] : block.span[1]].splitlines()[0]
             print(f"  {'  ' * depth}{block.type.value}: {preview!r}")

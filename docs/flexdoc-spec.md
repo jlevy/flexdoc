@@ -508,7 +508,8 @@ density caveat, on `Paragraph`. The same facts are flattened into the markdown n
 `attrs`, so they flow into `collect()`/`DocGraph`. Extraction is parser-authoritative
 (marko element attributes, never a regex over source); a table column with no alignment
 marker is `"default"`, not `None`, so `alignments` is always explicit strings of length
-`cols`.
+`cols`. `TableInfo.alignments` is a tuple so this metadata remains immutable when its
+owning block is cached.
 
 ## 6. Block Views: Structural Tree and Sequential Base-Block List
 
@@ -531,10 +532,10 @@ list is a *partition* with a cover invariant).
 
 The recursive view (lazy, cached on the immutable `source_text`):
 
-- `Block(type, span, children, tight)`: `span` is trimmed so `source[start:end]` is the
-  exact text; `children` holds nested blocks.
-  A `list`/`ordered_list` block’s children are its `list_item`s; **containers fully
-  populate their block children** (a blockquote’s or list item’s nested blocks are
+- `Block(type, span, children, tight)`: a frozen record whose `span` is trimmed so
+  `source[start:end]` is the exact text; `children` is an immutable tuple of nested
+  blocks. A `list`/`ordered_list` block’s children are its `list_item`s; **containers
+  fully populate their block children** (a blockquote’s or list item’s nested blocks are
   present). `tight` carries CommonMark list density on list blocks (`None` elsewhere).
 - Resolves what blank-line splitting cannot: a fenced code block stays whole even with
   internal blank lines; a list decomposes into items with nested sublists; a table
@@ -545,6 +546,8 @@ carries an authoritative `element.span = (start, end)` read from marko’s own s
 positions (`flowmark.markdown_ast.block_span`), so flexdoc runs no block-detection regex
 of its own and makes no block-boundary decisions.
 The structure is cross-checked against marko in tests.
+`FlexDoc.blocks()` returns a fresh root list over the shared, recursively immutable
+graph, so callers can reorder the result but cannot mutate cached block state.
 
 ### Sequential block list: `FlexDoc.base_blocks() -> list[BaseBlock]`
 
@@ -669,8 +672,9 @@ re-parse, no stored state.
 
 ### Document-level accessors
 
-- `FlexDoc.sections()`—the list of root sections (computed once and cached; the returned
-  list is a fresh copy, the `Section` objects shared and read-only by contract).
+- `FlexDoc.sections()`—the list of root sections (computed once and cached internally;
+  each call recursively copies the section tree and its editable paragraphs, so caller
+  mutation cannot affect the cache or a later result).
 - `FlexDoc.toc()`—the flat table of contents: `(level, title, span)` per heading, in
   document order, by walking the section tree.
 - `FlexDoc.section_size_tree(units=...)`—a rendered, indented size rollup per section,

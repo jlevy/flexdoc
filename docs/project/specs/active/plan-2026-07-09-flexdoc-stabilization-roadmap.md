@@ -155,7 +155,7 @@ source contract.
 | `flexdoc-lcuh` | Group the eight pre-1.0 API cleanup beads | `flexdoc-lv8m` establishes the baseline |
 | `flexdoc-ltzx` | Make paragraph heading metadata properties | `flexdoc-lv8m` |
 | `flexdoc-ikm6` | Make recursive collection include inline descendants by default; completed 2026-07-09 | `flexdoc-lv8m` |
-| `flexdoc-buw9` | Make cached structural views mutation-safe | `flexdoc-lv8m` |
+| `flexdoc-buw9` | Make cached structural views mutation-safe; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-0cbm` | Rename the navigable-link form constant | `flexdoc-lv8m` |
 | `flexdoc-p60e` | Put resolution beside the public `SpanRef` API | `flexdoc-qire` |
 | `flexdoc-s85t` | Tier the `flexdoc.docs` export surface | `flexdoc-lv8m` |
@@ -169,6 +169,12 @@ source contract.
 `TextUnit` is not in the API batch because its `StrEnum` conversion landed on PR #9. The
 stale root-API beads `flexdoc-l0lc` and `flexdoc-bift` are also closed because their
 implementation and contract tests already landed.
+
+The structural cache decision is hybrid: `Block` graphs and their metadata are deeply
+immutable and shared, while `sections()` recursively copies its tree because sections
+contain deliberately editable `Paragraph` objects.
+Both choices prevent public mutation from corrupting cached reads without freezing the
+editing model.
 
 ### Phase 2: Add Source-Grounded AI Workflow Primitives
 
@@ -229,8 +235,6 @@ workflow APIs and the Chopdiff migration.
 
 ## Open Questions
 
-- Should cached structural objects be immutable, or should public methods return deep
-  copies?
 - Who owns annotations, and how are they supplied to `DocGraph` serialization?
 - Does a populated annotation layer require `DocGraph/v0.2` on every graph or only on
   graphs that include annotations?

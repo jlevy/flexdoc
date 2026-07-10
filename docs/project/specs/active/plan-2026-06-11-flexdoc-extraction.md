@@ -312,7 +312,9 @@ Non-breaking refinements (done):
   `flexdoc.docs.text_doc` still resolves `TextDoc` (canonical) and the names it itself
   uses.
 - [x] **Memoize `sections()`** (review F5) via `_memoized_derivation`
-  (`_cached_sections`), returning a fresh shallow copy per call like `blocks()`.
+  (`_cached_sections`). The 0.3 stabilization later hardened this boundary: `sections()`
+  now recursively copies its editable paragraph graph, while `blocks()` shares a deeply
+  immutable cached graph behind a fresh root list.
 - [x] **Tighten the cross-language contract** (review F6): `AttrValue` JSON-safe alias
   on `Node.attrs`; `NodeModel.attrs` validated as `pydantic.JsonValue` at `DocGraph`
   emission (committed JSON Schema regenerated); a determinism test pins contiguous

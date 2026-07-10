@@ -10,6 +10,7 @@ for the construction rules.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import cached_property
 from typing import TYPE_CHECKING
@@ -44,6 +45,10 @@ class Section:
 
     `heading_block` (with parser-authoritative `HeadingInfo`) is the structural source of
     truth for the heading; `heading` is its projection into the editing view.
+
+    `FlexDoc.sections()` returns an isolated copy of this graph because `content` and
+    `heading` are editable `Paragraph`s. Mutating one returned section therefore changes
+    only that returned view, never the document's cached section derivation.
     """
 
     heading_block: Block
@@ -59,6 +64,19 @@ class Section:
     # so excluded from equality/repr.
     _span: tuple[int, int] | None = field(default=None, compare=False, repr=False)
     _own_span: tuple[int, int] | None = field(default=None, compare=False, repr=False)
+
+    def _public_copy(self) -> Section:
+        """Copy the editable paragraph graph without duplicating the owning document."""
+        return Section(
+            heading_block=self.heading_block,
+            level=self.level,
+            content=deepcopy(self.content),
+            children=[child._public_copy() for child in self.children],
+            source_text=self.source_text,
+            _doc=self._doc,
+            _span=self._span,
+            _own_span=self._own_span,
+        )
 
     def _all_blocks(self) -> list[Block]:
         """The whole-document structural parse, shared via the owning doc's cache when

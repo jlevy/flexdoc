@@ -468,10 +468,10 @@ class FlexDoc:
         top-level blocks) do not start document sections.
 
         Computed once and cached (see the class contract on read-time caching). Returns
-        a fresh shallow copy of the cached root list each call; the `Section` objects
-        themselves are shared and must be treated as read-only.
+        a recursively isolated copy of the section and editable paragraph graph each
+        call, so caller mutation cannot alter the cached structural view.
         """
-        return list(self._section_list())
+        return [section._public_copy() for section in self._section_list()]
 
     @_memoized_derivation("_cached_sections")
     def _section_list(self) -> list[Section]:
@@ -656,9 +656,9 @@ class FlexDoc:
         on read-time caching), so `sections()`, `links()`, and the node table all reuse
         one parse. See `flexdoc.docs.block_tree`.
 
-        Returns a fresh shallow copy of the cached list each call, so reordering/filtering
-        the result cannot poison the shared cache; the `Block` objects themselves are
-        shared and must be treated as read-only.
+        Returns a fresh root list each call. The shared `Block` objects are frozen and
+        recursively contain immutable child tuples, so neither root-list edits nor nested
+        mutation can poison the cache.
         """
         return list(self._block_list())
 

@@ -185,7 +185,7 @@ That caveat is restated on the new `Paragraph` accessors.
 **New typed structs (`block_info.py`), frozen dataclasses:**
 
 ```python
-Alignment = Literal["left", "center", "right"] | None
+Alignment = Literal["left", "center", "right", "default"]
 
 @dataclass(frozen=True)
 class CodeInfo:
@@ -197,7 +197,7 @@ class TableInfo:
     rows: int              # total rows, including the header row
     cols: int              # columns (marko Table.num_of_cols)
     cells: int             # rows * cols
-    alignments: list[Alignment]   # per column, length == cols
+    alignments: tuple[Alignment, ...]   # immutable; length == cols
 
 @dataclass(frozen=True)
 class ListInfo:

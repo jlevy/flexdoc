@@ -157,7 +157,7 @@ def _emit_list_item(
     while head_end > item.span[0] and text[head_end - 1].isspace():
         head_end -= 1
     if head_end > item.span[0]:
-        head = Block(type=item.type, span=(item.span[0], head_end), children=[], tight=item.tight)
+        head = Block(type=item.type, span=(item.span[0], head_end), tight=item.tight)
         out.append(BaseBlock(block=head, depth=depth))
 
     # Then, in source order: recurse into each sublist; emit each continuation block

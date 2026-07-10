@@ -34,6 +34,25 @@ def test_sections_tree_structure():
     assert secs[1].children == []
 
 
+def test_sections_returns_recursively_isolated_editing_views():
+    doc = FlexDoc.from_text(_DOC)
+    first = doc.sections()
+    second = doc.sections()
+
+    assert first[0] is not second[0]
+    assert first[0].children[0] is not second[0].children[0]
+    assert first[0].content[0] is not second[0].content[0]
+
+    first[0].children.clear()
+    first[0].content[0].sentences[0].text = "poisoned"
+    first[0].heading.sentences[0].text = "poisoned"
+
+    fresh = doc.sections()[0]
+    assert [child.title for child in fresh.children] == ["Sub A", "Sub B"]
+    assert fresh.content[0].sentences[0].text != "poisoned"
+    assert fresh.heading.sentences[0].text != "poisoned"
+
+
 def test_section_span_covers_heading_through_subtree():
     doc = FlexDoc.from_text(_DOC)
     top = doc.sections()[0]
