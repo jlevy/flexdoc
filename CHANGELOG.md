@@ -71,6 +71,9 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
   `ref.resolve_and_update(source_text)` on the root-exported type.
   The generic `resolve` and `resolve_and_update` names are no longer promoted from
   `flexdoc.docs`; update package-level imports and calls to use the methods.
+- **Paragraph heading metadata is property-based.** `Paragraph.heading_level` and
+  `Paragraph.heading_title` now match `Paragraph.block_type` and `Block.heading_level`.
+  Remove `()` from calls to the two former methods.
 
 Remaining pre-1.0 design decisions and future mechanisms are collected in
 `docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md`.

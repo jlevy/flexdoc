@@ -47,6 +47,10 @@ def test_root_working_set_covers_the_common_first_lines():
 
     doc = FlexDoc.from_text("# T\n\nA sentence with a [link](https://e.com). Another.\n")
     assert doc.size(TextUnit.words) > 0
+    assert doc.paragraphs[0].heading_level == 1
+    assert doc.paragraphs[0].heading_title == "T"
+    assert doc.paragraphs[1].heading_level is None
+    assert doc.paragraphs[1].heading_title is None
     links = doc.collect(kinds={NodeKind.link}, recursive=True)
     assert len(links) == 1
     # Annotating an exact sentence: build a durable ref from its span and resolve it.

@@ -353,10 +353,12 @@ class Paragraph:
         """This paragraph's Markdown block kind (see `_block_info`)."""
         return self._block_info.block_type
 
+    @property
     def heading_level(self) -> int | None:
         """The Markdown heading level (1-6) if this block is a heading, else None."""
         return self._block_info.heading_level
 
+    @property
     def heading_title(self) -> str | None:
         """The heading text without `#` markers if this block is a heading, else None."""
         return self._block_info.heading_title

@@ -359,7 +359,7 @@ Independent of Phase 1: #21 and #22.
   structs #19/#20 already proposed.
   The flat `attrs` keys still exist for `collect()`/`DocGraph` consumers.
 - **Typed per-element accessors are consistent with “mechanism over menu” (DR-4/P4).**
-  They are element **attributes** (like `heading_level()`, `List.ordered`, `Link.url`),
+  They are element **attributes** (like `heading_level`, `List.ordered`, `Link.url`),
   not per-kind **rollups**. The objection DR-4 forbids is blessed aggregate queries
   (`tables()`/`code_blocks()`); `collect()` remains the only query mechanism.
   Recorded so the distinction is explicit.

@@ -432,7 +432,7 @@ edited and reassembled.
 - **`Paragraph`**—one blank-line-delimited unit of the source.
   Carries `original_text` (the verbatim slice), its `sentences`, `offsets`, a `span`, a
   cached Markdown classification `block_type` (§5) with heading helpers
-  (`heading_level()`, `heading_title()`), typed `code_info`/`table_info`/`list_info`
+  (`heading_level`, `heading_title`), typed `code_info`/`table_info`/`list_info`
   conveniences, and `links()`.
 - **`Sentence`**—one sentence within a paragraph.
   `text` is the **normalized, editable** content (what reassembly uses); `original_text`

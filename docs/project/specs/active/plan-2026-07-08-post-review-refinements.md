@@ -43,10 +43,10 @@ and detail: review doc §5.
 
 Near-mechanical (recommend simply doing):
 
-- [ ] `Paragraph.heading_level()` / `heading_title()` become properties, matching
-  `Block.heading_level` and `Paragraph.block_type`/`code_info`/`table_info`. Today
-  `if paragraph.heading_level:` is truthy for the bound method—silent wrong results.
-  Breaking for callers using `()`.
+- [x] `Paragraph.heading_level` / `heading_title` are properties, matching
+  `Block.heading_level` and `Paragraph.block_type`/`code_info`/`table_info`.
+  `if paragraph.heading_level:` now reads the value rather than a truthy bound method.
+  Breaking for callers using `()`; migrated in the 0.3 cleanup.
 - [ ] Rename `TRUE_LINK_FORMS` → `NAVIGABLE_LINK_FORMS` (every surrounding docstring
   already says “navigable”; alternative name: `DEFAULT_LINK_FORMS`). Breaking for
   importers.

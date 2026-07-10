@@ -153,7 +153,7 @@ source contract.
 | `flexdoc-lv8m` | Merge PR #9 and ratify normalized source coordinates | None |
 | `flexdoc-qire` | Reject context-free hints over duplicate quotes; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-lcuh` | Group the eight pre-1.0 API cleanup beads | `flexdoc-lv8m` establishes the baseline |
-| `flexdoc-ltzx` | Make paragraph heading metadata properties | `flexdoc-lv8m` |
+| `flexdoc-ltzx` | Make paragraph heading metadata properties; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-ikm6` | Make recursive collection include inline descendants by default; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-buw9` | Make cached structural views mutation-safe; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-0cbm` | Rename the navigable-link form constant | `flexdoc-lv8m` |
