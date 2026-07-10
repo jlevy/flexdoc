@@ -291,16 +291,20 @@ Breaking cleanups (done first, they shape the 0.1.0 surface):
   “Block” now always means the structural layer, “paragraph” the blank-line editing
   view, matching spec §6. chopdiff’s own code was verified to use none of the
   renamed/removed surfaces, so the Step 5 rewire is unaffected.
-- [x] **Settle the export surface in one pass** (review F2): `flexdoc.docs` now exports
-  the typed block metadata (`CodeInfo`/`TableInfo`/`ListInfo`), the `SpanRef` resolvers
-  (`resolve`/`resolve_and_update`), `parse_blocks`/`walk_blocks`/ `block_type_for`, and
-  the renamed `DEFAULT_INCLUDE`; `flexdoc.html` exports the missing `html_in_md`
-  siblings (`html_p`, `html_tag`, `escape_attribute`, `tag_wrapper`,
-  `identity_wrapper`). `IntervalIndex` and `node_table`/`render` internals stay private.
+- [x] **Settle the export surface in one pass** (review F2): at extraction time,
+  `flexdoc.docs` exported the typed block metadata (`CodeInfo`/`TableInfo`/`ListInfo`),
+  the `SpanRef` resolvers (`resolve`/`resolve_and_update`),
+  `parse_blocks`/`walk_blocks`/ `block_type_for`, and the renamed `DEFAULT_INCLUDE`;
+  `flexdoc.html` exports the missing `html_in_md` siblings (`html_p`, `html_tag`,
+  `escape_attribute`, `tag_wrapper`, `identity_wrapper`). `IntervalIndex` and
+  `node_table`/`render` internals stay private.
   README needed no changes (its imports were already package-surface).
   Discovered during the split: `_block_links` is a cross-module primitive, so it was
   promoted to public `block_links` in `flexdoc.docs.links` rather than crossing module
   boundaries underscore-named.
+  The 0.3 API cleanup later moved the promoted resolution path onto
+  `SpanRef.resolve()`/`resolve_and_update()` and removed the generic resolver names from
+  `flexdoc.docs`; their implementation remains in `span_ref.py`.
 
 Non-breaking refinements (done):
 

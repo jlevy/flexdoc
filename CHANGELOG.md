@@ -67,6 +67,10 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
   table metadata must use alignment tuples.
   Mutation of a returned section remains local to that view and does not persist to a
   later call.
+- **`SpanRef` owns its public resolution API.** Call `ref.resolve(source_text)` or
+  `ref.resolve_and_update(source_text)` on the root-exported type.
+  The generic `resolve` and `resolve_and_update` names are no longer promoted from
+  `flexdoc.docs`; update package-level imports and calls to use the methods.
 
 Remaining pre-1.0 design decisions and future mechanisms are collected in
 `docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md`.

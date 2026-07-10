@@ -29,7 +29,7 @@ from flexdoc.docs.render import parse_source_span_attr, render_node_attrs, wrap_
 from flexdoc.docs.search_tokens import search_tokens
 from flexdoc.docs.sections import Section
 from flexdoc.docs.sizes import TextUnit
-from flexdoc.docs.span_ref import SpanRef, resolve, resolve_and_update
+from flexdoc.docs.span_ref import SpanRef
 from flexdoc.docs.token_diffs import (
     DIFF_FILTER_NONE,
     DiffFilter,
@@ -150,8 +150,6 @@ __all__ = [
     "NodeTable",
     "build_node_table",
     "SpanRef",
-    "resolve",
-    "resolve_and_update",
     "render_node_attrs",
     "wrap_with_node_attrs",
     "parse_source_span_attr",

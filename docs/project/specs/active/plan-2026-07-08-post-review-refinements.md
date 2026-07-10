@@ -50,10 +50,10 @@ Near-mechanical (recommend simply doing):
 - [ ] Rename `TRUE_LINK_FORMS` → `NAVIGABLE_LINK_FORMS` (every surrounding docstring
   already says “navigable”; alternative name: `DEFAULT_LINK_FORMS`). Breaking for
   importers.
-- [ ] Export `resolve`/`resolve_and_update` from the package root, or add a
-  `SpanRef.resolve(source_text)` method delegating to the free function (avoids the
-  generic bare name at root; recommended).
-  Today `SpanRef` is a root export but its resolvers are not.
+- [x] Add `SpanRef.resolve(source_text)` and `SpanRef.resolve_and_update(source_text)`
+  methods delegating to the implementation functions.
+  The root API stays concise and avoids generic bare resolver names; `flexdoc.docs` no
+  longer promotes those names.
 
 Need a real decision:
 

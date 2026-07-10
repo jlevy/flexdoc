@@ -870,9 +870,11 @@ SpanRef = {
   and position. Reference resolution first checks an offset hint, accepting it only when
   the quote matches, at least one prefix/suffix window is present, and every captured
   window matches there; it then searches for the exact quote and disambiguates with
-  prefix/suffix. `resolve()` is pure (it does not mutate the ref), and
-  `resolve_and_update()` is the explicit variant that writes the recomputed offsets
-  back. Fuzzy/edit-distance re-anchoring is deferred (not yet implemented).
+  prefix/suffix. `SpanRef.resolve()` is pure (it does not mutate the ref), and
+  `SpanRef.resolve_and_update()` is the explicit variant that writes the recomputed
+  offsets back. These methods are available on the root-exported reference type; the
+  generic module-level implementation functions are not package-root exports.
+  Fuzzy/edit-distance re-anchoring is deferred (not yet implemented).
   A context-free hint cannot choose between duplicate quotes, even when its offsets
   match one occurrence; without context or source identity, the resolver cannot prove
   which duplicate was intended.
@@ -898,11 +900,11 @@ Chrome-style `exact`+`prefix`/`suffix` floor) so the node model, schema, and edi
 bridge are designed around it.
 
 **Error handling—references.** Resolution failure is a value, not an exception:
-`resolve()` returns `None` when the quote is absent from the source or remains ambiguous
-after prefix/suffix disambiguation, and callers branch on it (rule 2: the failure is
-visible at the call site).
+`SpanRef.resolve()` returns `None` when the quote is absent from the source or remains
+ambiguous after prefix/suffix disambiguation, and callers branch on it (rule 2: the
+failure is visible at the call site).
 Stale hints with captured context fall back to quote re-anchoring, and
-`resolve_and_update()` refreshes the hint explicitly.
+`SpanRef.resolve_and_update()` refreshes the hint explicitly.
 Context-free hints return `None` for duplicate quotes instead of using an uncorroborated
 position to guess. Until fuzzy re-anchoring ships (§14), a quote that was itself edited
 resolves to `None` rather than to a guess.

@@ -901,10 +901,10 @@ detail):
   with document / section / block scope handles, **including an offset-containment mode
   for cross-layer queries** (E9 hook 2). No per-kind rollup methods (DR-4).
 - [x] Define the `SpanRef` type and resolution: `SpanRef.from_node(node)` (total
-  model→source), `resolve(span_ref, doc)` (source→model: exact fast path, then quote
-  fuzzy re-anchor), and `to_persisted()` (drop transient `node_id`). `SpanRef` is the
-  anchor for edits too, not just annotations (E9 hook 4). No annotation *storage* yet;
-  just the targeting contract the rest of the model is designed around.
+  model→source), `span_ref.resolve(source_text)` (source→model: exact fast path, then
+  quote re-anchor), and `to_persisted()` (drop transient offsets by default).
+  `SpanRef` is the anchor for edits too, not just annotations (E9 hook 4). No annotation
+  *storage* yet; just the targeting contract the rest of the model is designed around.
 - [x] Tests: nested tables/code in blockquotes and list items are counted and locatable;
   per-section value and count rollups; density invariance; section slicing; `SpanRef`
   round-trips (node → source-grounded → re-resolved node) and survives a reparse.

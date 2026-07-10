@@ -116,16 +116,15 @@ sentence_nodes = [node for node in graph.nodes if node.id in graph.views.sentenc
 Use `SpanRef` when a tool needs to persist a source reference and re-resolve it after a
 reparse. A `SpanRef` carries a text quote (the durable anchor) plus offsets (a
 recomputable hint): `to_persisted()` drops the offsets, keeping the quote, and
-`resolve()` re-locates the quote in the (possibly changed) source, returning `None` if
-the quote is gone or ambiguous.
+`SpanRef.resolve()` re-locates the quote in the (possibly changed) source, returning
+`None` if the quote is gone or ambiguous.
 
 ```python
 from flexdoc import SpanRef
-from flexdoc.docs import resolve
 
 link_nodes = doc.collect(kinds={NodeKind.link})
 ref = SpanRef.from_node(link_nodes[0], doc.source_text)
-print(resolve(ref.to_persisted(), doc.source_text))
+print(ref.to_persisted().resolve(doc.source_text))
 ```
 
 ### Transform Text

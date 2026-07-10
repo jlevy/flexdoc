@@ -6,7 +6,8 @@ canonical durable anchor; the offsets (`start`/`end`) are a recomputable hint.
 Resolution accepts an offset fast path only when `exact` and captured context match,
 then falls back to quote search with prefix/suffix disambiguation. A context-free hint
 cannot choose between duplicate quotes; callers should use `from_span()`/`from_node()`
-so context is captured, or drop the offsets with `to_persisted()`.
+so context is captured, drop offsets with `to_persisted()`, and resolve through the
+instance methods on the root-exported `SpanRef`.
 """
 
 from __future__ import annotations
@@ -102,12 +103,25 @@ class SpanRef:
             parts.append(f",-{_encode_fragment_part(self.suffix)}")
         return "#:~:text=" + "".join(parts)
 
+    def resolve(self, source_text: str) -> tuple[int, int] | None:
+        """
+        Resolve this reference against `source_text`, returning its offsets or `None`
+        when the quote is missing or ambiguous.
+        """
+        return resolve(self, source_text)
+
+    def resolve_and_update(self, source_text: str) -> tuple[int, int] | None:
+        """
+        Resolve this reference and update its position hint on success.
+        """
+        return resolve_and_update(self, source_text)
+
 
 def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
     """
     Resolve a `SpanRef` against `source_text`, returning the `(start, end)`
     offsets or None if the span cannot be found or remains ambiguous. Pure: it
-    does not mutate `span_ref` (use `resolve_and_update` to also write the
+    does not mutate `span_ref` (use `span_ref.resolve_and_update()` to also write the
     offsets back).
 
     Fast path: if `start`/`end` and at least one captured context window are

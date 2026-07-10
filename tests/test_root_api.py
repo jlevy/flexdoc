@@ -36,6 +36,10 @@ def test_root_surface_is_deliberate():
         "SpanRef",
         "TextUnit",
     ]
+    assert not hasattr(flexdoc, "resolve")
+    assert not hasattr(flexdoc, "resolve_and_update")
+    assert not hasattr(flexdoc.docs, "resolve")
+    assert not hasattr(flexdoc.docs, "resolve_and_update")
 
 
 def test_root_working_set_covers_the_common_first_lines():
@@ -48,6 +52,8 @@ def test_root_working_set_covers_the_common_first_lines():
     # Annotating an exact sentence: build a durable ref from its span and resolve it.
     sent = doc.paragraphs[1].sentences[0]
     ref = SpanRef.from_span(doc.source_text, *sent.span)
-    from flexdoc.docs import resolve
+    assert ref.resolve(doc.source_text) == sent.span
 
-    assert resolve(ref, doc.source_text) == sent.span
+    persisted = ref.to_persisted()
+    assert persisted.resolve_and_update(doc.source_text) == sent.span
+    assert (persisted.start, persisted.end) == sent.span

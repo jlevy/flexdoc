@@ -30,7 +30,7 @@ from flexdoc.docs.doc_graph import clean_yaml
 from flexdoc.docs.flex_doc import FlexDoc
 from flexdoc.docs.node import NodeKind
 from flexdoc.docs.sizes import TextUnit
-from flexdoc.docs.span_ref import SpanRef, resolve
+from flexdoc.docs.span_ref import SpanRef
 
 # Inline kinds that carry a locatable span worth round-tripping through SpanRef.
 _LOCATABLE_INLINE = frozenset({NodeKind.link, NodeKind.image, NodeKind.code_span})
@@ -122,7 +122,7 @@ def doc_report_data(doc: FlexDoc, *, item_partition_depth: int = 6) -> dict[str,
         if n.kind not in _LOCATABLE_INLINE or n.source_span is None:
             continue
         ref = SpanRef.from_node(n, source_text)
-        resolved = resolve(ref.to_persisted(), source_text)
+        resolved = ref.to_persisted().resolve(source_text)
         spanref_rows.append(
             {
                 "id": n.id,
