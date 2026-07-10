@@ -3,9 +3,9 @@ type: is
 id: is-01kx1w32h8f8920d8kp9xh8ngc
 title: Complete the pre-1.0 API cleanup batch
 kind: epic
-status: open
+status: in_progress
 priority: 2
-version: 12
+version: 13
 spec_path: docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md
 labels:
   - api
@@ -22,6 +22,6 @@ child_order_hints:
   - is-01kx4v7zc1rxwx7wh6tj0tav80
   - is-01kx4v7zkbkgas873zg96e5ht5
 created_at: 2026-07-08T22:03:05.128Z
-updated_at: 2026-07-10T01:48:00.780Z
+updated_at: 2026-07-10T02:34:50.928Z
 ---
 Resolve and implement the remaining breaking-but-cheap API decisions as one 0.3.0 batch: paragraph heading properties, recursive inline collection semantics, structural-view immutability, the navigable-link constant, SpanRef resolution placement, export tiering, frontmatter delimiter tolerance, and Section.size internals. Each child must include focused tests and migration notes. TextUnit is excluded because its StrEnum conversion already landed on PR #9.
