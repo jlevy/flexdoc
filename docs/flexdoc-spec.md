@@ -871,9 +871,10 @@ SpanRef = {
   use the offset fast path; across edits the quote recovers the target.
 - **Resolution.** A located model node can produce a source reference with both quote
   and position. Reference resolution first checks an offset hint, accepting it only when
-  the quote matches, at least one prefix/suffix window is present, and every captured
+  the quote matches, at least one prefix/suffix window is non-empty, and every non-empty
   window matches there; it then searches for the exact quote and disambiguates with
-  prefix/suffix. `SpanRef.resolve()` is pure (it does not mutate the ref), and
+  prefix/suffix. Empty context strings and zero-character partial matches provide no
+  evidence. `SpanRef.resolve()` is pure (it does not mutate the ref), and
   `SpanRef.resolve_and_update()` is the explicit variant that writes the recomputed
   offsets back. These methods are available on the root-exported reference type; the
   generic module-level implementation functions are not package-root exports.

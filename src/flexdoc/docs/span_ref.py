@@ -124,7 +124,7 @@ def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
     does not mutate `span_ref` (use `span_ref.resolve_and_update()` to also write the
     offsets back).
 
-    Fast path: if `start`/`end` and at least one captured context window are
+    Fast path: if `start`/`end` and at least one non-empty context window are
     present, the text at those offsets matches `exact`, and the captured
     `prefix`/`suffix` matches the surrounding text there, return immediately.
     Requiring context keeps a stale hint from silently anchoring to a different
@@ -136,15 +136,15 @@ def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
     result is None rather than a guess; resolution failure is a visible value,
     never a silent wrong anchor (spec section 11).
 
-    With neither `prefix` nor `suffix`, offsets cannot disambiguate duplicate quotes.
-    A unique quote still resolves through the search path.
+    With neither a non-empty `prefix` nor `suffix`, offsets cannot disambiguate
+    duplicate quotes. A unique quote still resolves through the search path.
     """
     # A zero-width quote anchors nothing; reject it on both paths.
     if not span_ref.exact:
         return None
 
-    # A position hint is trustworthy only when captured context corroborates it.
-    has_context = span_ref.prefix is not None or span_ref.suffix is not None
+    # A position hint is trustworthy only when non-empty context corroborates it.
+    has_context = bool(span_ref.prefix or span_ref.suffix)
     if has_context and span_ref.start is not None and span_ref.end is not None:
         s, e = span_ref.start, span_ref.end
         if (
@@ -186,16 +186,16 @@ def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
 
 def _context_matches_at(span_ref: SpanRef, source_text: str, start: int, end: int) -> bool:
     """
-    True when every *captured* context window (`prefix`/`suffix`) matches the
-    text around `[start, end)`. A `None` window cannot disqualify (no context
-    was captured, e.g. at a document edge or on a hand-built ref); a present
-    window must match exactly for an offset hint to be trusted.
+    True when every non-empty context window (`prefix`/`suffix`) matches the text
+    around `[start, end)`. A missing or empty window cannot disqualify because it
+    provides no evidence; a non-empty window must match exactly for an offset hint
+    to be trusted.
     """
-    if span_ref.prefix is not None:
+    if span_ref.prefix:
         pre_start = max(0, start - len(span_ref.prefix))
         if source_text[pre_start:start] != span_ref.prefix:
             return False
-    if span_ref.suffix is not None:
+    if span_ref.suffix:
         suf_end = min(len(source_text), end + len(span_ref.suffix))
         if source_text[end:suf_end] != span_ref.suffix:
             return False
@@ -233,20 +233,24 @@ def _best_match(
     tied = False
     for idx in occurrences:
         score = 0
-        if prefix is not None:
+        if prefix:
             pre_start = max(0, idx - len(prefix))
             actual_prefix = source_text[pre_start:idx]
             if actual_prefix == prefix:
                 score += 2
-            elif prefix.endswith(actual_prefix) or actual_prefix.endswith(prefix):
+            elif actual_prefix and (
+                prefix.endswith(actual_prefix) or actual_prefix.endswith(prefix)
+            ):
                 score += 1
-        if suffix is not None:
+        if suffix:
             end = idx + len(exact)
             suf_end = min(len(source_text), end + len(suffix))
             actual_suffix = source_text[end:suf_end]
             if actual_suffix == suffix:
                 score += 2
-            elif suffix.startswith(actual_suffix) or actual_suffix.startswith(suffix):
+            elif actual_suffix and (
+                suffix.startswith(actual_suffix) or actual_suffix.startswith(suffix)
+            ):
                 score += 1
         if score > best_score:
             best_score = score

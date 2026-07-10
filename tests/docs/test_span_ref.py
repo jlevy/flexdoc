@@ -213,6 +213,36 @@ def test_context_free_offset_hint_cannot_choose_between_duplicates():
     assert ref.resolve("0123456789" + text) is None
 
 
+def test_empty_context_cannot_corroborate_duplicate_position_hint():
+    """Empty context is absence, not evidence for a duplicate position hint."""
+    text = "A target. B target."
+    second_start = text.rfind("target")
+
+    for ref in (
+        SpanRef(
+            exact="target",
+            prefix="",
+            start=second_start,
+            end=second_start + len("target"),
+        ),
+        SpanRef(
+            exact="target",
+            suffix="",
+            start=second_start,
+            end=second_start + len("target"),
+        ),
+    ):
+        assert ref.resolve(text) is None
+
+
+def test_empty_actual_context_cannot_disambiguate_duplicate_quotes():
+    """A zero-character partial match at a document edge provides no evidence."""
+    text = "target middle target"
+
+    assert SpanRef(exact="target", prefix="missing ").resolve(text) is None
+    assert SpanRef(exact="target", suffix=" missing").resolve(text) is None
+
+
 def test_valid_offset_hint_with_matching_context_fast_paths():
     """An offset hint whose quote and context both match is accepted as-is."""
     text = "one target here. two target there."
