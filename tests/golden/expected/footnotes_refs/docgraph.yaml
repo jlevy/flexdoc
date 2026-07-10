@@ -2,7 +2,7 @@ schema: DocGraph/v0.1
 source:
   format: markdown
   offset_unit: unicode_code_points
-  sha256: 1e66d85137792726196ad5ad436ad4e6119246562c670ad921359ccb48eabe10
+  sha256: 015b6ed2fc3e737e57d44027a23c77ad6e7422232cb0b8fdcd9be34f36b55f4f
 nodes:
 - id: n0001
   kind: heading
@@ -23,37 +23,43 @@ nodes:
   layer: markdown
   source_span:
     start: 71
-    end: 148
+    end: 156
 - id: n0004
   kind: paragraph
   layer: markdown
   source_span:
-    start: 150
-    end: 175
+    start: 158
+    end: 183
 - id: n0005
   kind: paragraph
   layer: markdown
   source_span:
-    start: 176
-    end: 214
+    start: 184
+    end: 222
 - id: n0006
   kind: footnote
   layer: markdown
   source_span:
-    start: 216
-    end: 265
+    start: 224
+    end: 273
 - id: n0007
+  kind: footnote
+  layer: markdown
+  source_span:
+    start: 275
+    end: 436
+- id: n0008
   kind: section
   layer: document
   source_span:
     start: 0
-    end: 265
+    end: 436
   attrs:
     level: 1
     title: References
 views:
   toc:
-  - n0007
+  - n0008
   blocks:
   - n0001
   - n0002
@@ -61,3 +67,4 @@ views:
   - n0004
   - n0005
   - n0006
+  - n0007

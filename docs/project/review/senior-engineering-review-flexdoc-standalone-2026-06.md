@@ -1,4 +1,4 @@
-# Senior Engineering Review: flexdoc Standalone (Post-Extraction)
+# Senior Engineering Review: FlexDoc Standalone (Post-Extraction)
 
 **Date:** 2026-06-12
 
@@ -25,7 +25,7 @@ known cruft in 0.1.0 is higher.
 
 * * *
 
-## 1. Executive verdict
+## 1. Executive Verdict
 
 The architecture is settled and right, and the extraction did not bend it: one immutable
 source string and one Unicode-code-point offset space as the canonical substrate, with
@@ -46,14 +46,14 @@ All of these are cheap now and expensive later.
 **Recommended stance:** insert a short pre-publish refinement stage (Stage 2.5 in the
 extraction plan) and land it before tagging 0.1.0, so the first published API is the one
 we want to keep. Defer the deep redesigns (wordtok sentinel typing, analyzer interface,
-annotation layer) to Stage 3 as planned — none of them block a clean 0.1.0.
+annotation layer) to Stage 3 as planned—none of them block a clean 0.1.0.
 
-## 2. Status of the v0.3.1 review findings (verified in this tree)
+## 2. Status of the v0.3.1 Review Findings (Verified in This Tree)
 
 | v0.3.1 finding | Status now | Evidence |
 | --- | --- | --- |
 | Docs showed a `DocGraph` query API that did not exist | Fixed | Spec §9/§10 describe `doc.collect(...)` and `doc.graph(...)`; `DocGraph` is serialization-only (`doc_graph.py`) |
-| `collect(scope=...)` was subtree-only | Fixed (aliases linger) | `collect.py:32` has `subtree_of`/`within`/`overlaps`; `scope`/`contains` remain as deprecated aliases — see F1 |
+| `collect(scope=...)` was subtree-only | Fixed (aliases linger) | `collect.py:32` has `subtree_of`/`within`/`overlaps`; `scope`/`contains` remain as deprecated aliases—see F1 |
 | Inline kinds required `inline=True` | Fixed | `collect.py:96`: explicit inline `kinds` implies inline inclusion |
 | Sections built from the paragraph view | Fixed | `text_doc.py:764`: headings gated on top-level structural heading blocks via bisect over `blocks()` |
 | `set_sent()` dropped `original_text` | Fixed | `text_doc.py:905` preserves it, with the contract in a comment |
@@ -62,19 +62,19 @@ annotation layer) to Stage 3 as planned — none of them block a clean 0.1.0.
 | Node-table assembly super-linear | Fixed | `node_table.py:145` builds an `IntervalIndex` for inline/section attribution |
 | P3 items (tests in `node.py`, `pop(0)`, `included_ids`, `block_type_counts`) | All fixed | Verified by grep; `collect.py:15` uses `deque` |
 
-The one structural suggestion not taken — the frozen `DocumentSnapshot` — was replaced
-by a documented, tested caching contract (`tests/docs/test_caching_threadsafe.py`). That
-is a legitimate lighter-weight answer.
+The one structural suggestion not taken—the frozen `DocumentSnapshot`—was replaced by a
+documented, tested caching contract (`tests/docs/test_caching_threadsafe.py`). That is a
+legitimate lighter-weight answer.
 Do not build the snapshot type speculatively; reconsider only if real misuse shows up.
 
-## 3. Findings to fix before 0.1.0 (P1)
+## 3. Findings to Fix Before 0.1.0 (P1)
 
 ### F1. Deprecated aliases must not ship in a first release
 
 `collect()` still accepts `scope` (positional!)
 and `contains` as deprecated aliases for `subtree_of`/`within`
 (`collect.py:34,39,59-75`; mirrored in `TextDoc.collect`, `text_doc.py:1161-1191`).
-These exist solely to migrate chopdiff-internal callers — a constituency that no longer
+These exist solely to migrate chopdiff-internal callers—a constituency that no longer
 exists for this package.
 A new package whose first release documents “deprecated alias, do not use” invites every
 future client to carry that cruft forever.
@@ -83,26 +83,26 @@ Drop both aliases and the positional `scope` slot; make `collect()` fully keywor
 after `table`. Rewrite the alias-behavior tests
 (`tests/docs/test_collect.py:127,170,198,255,328,335,361`) to the modern names (the
 alias-error test cases simply disappear).
-chopdiff’s rewire (extraction plan Step 5) must use the modern names — its `transforms`
+chopdiff’s rewire (extraction plan Step 5) must use the modern names—its `transforms`
 already do.
 
 ### F2. The export surface has real gaps; settle it once
 
 Verified missing from `flexdoc.docs.__init__` while being public API in substance:
 
-- `CodeInfo`, `TableInfo`, `ListInfo` (`block_info.py`) — exposed as `Block.code_info`
+- `CodeInfo`, `TableInfo`, `ListInfo` (`block_info.py`)—exposed as `Block.code_info`
   etc. and flattened into node `attrs` (spec §5), but the *types* cannot be imported from
   `flexdoc.docs` for annotations or `isinstance` checks.
-- `resolve`, `resolve_and_update` (`span_ref.py:103,146`) — `SpanRef` is exported but
-  the functions that resolve one are not.
+- `resolve`, `resolve_and_update` (`span_ref.py:103,146`)—`SpanRef` is exported but the
+  functions that resolve one are not.
 - `parse_blocks`, `walk_blocks` (`block_tree.py`), `block_type_for` (`block_types.py`) —
   used by examples/tests via deep module paths.
 - `flexdoc.html`: `html_p`, `html_tag`, `escape_attribute`, `tag_wrapper`,
   `identity_wrapper` are public in `html_in_md.py` but absent from `__all__` while their
-  siblings (`html_a`, `div_wrapper`, ...) are exported — an arbitrary split in one
+  siblings (`html_a`, `div_wrapper`, ...) are exported—an arbitrary split in one
   coherent family.
 
-Also: `text_doc.py:32` imports `_DEFAULT_INCLUDE` from `doc_graph` — a private-by-name
+Also: `text_doc.py:32` imports `_DEFAULT_INCLUDE` from `doc_graph`—a private-by-name
 constant feeding a public default.
 Rename it `DEFAULT_INCLUDE` and export it (callers of `graph()` legitimately want to
 extend the default set).
@@ -119,7 +119,7 @@ precisely because “block” is overloaded.
 The API then breaks the discipline in the editing view: `TextDoc.block_at_offset()`
 (`text_doc.py:736`) returns a *`Paragraph`* (a blank-line unit), and
 `iter_blocks()`/`filtered()` (`text_doc.py:1016,1039`) iterate/filter *paragraphs* by
-`BlockType` — while `blocks()` and `base_blocks()` return structural nodes.
+`BlockType`—while `blocks()` and `base_blocks()` return structural nodes.
 A new user reading `block_at_offset` next to `blocks()` will assume they speak the same
 language; they do not (a fenced code block with internal blank lines is one `Block` but
 several `Paragraph`s).
@@ -128,12 +128,12 @@ Recommendation (breaking, sanctioned now): rename `block_at_offset` →
 `paragraph_at_offset`; `iter_blocks` → `iter_paragraphs`; keep `filtered()` (its name
 does not claim “block”) but rephrase its docstring in paragraph terms.
 Mirror the rename in `Section.own_blocks()`/`subtree_blocks()` → `own_paragraphs()`/
-`subtree_paragraphs()` (`text_doc.py:1256,1273`); `Section.blocks()` keeps its name — it
+`subtree_paragraphs()` (`text_doc.py:1256,1273`); `Section.blocks()` keeps its name—it
 genuinely returns structural `Block`s. After this, “block” always means the structural
 layer, “paragraph” always means the editing view, and the spec’s terminology matches the
 API everywhere.
 
-## 4. Medium-priority findings (P2 — pre-publish preferred, not blocking)
+## 4. Medium-Priority Findings (P2; Pre-Publish Preferred, Not Blocking)
 
 ### F4. Split `text_doc.py`
 
@@ -141,7 +141,7 @@ API everywhere.
 `SentIndex`, `Link` + recovery heuristics, `Section`, sizing, the wordtok bridge, the
 `collect`/`graph` bridges, caching infrastructure).
 The v0.3.1 review’s split (editing / links / sections, with `flexdoc.docs` re-exports
-keeping every public import stable) is still right and is purely internal — no API break
+keeping every public import stable) is still right and is purely internal—no API break
 if done at the package surface.
 Doing it before 0.1.0 means external links to source lines never break.
 
@@ -162,8 +162,8 @@ should be. Define a JSON-safe value alias
 validate at `DocGraph` emission (Pydantic can enforce it on `NodeModel.attrs`), so a
 Rust/TypeScript client can rely on the schema.
 Also pin node-id assignment order in a schema test (the v0.3.1 review’s “ports produce
-different ids” risk) — the golden docgraph fixtures already freeze this de facto; make
-the guarantee explicit in the spec.
+different ids” risk)—the golden docgraph fixtures already freeze this de facto; make the
+guarantee explicit in the spec.
 
 ### F7. Enforce `LAYER_NESTING` at table build
 
@@ -174,7 +174,7 @@ among siblings) turns a future synthetic-layer bug into an immediate error inste
 silent contract violation.
 Matters before the synthetic layer lands (extraction plan Stage 4).
 
-## 5. Lower-priority findings (P3) and explicit non-actions
+## 5. Lower-Priority Findings (P3) and Explicit Non-Actions
 
 - **Linear offset lookups.** `block_at_offset`/`sentence_at_offset` scan
   (`text_doc.py:736,748`); `collect()`'s interval relations scan all nodes
@@ -190,13 +190,13 @@ Matters before the synthetic layer lands (extraction plan Stage 4).
   blocks release.
 - **Docs still chopdiff-framed in places.** Spec §3/§6 say “chopdiff parses…”
   (`flexdoc-spec.md:193,334`); §13’s non-goal lists “FlexDoc” as a *rejected runtime
-  model name*, colliding with the package name — needs the disambiguation note (already
-  a Stage 5 item). The copied plan specs and research briefs should get one-line origin
+  model name*, colliding with the package name—needs the disambiguation note (already a
+  Stage 5 item). The copied plan specs and research briefs should get one-line origin
   notes.
 - **`flexdoc.util.read_time` has zero internal users** (verified).
   It is a downstream convenience (kash/pprose).
-  Keep it — it is 56 lines and cohesive with `token_estimate` — but say so in its
-  docstring rather than letting it look like dead code.
+  Keep it—it is 56 lines and cohesive with `token_estimate`—but say so in its docstring
+  rather than letting it look like dead code.
 - **Do not** redesign the wordtok sentinel strings (`<-SENT-BR->` et al.,
   `wordtoks.py:17-20`). Stringly-typed but deeply load-bearing for chopdiff’s
   diff/window machinery; typed tokens are a Stage 3+ question with its own spec.
@@ -211,16 +211,16 @@ Matters before the synthetic layer lands (extraction plan Stage 4).
 - **Frontmatter parser swap (tracked, blocked upstream).** `frontmatter.py` is a
   deliberate hand-rolled stopgap: the `frontmatter-format` library is file-only today;
   its string API (`fmf_split_frontmatter_string`, upstream PR pending) will replace
-  `split_frontmatter` once released — with `strict=False` semantics preserved (a leading
+  `split_frontmatter` once released—with `strict=False` semantics preserved (a leading
   `---` with no close stays a thematic break, `frontmatter.py:25-26`) and a supply-chain
   cool-off exception for the fresh release (maintainer sign-off required).
   Until then the module is correct and tested; do not swap early.
 
-## 6. Corrections to the breadth inventory (claims that did not verify)
+## 6. Corrections to the Breadth Inventory (Claims That Did Not Verify)
 
 Two findings from the API-surface inventory pass were checked and are **not** issues:
 
-- *“`doc_graph_schema.json` is not included in the wheel.”* False — verified by listing
+- *“`doc_graph_schema.json` is not included in the wheel.”* False—verified by listing
   the built wheel: hatchling packages it (`flexdoc/docs/doc_graph_schema.json` present).
   The file is referenced only by a test via the source tree, so nothing at runtime
   depends on it either way.
@@ -228,9 +228,9 @@ Two findings from the API-surface inventory pass were checked and are **not** is
   recompute of a pure function with atomic attribute assignment, explicitly covered by
   the documented read contract (`text_doc.py:592-597`). No action.
 
-## 7. Recommended action plan
+## 7. Recommended Action Plan
 
-Land as **Stage 2.5 — pre-publish design refinement** in the extraction plan, before
+Land as **Stage 2.5—pre-publish design refinement** in the extraction plan, before
 tagging 0.1.0 (checklist there is normative; summary):
 
 1. F1: drop `scope`/`contains` aliases; keyword-only `collect()`; rewrite alias tests.
@@ -250,13 +250,13 @@ Python surfaces, not parse behavior).
 After Stage 2.5: publish 0.1.0 (plan Step 4), then rewire chopdiff (Step 5) against the
 refined names in one pass.
 
-## 8. Bottom line
+## 8. Bottom Line
 
 The model is the right shape and the hard work (the boundary, the layered substrate, the
 query/partition split) is done and verified.
-Spend one short stage scrubbing the first-release surface — aliases out, exports
-settled, the one naming seam closed, the big module split — and 0.1.0 ships an API with
-no apologies in it. Everything deeper is already correctly parked in Stages 3–5.
+Spend one short stage scrubbing the first-release surface—aliases out, exports settled,
+the one naming seam closed, the big module split—and 0.1.0 ships an API with no
+apologies in it. Everything deeper is already correctly parked in Stages 3–5.
 
 <!-- This document follows common-doc-guidelines.md.
 See github.com/jlevy/practical-prose and review guidelines before editing.

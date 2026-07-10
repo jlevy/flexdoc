@@ -11,15 +11,22 @@ has the full detail; this file is the summary.
   (`flexdoc-t5rh`). Concretely mapped in the extraction plan, Stage 4, including the
   open overlap-policy decision.
   Spec: `docs/flexdoc-spec.md` §3, §14.
+- **Stabilization and promotion roadmap:** the 2026-07 review’s open decisions and
+  future mechanisms are consolidated in
+  [plan-2026-07-09-flexdoc-stabilization-roadmap.md](docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md).
+  Epic: `flexdoc-aqjg`, with `flexdoc-r634` (0.3.0 contract and release), `flexdoc-6582`
+  (source-grounded workflow APIs and 0.4.0), and `flexdoc-ww1i` (extensions, downstream
+  adoption, and promotion).
 
-## Release Steps
+## Downstream Work (in Chopdiff, Not This Repo)
 
-- Merge PR #1; configure the PyPI Trusted Publisher for `jlevy/flexdoc`; tag and publish
-  `flexdoc 0.1.0` (extraction plan, Step 4).
-- Rewire chopdiff to the published flexdoc — its intended breaking release, one-pass
-  migration `chopdiff.docs.TextDoc` → `flexdoc.FlexDoc` (extraction plan, Step 5). Note:
-  depending on freshly-published flexdoc needs a supply-chain cool-off exception in
-  chopdiff (maintainer sign-off, like the strif/flowmark precedents).
+0.1.0 and 0.2.0 are published to PyPI with tags `v0.1.0`/`v0.2.0` (extraction plan, Step
+4, done). Remaining:
+
+- Rewire Chopdiff to the published FlexDoc release in one breaking migration from
+  `chopdiff.docs.TextDoc` to `flexdoc.FlexDoc` (extraction plan, Step 5). Depending on a
+  newly published FlexDoc version requires Chopdiff’s supply-chain cool-off or an
+  explicit maintainer-approved exception.
 
 ## Deferred (Specified, Not Yet Built; Spec §14)
 

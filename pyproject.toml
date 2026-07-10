@@ -2,8 +2,9 @@
 
 [project.urls]
 Repository = "https://github.com/jlevy/flexdoc"
-# Homepage = "https://..."
-# Documentation = "https://..."
+Homepage = "https://github.com/jlevy/flexdoc"
+Documentation = "https://github.com/jlevy/flexdoc/blob/main/docs/flexdoc-spec.md"
+Changelog = "https://github.com/jlevy/flexdoc/blob/main/CHANGELOG.md"
 
 [project]
 name = "flexdoc"
@@ -15,11 +16,20 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.11,<4.0"
 dynamic = ["version"]
+keywords = [
+    "markdown",
+    "document-model",
+    "parsing",
+    "text-processing",
+    "nlp",
+    "sentences",
+    "annotations",
+    "spans",
+    "llm",
+]
 
 # https://pypi.org/classifiers/
-# Adjust as needed:
 classifiers = [
-    # Adjust as needed:
     "Development Status :: 4 - Beta",
     # "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
@@ -31,6 +41,8 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
+    "Topic :: Text Processing :: Markup :: Markdown",
+    "Topic :: Software Development :: Libraries :: Python Modules",
     # Include this to avoid accidentally publishing to PyPI:
     # "Private :: Do Not Upload",
 ]
@@ -103,19 +115,10 @@ packages = ["src/flexdoc"]
 # uv applies this cutoff at lock, sync, and run time, so dev and CI all install
 # the same vetted versions and never silently pull a just-published release.
 # See SUPPLY-CHAIN-SECURITY.md. To upgrade, bump this to (today - 14 days) and
-# re-run `make upgrade`. Kept in sync with chopdiff's cutoff so the two packages
-# resolve the same shared dependencies.
+# re-run `make upgrade`. Coordinate changes with chopdiff so common dependencies
+# resolve to the same vetted versions when the projects are developed together.
 [tool.uv]
-exclude-newer = "2026-05-11T00:00:00Z"
-
-# Cool-off exceptions (reviewed and recorded in SUPPLY-CHAIN-SECURITY.md):
-# - strif 3.1.0: first-party, zero-dependency package, full source diff reviewed.
-# - flowmark 0.7.1: first-party package (maintainer-reviewed), block-span API.
-# - idna 3.15: fixes CVE-2026-45409 reported against the in-window 3.14 (audit group only).
-[tool.uv.exclude-newer-package]
-strif = "2026-05-24T00:00:00Z"
-flowmark = "2026-05-30T00:00:00Z"
-idna = "2026-05-13T00:00:00Z"
+exclude-newer = "2026-06-26T00:00:00Z"
 
 [tool.ruff]
 # Set as desired, typically 88 (black standard) or 100 (wide).
@@ -192,7 +195,7 @@ reportUnknownLambdaType = false
 reportPrivateUsage = false
 
 [tool.codespell]
-ignore-words-list = "Numbe"
+ignore-words-list = "Bitap,Numbe"
 # skip = "foo.py,bar.py"
 
 [tool.pytest.ini_options]

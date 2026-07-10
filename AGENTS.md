@@ -364,7 +364,7 @@ Always use full type annotations, generics, and other modern practices.
 - When changing code in a library or general function, if a change to an API or library
   will break backward compatibility, MENTION THIS to the user.
 
-- DO NOT implement additional code for backward compatiblity (such as extra methods or
+- DO NOT implement additional code for backward compatibility (such as extra methods or
   variable aliases or comments about backward compatibility) UNLESS the user has
   confirmed that it is necessary.
 

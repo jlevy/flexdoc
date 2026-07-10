@@ -134,8 +134,11 @@ def _span_within(span: tuple[int, int] | None, region: tuple[int, int]) -> bool:
 
 
 def _span_overlaps(span: tuple[int, int] | None, region: tuple[int, int]) -> bool:
-    """True when `span` intersects `region` (half-open intervals)."""
+    """True when `span` intersects `region` (half-open intervals). An empty
+    interval `[x, x)` contains no points, so it overlaps nothing."""
     if span is None:
+        return False
+    if span[0] >= span[1] or region[0] >= region[1]:
         return False
     return span[0] < region[1] and region[0] < span[1]
 

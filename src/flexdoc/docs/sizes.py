@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 
 from flexdoc.docs.wordtoks import wordtokenize
 from flexdoc.html.html_plaintext import html_to_plaintext
@@ -13,7 +13,7 @@ def size_in_wordtoks(text: str) -> int:
     return len(wordtokenize(text))
 
 
-class TextUnit(Enum):
+class TextUnit(StrEnum):
     """
     Text units of measure.
     """

@@ -30,7 +30,7 @@ def test_sentence_span_round_trips_for_verbatim_prose():
         assert _DOC[start:end] == sent.text
 
 
-def test_source_text_is_retained_verbatim():
+def test_source_text_retains_lf_input():
     doc = FlexDoc.from_text(_DOC)
     assert doc.source_text == _DOC
 

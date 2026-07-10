@@ -5,8 +5,7 @@ It parses Markdown into one source-grounded document model, then exposes several
 projections over the same character offsets.
 
 ```python
-from flexdoc import FlexDoc
-from flexdoc.docs import TextUnit
+from flexdoc import FlexDoc, TextUnit
 
 doc = FlexDoc.from_text("# Title\n\nSee [docs](https://example.com/docs).\n")
 ```
@@ -28,6 +27,21 @@ print(doc.size_summary())
 Offsets in paragraphs and sentences point into `doc.source_text`. If the source starts
 with YAML frontmatter, frontmatter is exposed as `doc.frontmatter` and excluded from the
 prose view.
+
+### Extract Prose Text
+
+Use `prose_text()` for the readable prose of the document with non-prose blocks (code,
+HTML, frontmatter, reference definitions) and inline noise (code spans, HTML tags,
+footnote references) removed; links and images are reduced to their text/alt.
+Emphasis markers (`**`, `*`) are preserved.
+
+```python
+prose = doc.prose_text()
+prose_with_tables = doc.prose_text(include_tables=True)
+```
+
+This is the projection to use for editorial linting, prose metrics, and preparing clean
+text for LLM prompts or embeddings.
 
 ### Inspect Markdown Structure
 
@@ -69,7 +83,7 @@ Use `node_table()` or `collect()` when a workflow needs one id space across Mark
 document, and textual layers.
 
 ```python
-from flexdoc.docs import Layer, NodeKind
+from flexdoc import Layer, NodeKind
 
 table = doc.node_table()
 headings = doc.collect(kinds={NodeKind.heading}, layer={Layer.markdown})
@@ -81,16 +95,16 @@ Its nodes carry source spans where they can be located.
 
 ### Serialize a DocGraph
 
-Use `graph()` when a UI or service boundary needs a JSON-safe document projection. The
-textual layer adds ordered paragraph and sentence views, both as node ids over the same
-source offsets as Markdown blocks and document sections.
+Use `graph()` when a UI or service boundary needs a JSON-safe document projection.
+The textual layer adds ordered paragraph and sentence views, both as node ids over the
+same source offsets as Markdown blocks and document sections.
 
 ```python
-from flexdoc.docs import Detail, Layer
+from flexdoc import Detail, Layer
 
 graph = doc.graph(
-    include=frozenset({Layer.markdown, Layer.document, Layer.textual}),
-    detail=frozenset({Detail.text, Detail.inline}),
+    include={Layer.markdown, Layer.document, Layer.textual},
+    detail={Detail.text, Detail.inline},
 )
 
 paragraph_nodes = [node for node in graph.nodes if node.id in graph.views.paragraphs]
@@ -100,13 +114,17 @@ sentence_nodes = [node for node in graph.nodes if node.id in graph.views.sentenc
 ### Persist and Resolve Spans
 
 Use `SpanRef` when a tool needs to persist a source reference and re-resolve it after a
-reparse.
+reparse. A `SpanRef` carries a text quote (the durable anchor) plus offsets (a
+recomputable hint): `to_persisted()` drops the offsets, keeping the quote, and
+`resolve()` re-locates the quote in the (possibly changed) source, returning `None` if
+the quote is gone or ambiguous.
 
 ```python
-from flexdoc.docs import SpanRef, resolve
+from flexdoc import SpanRef
+from flexdoc.docs import resolve
 
-node = next(n for n in doc.node_table().nodes.values() if n.kind == NodeKind.link)
-ref = SpanRef.from_node(node, doc.source_text)
+link_nodes = doc.collect(kinds={NodeKind.link})
+ref = SpanRef.from_node(link_nodes[0], doc.source_text)
 print(resolve(ref.to_persisted(), doc.source_text))
 ```
 

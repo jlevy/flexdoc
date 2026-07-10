@@ -12,7 +12,12 @@ DOC_PATHS = [
     "README.md",
     "CHANGELOG.md",
     "SUPPLY-CHAIN-SECURITY.md",
+    "TODO.md",
+    "AGENTS.md",
     "docs/development.md",
+    "docs/flexdoc-spec.md",
+    "docs/installation.md",
+    "docs/project",
     "docs/publishing.md",
     "docs/usage.md",
 ]

@@ -11,8 +11,8 @@ dependencies.
 This is the project-local flag file.
 The full cross-ecosystem policy lives in the
 [supply-chain-hardening guidebook](https://github.com/jlevy/supply-chain-hardening).
-flexdoc and chopdiff share this policy and keep their cool-off cutoffs in sync, so the
-dependencies common to both resolve to the same vetted versions.
+FlexDoc and Chopdiff share this policy; coordinate cutoff changes so their common
+dependencies resolve to the same vetted versions when they are developed together.
 
 ## The Rules Here
 
@@ -39,7 +39,7 @@ in this field):
 
 ```toml
 [tool.uv]
-exclude-newer = "2026-05-11T00:00:00Z"
+exclude-newer = "2026-06-26T00:00:00Z"
 ```
 
 uv records this cutoff inside `uv.lock`. If the cutoff in config and lock disagree (for
@@ -58,12 +58,18 @@ NEW_CUTOFF="$(date -u -d '14 days ago' +%Y-%m-%dT00:00:00Z)"   # GNU date (Linux
 # macOS: NEW_CUTOFF="$(date -u -v-14d +%Y-%m-%dT00:00:00Z)"
 sed -i "s|^exclude-newer = .*|exclude-newer = \"$NEW_CUTOFF\"|" pyproject.toml
 
-make upgrade   # uv sync --upgrade --all-extras --dev
-make lint test
+EMPTY_UV_CONFIG="$(mktemp -d)"
+trap 'rm -rf "$EMPTY_UV_CONFIG"' EXIT
+XDG_CONFIG_HOME="$EMPTY_UV_CONFIG" make upgrade
+XDG_CONFIG_HOME="$EMPTY_UV_CONFIG" make lint test
 ```
 
 Review the `uv.lock` diff before committing: confirm the version jumps are expected and
 that no unexpected new dependency appeared.
+uv merges user-level configuration into project resolution, including per-package
+cutoffs. The temporary empty configuration directory prevents a developer’s unrelated
+exceptions from entering the committed lockfile; verify the lockfile’s `[options]`
+section contains only project-approved settings.
 
 A per-package exception’s version does not move when only the global cutoff changes: uv
 keeps the already-locked version if it still satisfies the constraints.
@@ -88,38 +94,7 @@ caught up), remove the override and re-lock.
 
 ### Active Exceptions
 
-These three cover the same first-party / CVE-fix versions the maintainer reviewed for
-chopdiff; flexdoc resolves to the identical versions and carries the exceptions onto its
-own record.
-
-- **idna 3.15** (published 2026-05-12, inside the window relative to the cutoff).
-  Fixes CVE-2026-45409, reported against the in-window 3.14 by `pip-audit`. idna is a
-  widely used, pure-Python package, and here it is present only as a transitive
-  dependency of the `pip-audit` tool (audit group) — it is not a flexdoc runtime or dev
-  dependency and is never shipped in the flexdoc wheel.
-  Carried over from chopdiff’s maintainer review (2026-05-25). Remove this override once
-  3.15 clears the 14-day window.
-
-- **strif 3.1.0** (published 2026-05-23, inside the window).
-  First-party, zero-dependency package whose full `3.0.1 → 3.1.0` source diff was
-  reviewed for chopdiff before the override was added: bug fixes (backup-path check,
-  file-descriptor leak), an atomic `Path.replace`, new
-  `atomic_write_text`/`atomic_write_bytes` helpers, and `Insertion`/`Replacement`
-  changed from tuple aliases to `NamedTuple`s. No new dependencies, build hooks, network
-  calls, or install scripts.
-  Maintainer-approved 2026-05-25.
-
-- **flowmark 0.7.1** (published 2026-05-29, inside the window).
-  First-party package, authored and maintained by the same maintainer.
-  Adopted for the authoritative block spans in
-  [jlevy/flowmark#52](https://github.com/jlevy/flowmark/pull/52):
-  `flowmark_markdown().parse(text)` attaches `element.span = (start, end)` to every
-  block element, and `flowmark.markdown_ast.block_span` / `walk_elements` expose it;
-  flexdoc’s block tree reads these spans rather than re-scanning.
-  The full `0.7.0 → 0.7.1` source diff was reviewed for chopdiff: no dependency changes
-  (`Requires-Dist` identical to 0.7.0), no build hooks, no network calls, no install
-  scripts. Maintainer-approved 2026-05-29. Remove this override once 0.7.1 clears the
-  14-day window.
+There are no active per-package cool-off exceptions.
 
 ### Audit-Gate Ignores
 
@@ -129,14 +104,9 @@ finding in a **tool dependency that flexdoc does not ship** and that has no fix
 available within the cool-off window.
 It does not change dependency resolution or the cool-off.
 
-- **PYSEC-2026-196 in `pip`.** `pip` is only present as a transitive dependency of the
-  `pip-audit` tool (audit group); it is not a flexdoc runtime/dev dependency and is
-  never shipped in the flexdoc wheel.
-  The fix (`pip` 26.1.2) is newer than the `exclude-newer` cutoff (2026-05-11), so there
-  is no within-policy bump.
-  Ignored at the audit gate to keep CI green; **pending explicit maintainer
-  ratification.** Remove the `--ignore-vuln PYSEC-2026-196` once the cutoff advances
-  past pip 26.1.2’s release (it then resolves normally and the advisory clears).
+There are no active audit-gate ignores.
+The 2026-06-26 cutoff resolves `pip` 26.1.2 and `msgpack` 1.2.1, and the unignored audit
+passes.
 
 ## Untrusted Repositories
 
@@ -144,3 +114,7 @@ Treat any freshly cloned third-party repo as untrusted.
 Don’t run `install` / `build` / `test` / `run` against it on a machine with credentials
 until you’ve reviewed it: `build` backends, import-time code, and test files all execute
 code. Prefer a container or sandbox.
+
+<!-- This document follows common-doc-guidelines.md.
+See github.com/jlevy/practical-prose and review guidelines before editing.
+-->

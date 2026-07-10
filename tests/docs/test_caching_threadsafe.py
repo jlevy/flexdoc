@@ -52,6 +52,27 @@ def test_read_order_does_not_change_results():
     assert l1 == l2
 
 
+def test_frontmatter_links_and_blocks_share_one_parse():
+    text = "---\ntitle: Metadata\n---\n\n" + _TEXT
+    doc = FlexDoc.from_text(text)
+    original_parse = marko_parser.Parser.parse
+    parse_count = 0
+
+    def counting_parse(self: marko_parser.Parser, text: str):  # type: ignore[no-untyped-def]
+        nonlocal parse_count
+        parse_count += 1
+        return original_parse(self, text)
+
+    marko_parser.Parser.parse = counting_parse  # type: ignore[method-assign]
+    try:
+        doc.links()
+        doc.blocks()
+    finally:
+        marko_parser.Parser.parse = original_parse  # type: ignore[method-assign]
+
+    assert parse_count == 1
+
+
 def test_caches_are_identity_stable_but_public_views_are_copies():
     doc = FlexDoc.from_text(_TEXT)
     assert doc.node_table() is doc.node_table()

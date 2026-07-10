@@ -1,8 +1,9 @@
 """
-Frontmatter isolation (editing view): a leading YAML block is a non-content region —
-excluded from paragraphs/sentences/size and exposed verbatim via `FlexDoc.frontmatter`,
-while `source_text` keeps the full original and spans stay absolute. Detector unit tests
-live inline in `flexdoc.docs.frontmatter`; structural-view exclusion is tested separately.
+Frontmatter isolation (editing view): a leading YAML block is a non-content region,
+excluded from paragraphs/sentences/size and exposed through `FlexDoc.frontmatter`, while
+`source_text` keeps the full normalized source and spans stay absolute. Detector unit
+tests live inline in `flexdoc.docs.frontmatter`; structural-view exclusion is tested
+separately.
 """
 
 from __future__ import annotations
@@ -110,6 +111,18 @@ def test_frontmatter_links_are_not_content_links():
     assert all(n.source_span is None or n.source_span[0] >= len(fm) for n in link_nodes)
 
 
+def test_body_bare_url_does_not_reuse_matching_frontmatter_text():
+    url = "https://same.example"
+    fm = f"---\nsource: {url}\n---\n\n"
+    body = f"Visit {url} for details.\n"
+    doc = FlexDoc.from_text(fm + body)
+
+    links = doc.links()
+    assert len(links) == 1
+    expected_start = len(fm) + body.index(url)
+    assert links[0].span == (expected_start, expected_start + len(url))
+
+
 def test_doc_report_base_blocks_exclude_frontmatter():
     doc = FlexDoc.from_text(_FM + _BODY)
     report = doc_report_data(doc)
@@ -120,3 +133,19 @@ def test_doc_report_base_blocks_exclude_frontmatter():
     assert all("title: Hello" not in text for text in texts)
     assert report["base_blocks"]["cover_ok"]
     assert report["base_blocks"]["uncovered_nonspace"] == 0
+
+
+def test_frontmatter_markdown_constructs_cannot_leak_into_body():
+    # A YAML block scalar containing a code fence must not open a fenced block that
+    # swallows the body (the frontmatter region is blanked out of the shared parse).
+    doc = FlexDoc.from_text("---\ncode: |\n  ```\n---\n\n# Heading\n\nParagraph.\n")
+    types = [b.type.value for b in doc.blocks()]
+    assert types == ["heading", "paragraph"]
+    assert len(doc.sections()) == 1
+    assert doc.sections()[0].title == "Heading"
+    assert doc.prose_text() == "Heading\n\nParagraph."
+
+    # Same guarantee for the base-block partition and the node table.
+    assert [bb.block.type.value for bb in doc.base_blocks()] == ["heading", "paragraph"]
+    heading_nodes = doc.node_table().by_kind(NodeKind.heading)
+    assert len(heading_nodes) == 1

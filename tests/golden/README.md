@@ -18,10 +18,10 @@ expected/<doc>/reassembled.md   the editing view's reassembled (normalized) text
 ```
 
 The serializer is the public, reusable `flexdoc.docs.debug` dumper (`doc_report`,
-`doc_graph_yaml`, `dump_views`) — usable on any document from a REPL or script, not just
+`doc_graph_yaml`, `dump_views`)—usable on any document from a REPL or script, not just
 here.
 
-## Running and updating
+## Running and Updating
 
 ```bash
 uv run pytest tests/golden/test_golden_docs.py            # compare against goldens
@@ -33,25 +33,29 @@ After an intentional model change, regenerate, then **review the diff as a behav
 change**: if it is expected, commit the updated goldens; if not, it is a regression —
 fix the code.
 
-## Two layers of checking
+## Two Layers of Checking
 
-- `test_golden_artifacts` — raw diff against the committed serializations (catches any
+- `test_golden_artifacts`—raw diff against the committed serializations (catches any
   unanticipated change anywhere in the output).
-- `test_model_invariants` — the model’s hard guarantees, enforced independently of the
+- `test_model_invariants`—the model’s hard guarantees, enforced independently of the
   golden diff so a semantic violation fails even if goldens are blindly regenerated:
   base-block complete cover, SpanRef round-trips, unique node ids with valid
   parent/child and DocGraph child references, span bounds, and `reassemble()`
   idempotence.
 
-## Why no mocks or scrubbing
+## Why No Mocks or Scrubbing
 
-The model is deterministic and hermetic — no clock, network, LLM, or randomness; node
-ids are a stable preorder counter, sha256 and token estimates are deterministic.
+The model is deterministic and hermetic—no clock, network, LLM, or randomness; node ids
+are a stable preorder counter, sha256 and token estimates are deterministic.
 So there is nothing to mock and no unstable field to scrub: output is byte-stable across
 runs.
 
-## Determinism note
+## Determinism Note
 
 Node ids (`n0001…`) are deterministic and meaningful, so they appear verbatim in the
 goldens (not pattern-matched).
 Spans are Unicode code points, rendered `start:end`.
+
+<!-- This document follows common-doc-guidelines.md.
+See github.com/jlevy/practical-prose and review guidelines before editing.
+-->

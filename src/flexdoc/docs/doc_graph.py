@@ -16,6 +16,7 @@ with no validation overhead. The split is intentional, not drift.
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Set as AbstractSet
 from enum import StrEnum
 from io import StringIO
 from typing import Literal
@@ -117,6 +118,10 @@ class DocGraph(BaseModel):
 
     The `schema` JSON key carries the version string; in Python it is accessed
     as `schema_` (with `Field(alias="schema")`).
+
+    `annotations`, `layout`, and `provenance` are reserved for later phases
+    (flexdoc-spec section 14): the builder never populates them and consumers
+    must not, until their schemas are defined in a future DocGraph version.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -149,8 +154,8 @@ DEFAULT_INCLUDE: frozenset[Layer] = frozenset({Layer.markdown, Layer.document})
 def build_doc_graph(
     table: NodeTable,
     *,
-    include: frozenset[Layer] = DEFAULT_INCLUDE,
-    detail: frozenset[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
+    include: AbstractSet[Layer] = DEFAULT_INCLUDE,
+    detail: AbstractSet[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
 ) -> DocGraph:
     """
     Build a `DocGraph` from a `NodeTable`.

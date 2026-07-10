@@ -173,7 +173,7 @@
       "type": "object"
     }
   },
-  "description": "The DocGraph serialized projection (flexdoc-spec section 10). A single,\nsource-anchored JSON object from which any view (block tree, section tree,\ninline index) and any rollup is derivable.\n\nThe `schema` JSON key carries the version string; in Python it is accessed\nas `schema_` (with `Field(alias=\"schema\")`).",
+  "description": "The DocGraph serialized projection (flexdoc-spec section 10). A single,\nsource-anchored JSON object from which any view (block tree, section tree,\ninline index) and any rollup is derivable.\n\nThe `schema` JSON key carries the version string; in Python it is accessed\nas `schema_` (with `Field(alias=\"schema\")`).\n\n`annotations`, `layout`, and `provenance` are reserved for later phases\n(flexdoc-spec section 14): the builder never populates them and consumers\nmust not, until their schemas are defined in a future DocGraph version.",
   "properties": {
     "annotations": {
       "items": {},
