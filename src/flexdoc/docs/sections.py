@@ -174,8 +174,8 @@ class Section:
 
     def links(self) -> list[Link]:
         """
-        All navigable links in this section's subtree (true-link forms only; not images or
-        reference definitions), in document order. Derived from a document-level parse of
+        All navigable links in this section's subtree (not images or reference
+        definitions), in document order. Derived from a document-level parse of
         `source_text` (so reference links resolve across blocks) and filtered to links whose
         span falls within the section's span. Links with `span=None` (an unlocatable
         reference) are omitted because they cannot be attributed to a section by offset.

@@ -133,7 +133,7 @@ for src in cases:
 and `1/1` respectively—the bug is specifically tight or non-blank-preceded headings.)
 
 `flex_doc._section_list` walks `self.paragraphs` and recognizes a heading only when a
-blank-line **paragraph**’s `heading_level()` is non-`None`—i.e. the heading must be the
+blank-line **paragraph**’s `heading_level` is non-`None`—i.e. the heading must be the
 paragraph’s first line.
 Two triggers lose headings: **tight formatting** (no blank line before the next heading
 merges heading + body into one paragraph) and a **non-blank line immediately above** the
@@ -224,7 +224,7 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
    `inline` (a `markdown_link` atomic containing `](`), `reference` (resolved by text
    against a definition), `autolink` (surrounded by `<>`), `bare_url` (a verbatim URL,
    no brackets), `image` (preceded by `!`; covers inline `![alt](url)` and reference
-   `![alt][id]`, alt text in `Link.text`). `links()` returns **true links only by
+   `![alt][id]`, alt text in `Link.text`). `links()` returns **navigable links only by
    default**—`inline`, `reference`, `autolink`, `bare_url`—and takes
    `links(link_forms: set[LinkForm] | None = None)` to retrieve any form set; `images()`
    is a documented convenience for `links(link_forms={LinkForm.image})`. Image and
@@ -262,10 +262,10 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
 - `Block`: new `heading_info: HeadingInfo | None` field + `heading_level: int | None`
   property. New `HeadingInfo` and `heading_info_for` in `flexdoc.docs.block_info`
   (exported from `flexdoc.docs`).
-- `Link`: new required `form: LinkForm` field; new `LinkForm` enum (exported from
-  `flexdoc.docs`). `links()` defaults to true links; new `links(link_forms=...)` filter
-  and `images()` convenience; reference definitions are reached via `link_forms` or the
-  node table, not the default `links()`.
+- `Link`: new required `link_form: LinkForm` field; new `LinkForm` enum (exported from
+  `flexdoc.docs`). `links()` defaults to navigable links; new `links(link_forms=...)`
+  filter and `images()` convenience; reference definitions are reached via `link_forms`
+  or the node table, not the default `links()`.
 - `NodeKind`: new `link_ref_def` member (a new kind in the cross-language `DocGraph`
   contract; any port must learn it).
 - `FlexDoc`: new `prose_text()` and `block_at_offset()` methods.
@@ -303,7 +303,7 @@ established `*_info` pattern; link forms extend the existing `Link`/`block_links
   stripping and `" — "` preservation.
 - [x] `FlexDoc.block_at_offset()`; `collect()` inline-without-`recursive` fix; tests.
 - [x] `link_taxonomy.md` corpus doc + link-form accounting invariant (Test-Suite
-  Hardening (a)/(b)): every `links()` entry has a true-link form;
+  Hardening (a)/(b)): every `links()` entry has a navigable form;
   `len(links()) + len(images()) + #ref-defs` equals the table’s
   `link`/`image`/`link_ref_def` count.
 - [x] `CHANGELOG.md` 0.2.0 section (Fixed: Bug 1, Bug 2; Added: heading level on
@@ -401,7 +401,7 @@ checklist.
     kind (`link`, `image`, `code_span`, `footnote_ref`, `link_ref_def`) build without
     raising—exercising the *public* inline path Bug 1 broke, not just the internal
     build.
-  - link-form accounting: every `links()` entry has a true-link form, and
+  - link-form accounting: every `links()` entry has a navigable form, and
     `len(links()) + len(images()) + #ref-defs` equals the count of `link` / `image` /
     `link_ref_def` nodes in the table.
 - **(c) Dogfood real Markdown** (highest value, lowest cost): a test that parses every
@@ -430,7 +430,7 @@ Tag `v0.2.0` triggered the PyPI publish on 2026-06-14.
 
 Settled in review (2026-06-13):
 
-- **Images stay out of the `links()` default.** `links()` returns true links only;
+- **Images stay out of the `links()` default.** `links()` returns navigable links only;
   `images()` and `links(link_forms={...})` provide first-class, documented access to
   images and any other form.
   Reference definitions likewise come via the node table or `links(link_forms=...)`,

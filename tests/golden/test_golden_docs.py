@@ -197,7 +197,7 @@ def test_model_invariants():
             td.collect(kinds={kind})  # inline kinds need no recursive=True
             td.collect(kinds={kind}, recursive=True)
 
-        # Link-form accounting: every links() entry is a true link, and the per-form lists
+        # Link-form accounting: every links() entry is navigable, and the per-form lists
         # match the node-table node counts one-for-one.
         assert all(link.link_form in NAVIGABLE_LINK_FORMS for link in td.links())
         assert len(td.links()) == len(table.by_kind(NodeKind.link)), f"{where}: link count"

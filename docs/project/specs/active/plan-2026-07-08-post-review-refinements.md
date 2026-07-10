@@ -55,20 +55,16 @@ Near-mechanical (recommend simply doing):
   The root API stays concise and avoids generic bare resolver names; `flexdoc.docs` no
   longer promotes those names.
 
-Need a real decision:
+Resolved decisions:
 
-- [ ] **`collect(recursive=True)` and inline nodes.** Today inline kinds are excluded
-  unless `inline=True` (or an inline `kinds` filter implies it); the spec’s own “tally
-  by kind” example silently omits links/code spans.
-  Option A: `recursive=True` implies inline inclusion, with a tri-state `inline` option
-  or equivalent mode so explicit exclusion differs from omission (less surprising;
-  behavioral break). Option B: keep semantics, fix the spec example, and document the
-  behavior. Recommendation: A.
-- [ ] **`Section`/`Block` mutability versus cache sharing.** `sections()` shares mutable
-  `Section` objects with the per-doc cache; mutation corrupts later reads, guarded only
-  by a docstring. Option A: freeze the dataclasses (children/content become tuples;
-  breaking, correct). Option B: deep-copy on return (compatible, slower, keeps the
-  mutable interface). Recommendation: A, pre-1.0.
+- [x] **`collect(recursive=True)` and inline nodes.** Recursive traversal now includes
+  inline descendants by default. The `inline` option is tri-state, so explicit
+  `inline=False` remains a block-only override and an inline-kind filter still works
+  without `recursive=True`.
+- [x] **`Section`/`Block` mutability versus cache sharing.** The implemented hybrid
+  keeps cached `Block` graphs deeply immutable and returns recursively isolated
+  `Section`/`Paragraph` graphs. This preserves the editable paragraph model without
+  exposing mutable cache state.
 - [x] **Tier the `flexdoc.docs` export surface.** The promoted surface now contains 44
   document-model, serialization, query, and render/report names.
   Word-token/search and diff/mapping machinery remains importable from its owning
@@ -122,14 +118,9 @@ Suggested sequencing: `Annotation` and `from_quote`/`resolve_batch` first, then
 
 ## 3. Release Mechanics Before Promotion (Bead `flexdoc-r634`)
 
-- [ ] **Supply-chain refresh** (maintainer-gated by policy): bump `exclude-newer` from
-  2026-05-11 to (today − 14 days); remove the expired strif/flowmark/idna per-package
-  overrides and their SUPPLY-CHAIN-SECURITY.md entries; `make upgrade`; re-run
-  `pip-audit` and drop both audit-gate ignores from ci.yml if they clear
-  (`PYSEC-2026-196` in pip; `GHSA-6v7p-g79w-8964` in msgpack, added 2026-07-08 when the
-  advisory landed mid-review—both are pip-audit-only transitive deps and both fixes are
-  already past their 14-day windows).
-  Deliberately kept off the review branch (lockfile churn).
+- [x] **Supply-chain refresh**: bumped `exclude-newer` to 2026-06-26, removed the
+  expired strif/flowmark/idna exceptions, refreshed the committed lock, and removed the
+  pip/msgpack audit ignores after resolving fixed versions. The unignored audit passes.
 - [x] **CI matrix vs. classifier**: retain `Operating System :: OS Independent` and run
   the full lint/test gate on `macos-latest` with Python 3.13 in addition to the complete
   supported-version matrix on Ubuntu.

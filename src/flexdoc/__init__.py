@@ -21,8 +21,9 @@ The full public surfaces live in the submodules:
 - `flexdoc.docs` — `FlexDoc`, `Paragraph`, `Sentence`, `Section`, `Block`, `BlockType`,
   the node table, `collect()`, `DocGraph`, `SpanRef`, and source-linked render/report
   helpers.
-- `flexdoc.docs.wordtoks`, `token_diffs`, `token_mapping`, and `search_tokens` —
-  lower-level word-token and diff machinery, importable explicitly but not promoted by
+- `flexdoc.docs.wordtoks`, `flexdoc.docs.search_tokens`,
+  `flexdoc.docs.token_diffs`, and `flexdoc.docs.token_mapping` — lower-level token,
+  search, diff, and mapping machinery, importable explicitly but not promoted by
   `flexdoc.docs`.
 - `flexdoc.html` — html-in-md, html/plaintext conversion, HTML tag helpers, the content
   extractor, and timestamp extraction.

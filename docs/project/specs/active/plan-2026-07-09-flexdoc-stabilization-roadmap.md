@@ -4,8 +4,8 @@
 
 **Author:** Joshua Levy and Codex
 
-**Status:** In progress; execution beads are mapped and maintainer decisions remain
-open.
+**Status:** In progress; Phase 1 implementation is complete and the 0.3.0 publication
+gate remains open. Later-stage design decisions remain open.
 
 ## Overview
 
@@ -150,9 +150,9 @@ source contract.
 
 | Bead | Deliverable | Blocked By |
 | --- | --- | --- |
-| `flexdoc-lv8m` | Merge PR #9 and ratify normalized source coordinates | None |
+| `flexdoc-lv8m` | Merge PR #9 and ratify normalized source coordinates; completed 2026-07-09 | None |
 | `flexdoc-qire` | Reject context-free hints over duplicate quotes; completed 2026-07-09 | `flexdoc-lv8m` |
-| `flexdoc-lcuh` | Group the eight pre-1.0 API cleanup beads | `flexdoc-lv8m` establishes the baseline |
+| `flexdoc-lcuh` | Group the eight pre-1.0 API cleanup beads; completed 2026-07-09 | `flexdoc-lv8m` establishes the baseline |
 | `flexdoc-ltzx` | Make paragraph heading metadata properties; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-ikm6` | Make recursive collection include inline descendants by default; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-buw9` | Make cached structural views mutation-safe; completed 2026-07-09 | `flexdoc-lv8m` |
@@ -228,7 +228,8 @@ workflow APIs and the Chopdiff migration.
 
 ## Rollout Plan
 
-1. Merge PR #9 after its branch tests and CI pass; do not publish it as 0.2.x.
+1. Merge PR #9 after its branch tests and CI pass; completed 2026-07-09 without a
+   0.2.x publication.
 2. Complete Phase 1 and publish 0.3.0 with a migration-focused changelog.
 3. Complete Phase 2 behind the next `DocGraph` schema version and publish 0.4.0.
 4. Complete Phase 3 only after downstream adoption validates the extension APIs.
