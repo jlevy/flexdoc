@@ -79,10 +79,10 @@ Need a real decision:
   trailing spaces and tabs while leading whitespace still disqualifies them.
   Detection preserves the delimiter text and absolute body offset; an unclosed opening
   remains a thematic break.
-- [ ] **`Section.size()` internals**: extract a `size_of_paragraphs(paragraphs, unit)`
-  helper so `Section` stops building a throwaway `FlexDoc` per call (measured negligible
-  at ~0.4µs, but removes a circular-import workaround).
-  No API change.
+- [x] **`Section.size()` internals**: `FlexDoc` and `Section` share private paragraph
+  size and summary aggregation.
+  Section sizing no longer builds a throwaway `FlexDoc` or needs the function-local
+  circular import; the public API and results are unchanged.
 
 ## 2. AI Annotation/Commenting Mechanisms (Bead `flexdoc-6582`)
 

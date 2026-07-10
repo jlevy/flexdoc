@@ -1,6 +1,6 @@
 # pyright: reportImportCycles=false
-# Type-only cycles with node_table.py (TYPE_CHECKING import of FlexDoc) and sections.py
-# (TYPE_CHECKING/function-local imports of FlexDoc). No runtime cycle exists.
+# Type-only cycles with node_table.py and sections.py (both TYPE_CHECKING imports of
+# FlexDoc). No runtime cycle exists.
 
 from __future__ import annotations
 
@@ -36,6 +36,8 @@ from flexdoc.docs.paragraphs import (
     SentIndex,
     Splitter,
     WordtokMapping,
+    _size_paragraphs,
+    _summarize_paragraphs,
     default_sentence_splitter,
 )
 from flexdoc.docs.sections import Section
@@ -48,7 +50,6 @@ from flexdoc.docs.wordtoks import (
     SENT_BR_STR,
     join_wordtoks,
 )
-from flexdoc.util.token_estimate import estimate_tokens
 
 _PARA_BREAK_REGEX = regex.compile(r"(?:[ \t\r]*\n){2,}[ \t\r]*")
 r"""
@@ -893,43 +894,10 @@ class FlexDoc:
             last_para.sentences.append(sent)
 
     def size(self, unit: TextUnit) -> int:
-        if unit == TextUnit.paragraphs:
-            return len(self.paragraphs)
-        if unit == TextUnit.sentences:
-            return sum(len(para.sentences) for para in self.paragraphs)
-
-        if unit == TextUnit.tokens:
-            return estimate_tokens(self.reassemble())
-
-        base_size = sum(para.size(unit) for para in self.paragraphs)
-        n_para_breaks = max(len(self.paragraphs) - 1, 0)
-        if unit == TextUnit.lines:
-            return base_size + n_para_breaks
-        if unit == TextUnit.bytes:
-            return base_size + n_para_breaks * size_in_bytes(PARA_BR_STR)
-        if unit == TextUnit.chars:
-            return base_size + n_para_breaks * len(PARA_BR_STR)
-        if unit == TextUnit.words:
-            return base_size
-        if unit == TextUnit.wordtoks:
-            return base_size + n_para_breaks
-
-        raise ValueError(f"Unsupported unit for FlexDoc: {unit}")
+        return _size_paragraphs(self.paragraphs, unit)
 
     def size_summary(self) -> str:
-        nbytes = self.size(TextUnit.bytes)
-        if nbytes > 0:
-            return (
-                f"{nbytes} bytes ("
-                f"{self.size(TextUnit.lines)} lines, "
-                f"{self.size(TextUnit.paragraphs)} paras, "
-                f"{self.size(TextUnit.sentences)} sents, "
-                f"{self.size(TextUnit.words)} words, "
-                # f"{self.size(TextUnit.wordtoks)} wordtoks, "
-                f"~{self.size(TextUnit.tokens)} tok)"
-            )
-        else:
-            return f"{nbytes} bytes"
+        return _summarize_paragraphs(self.paragraphs)
 
     def as_wordtok_to_sent(
         self, bof_eof: bool = False

@@ -91,6 +91,9 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
 - **Local release preparation is tag-aware.** The runbook fetches tags before building
   and verifies candidate wheel metadata from an isolated local tag, preventing a tagless
   clone from silently producing a `0.0.1.devN` release artifact.
+- **Section sizing no longer constructs temporary documents.** `FlexDoc` and `Section`
+  now share private paragraph aggregation for every `TextUnit` and size summary; public
+  results and signatures are unchanged.
 
 Remaining pre-1.0 design decisions and future mechanisms are collected in
 `docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md`.

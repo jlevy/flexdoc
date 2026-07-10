@@ -5,8 +5,8 @@ for the construction rules.
 """
 
 # pyright: reportImportCycles=false
-# The TYPE_CHECKING/function-local imports of FlexDoc create a type-only cycle with
-# flex_doc.py (which runtime-imports Section). No module-level runtime cycle exists.
+# The TYPE_CHECKING import of FlexDoc creates a type-only cycle with flex_doc.py (which
+# runtime-imports Section). No module-level runtime cycle exists.
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 
 from flexdoc.docs.block_tree import Block, parse_blocks
 from flexdoc.docs.links import NAVIGABLE_LINK_FORMS, Link, block_links
-from flexdoc.docs.paragraphs import Paragraph
+from flexdoc.docs.paragraphs import Paragraph, _size_paragraphs, _summarize_paragraphs
 from flexdoc.docs.sizes import TextUnit
 
 if TYPE_CHECKING:
@@ -31,8 +31,8 @@ class Section:
 
     `content` are this section's own content paragraphs (excluding the heading line and
     any subsections); `children` are nested `Section`s. Built by `FlexDoc.sections()`.
-    Sizes are rolled up by reusing `FlexDoc.size` over the section's paragraphs, so every
-    `TextUnit` aggregates uniformly.
+    Sizes use the same private paragraph aggregation as `FlexDoc`, so every `TextUnit`
+    aggregates uniformly without constructing a temporary document.
 
     Both views derive from this section's source region (nothing stored as counts):
 
@@ -161,19 +161,16 @@ class Section:
     def size(self, unit: TextUnit, subtree: bool = True) -> int:
         """
         Size in `unit`, rolled up over the whole subtree by default (`subtree=True`) or
-        the section's own content only (`subtree=False`). Reuses `FlexDoc.size`.
+        the section's own content only (`subtree=False`). Uses the same paragraph
+        aggregation as `FlexDoc.size`.
         """
-        # Local import: flex_doc imports Section, so a module-level import would cycle.
-        from flexdoc.docs.flex_doc import FlexDoc
-
         paragraphs = self.subtree_paragraphs() if subtree else self.own_paragraphs()
-        return FlexDoc(paragraphs).size(unit)
+        return _size_paragraphs(paragraphs, unit)
 
     def size_summary(self, subtree: bool = True) -> str:
-        from flexdoc.docs.flex_doc import FlexDoc
-
+        """Standard size summary for the subtree or this section's own content."""
         paragraphs = self.subtree_paragraphs() if subtree else self.own_paragraphs()
-        return FlexDoc(paragraphs).size_summary()
+        return _summarize_paragraphs(paragraphs)
 
     def links(self) -> list[Link]:
         """
