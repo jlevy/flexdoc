@@ -4,7 +4,8 @@
 
 **Author:** Joshua Levy and Codex
 
-**Status:** Draft; execution beads are mapped and maintainer decisions remain open.
+**Status:** In progress; execution beads are mapped and maintainer decisions remain
+open.
 
 ## Overview
 
@@ -169,7 +170,7 @@ source contract.
 | `flexdoc-s85t` | Tier the `flexdoc.docs` export surface | `flexdoc-lv8m` |
 | `flexdoc-aaow` | Decide frontmatter delimiter whitespace tolerance | `flexdoc-lv8m` |
 | `flexdoc-uogy` | Remove the temporary `FlexDoc` from `Section.size()` | `flexdoc-lv8m` |
-| `flexdoc-pcac` | Refresh or explicitly ratify the supply-chain gate | None; maintainer-gated |
+| `flexdoc-pcac` | Refresh the supply-chain gate; completed 2026-07-09 with no exceptions or audit ignores | None |
 | `flexdoc-ek6u` | Align CI coverage with the platform classifier | None |
 | `flexdoc-44b1` | Harden the tag-aware local release workflow | None |
 | `flexdoc-63p5` | Validate and publish 0.3.0 | Every preceding Phase 1 deliverable |

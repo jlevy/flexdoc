@@ -43,6 +43,9 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
 
 ### Changed
 
+- **The dependency lock is refreshed under the 14-day cool-off.** The cutoff is
+  2026-06-26, expired per-package exceptions are removed, and the audit group resolves
+  fixed `pip` and `msgpack` versions, so CI runs `pip-audit` without advisory ignores.
 - **`graph()` accepts any set.** `FlexDoc.graph()` and `build_doc_graph()` annotate
   `include`/`detail` as `collections.abc.Set`, so plain `set` literals type-check
   (matching `collect()`); behavior is unchanged.
@@ -52,7 +55,7 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
   changes.
 
 Remaining pre-1.0 design decisions and future mechanisms are collected in
-`docs/project/specs/active/plan-2026-07-08-post-review-refinements.md`.
+`docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md`.
 
 ## 0.2.0 (2026-06-14)
 
