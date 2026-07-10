@@ -47,9 +47,9 @@ Near-mechanical (recommend simply doing):
   `Block.heading_level` and `Paragraph.block_type`/`code_info`/`table_info`.
   `if paragraph.heading_level:` now reads the value rather than a truthy bound method.
   Breaking for callers using `()`; migrated in the 0.3 cleanup.
-- [ ] Rename `TRUE_LINK_FORMS` → `NAVIGABLE_LINK_FORMS` (every surrounding docstring
-  already says “navigable”; alternative name: `DEFAULT_LINK_FORMS`). Breaking for
-  importers.
+- [x] Rename `TRUE_LINK_FORMS` → `NAVIGABLE_LINK_FORMS`; the new name matches the
+  surrounding API language.
+  Breaking for importers and shipped without an alias in the 0.3 cleanup.
 - [x] Add `SpanRef.resolve(source_text)` and `SpanRef.resolve_and_update(source_text)`
   methods delegating to the implementation functions.
   The root API stays concise and avoids generic bare resolver names; `flexdoc.docs` no

@@ -1,6 +1,7 @@
 from textwrap import dedent
 
-from flexdoc.docs import FlexDoc
+import flexdoc.docs
+from flexdoc.docs import NAVIGABLE_LINK_FORMS, FlexDoc
 
 _DOC = dedent(
     """
@@ -13,6 +14,12 @@ _DOC = dedent(
     A bare https://bare.example.com URL and an <https://auto.example.com> autolink.
     """
 ).strip()
+
+
+def test_navigable_link_forms_are_promoted_without_the_old_name():
+    assert flexdoc.docs.NAVIGABLE_LINK_FORMS is NAVIGABLE_LINK_FORMS
+    assert "NAVIGABLE_LINK_FORMS" in flexdoc.docs.__all__
+    assert not hasattr(flexdoc.docs, "TRUE_LINK_FORMS")
 
 
 def test_doc_links_identity():

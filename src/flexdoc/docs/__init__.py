@@ -21,7 +21,7 @@ from flexdoc.docs.doc_graph import (
     build_doc_graph,
 )
 from flexdoc.docs.flex_doc import FlexDoc
-from flexdoc.docs.links import TRUE_LINK_FORMS, Link, LinkForm
+from flexdoc.docs.links import NAVIGABLE_LINK_FORMS, Link, LinkForm
 from flexdoc.docs.node import LAYER_NESTING, Layer, NestingGuarantee, Node, NodeKind, NodeTable
 from flexdoc.docs.node_table import build_node_table
 from flexdoc.docs.paragraphs import Offsets, Paragraph, Sentence, SentIndex
@@ -93,7 +93,7 @@ __all__ = [
     "Offsets",
     "Link",
     "LinkForm",
-    "TRUE_LINK_FORMS",
+    "NAVIGABLE_LINK_FORMS",
     "Paragraph",
     "Section",
     "Sentence",

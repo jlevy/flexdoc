@@ -156,7 +156,7 @@ source contract.
 | `flexdoc-ltzx` | Make paragraph heading metadata properties; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-ikm6` | Make recursive collection include inline descendants by default; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-buw9` | Make cached structural views mutation-safe; completed 2026-07-09 | `flexdoc-lv8m` |
-| `flexdoc-0cbm` | Rename the navigable-link form constant | `flexdoc-lv8m` |
+| `flexdoc-0cbm` | Rename the navigable-link form constant; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-p60e` | Put resolution beside the public `SpanRef` API; completed 2026-07-09 | `flexdoc-qire` |
 | `flexdoc-s85t` | Tier the `flexdoc.docs` export surface | `flexdoc-lv8m` |
 | `flexdoc-aaow` | Decide frontmatter delimiter whitespace tolerance | `flexdoc-lv8m` |

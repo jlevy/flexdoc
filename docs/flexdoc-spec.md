@@ -728,11 +728,11 @@ Inline elements (links, code spans, images, inline HTML, footnote references, �
   the name-tagged atomic spans from `flowmark.atomic_spans.iter_atomic_spans` (and a
   trimmed `block_span` for definitions); an identity that cannot be located keeps its
   identity with `span=None`.
-- **`links()` returns navigable links only by default** (`TRUE_LINK_FORMS`: `inline`,
-  `reference`, `autolink`, `bare_url`); `links(link_forms=…)` selects any forms and
-  `images()` is the convenience for `LinkForm.image`. **Reference definitions**
-  (`[id]: url`) are surfaced as `NodeKind.link_ref_def` nodes—parented to their
-  containing block, so a block-scoped `collect()` finds them—and via
+- **`links()` returns navigable links only by default** (`NAVIGABLE_LINK_FORMS`:
+  `inline`, `reference`, `autolink`, `bare_url`); `links(link_forms=…)` selects any
+  forms and `images()` is the convenience for `LinkForm.image`. **Reference
+  definitions** (`[id]: url`) are surfaced as `NodeKind.link_ref_def` nodes—parented to
+  their containing block, so a block-scoped `collect()` finds them—and via
   `links(link_forms={LinkForm.reference_definition})`, never the default `links()` (a
   definition is not a link occurrence).
 - `link → sentence` via `sentence_at_offset(link.span[0])`.

@@ -16,7 +16,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING
 
 from flexdoc.docs.block_tree import Block, parse_blocks
-from flexdoc.docs.links import TRUE_LINK_FORMS, Link, block_links
+from flexdoc.docs.links import NAVIGABLE_LINK_FORMS, Link, block_links
 from flexdoc.docs.paragraphs import Paragraph
 from flexdoc.docs.sizes import TextUnit
 
@@ -187,7 +187,7 @@ class Section:
         return [
             link
             for link in self._all_links()
-            if link.link_form in TRUE_LINK_FORMS
+            if link.link_form in NAVIGABLE_LINK_FORMS
             and link.span is not None
             and sec_start <= link.span[0]
             and link.span[1] <= sec_end
