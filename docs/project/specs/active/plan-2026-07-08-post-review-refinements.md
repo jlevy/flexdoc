@@ -75,11 +75,10 @@ Need a real decision:
   modules. Chopdiff `origin/main` at `df1337b` already imports these lower-level
   dependencies from owning modules; its only `flexdoc.docs` import is the promoted
   `Paragraph`, so no downstream source change is required.
-- [ ] **Frontmatter delimiter whitespace.** `--- ` (trailing spaces/tabs) is rejected
-  today (documented, but Jekyll/Hugo/gray-matter tolerate it; invisible editor spaces
-  cause silent detection failure).
-  Proposed: `.rstrip()` both delimiter checks—trailing tolerance only; leading
-  whitespace still disqualifies.
+- [x] **Frontmatter delimiter whitespace.** Opening and closing delimiters tolerate
+  trailing spaces and tabs while leading whitespace still disqualifies them.
+  Detection preserves the delimiter text and absolute body offset; an unclosed opening
+  remains a thematic break.
 - [ ] **`Section.size()` internals**: extract a `size_of_paragraphs(paragraphs, unit)`
   helper so `Section` stops building a throwaway `FlexDoc` per call (measured negligible
   at ~0.4µs, but removes a circular-import workaround).

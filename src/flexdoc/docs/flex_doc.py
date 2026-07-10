@@ -360,10 +360,11 @@ class FlexDoc:
     def frontmatter(self) -> str | None:
         """
         The leading YAML frontmatter block from normalized `source_text` (both `---`
-        delimiters included), or `None` if the document has none. Frontmatter is a
-        non-content region: excluded from `paragraphs`, `blocks()`, `sections()`, the node
-        table, and every size/prose count, but retained so the document round-trips after
-        line-ending normalization.
+        delimiter lines included), or `None` if the document has none. Delimiters allow
+        trailing spaces and tabs but not leading whitespace. Frontmatter is a non-content
+        region: excluded from `paragraphs`, `blocks()`, `sections()`, the node table, and
+        every size/prose count, but retained so the document round-trips after line-ending
+        normalization.
         """
         return split_frontmatter(self.source_text)[0]
 

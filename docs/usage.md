@@ -26,7 +26,8 @@ print(doc.size_summary())
 
 Offsets in paragraphs and sentences point into `doc.source_text`. If the source starts
 with YAML frontmatter, frontmatter is exposed as `doc.frontmatter` and excluded from the
-prose view.
+prose view. Opening and closing `---` delimiters may have trailing spaces or tabs but
+must not have leading whitespace.
 
 ### Extract Prose Text
 

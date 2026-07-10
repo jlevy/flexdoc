@@ -13,6 +13,11 @@ from __future__ import annotations
 _DELIM = "---"
 
 
+def _is_delimiter_line(line: str) -> bool:
+    """Match `---` with trailing horizontal whitespace or a CR, never leading whitespace."""
+    return line.rstrip(" \t\r") == _DELIM
+
+
 def split_frontmatter(text: str) -> tuple[str | None, int]:
     """
     Split a leading YAML frontmatter block from `text`.
@@ -21,22 +26,22 @@ def split_frontmatter(text: str) -> tuple[str | None, int]:
     lines and the trailing newline included — or `None` when there is no frontmatter, and
     `text[content_offset:]` is the body (`content_offset == 0` when absent).
 
-    Frontmatter must begin at offset 0 with a line that is exactly `---` and be closed by a
-    later line that is exactly `---`. A leading `---` with no matching closing line is an
-    ordinary thematic break, not frontmatter, and yields `(None, 0)`.
+    Frontmatter must begin at offset 0 with a `---` line and be closed by a later `---`
+    line. Both delimiters tolerate trailing spaces and tabs but reject leading
+    whitespace. A leading delimiter with no matching closing line is an ordinary
+    thematic break, not frontmatter, and yields `(None, 0)`.
     """
     first_nl = text.find("\n")
     if first_nl == -1:
         return None, 0
-    # The opening line must be exactly the delimiter (tolerating a CR for CRLF input).
-    if text[:first_nl].rstrip("\r") != _DELIM:
+    if not _is_delimiter_line(text[:first_nl]):
         return None, 0
 
     pos = first_nl + 1
     while pos <= len(text):
         nl = text.find("\n", pos)
         line_end = len(text) if nl == -1 else nl
-        if text[pos:line_end].rstrip("\r") == _DELIM:
+        if _is_delimiter_line(text[pos:line_end]):
             content_offset = len(text) if nl == -1 else nl + 1
             return text[:content_offset], content_offset
         if nl == -1:
@@ -75,3 +80,15 @@ def test_split_frontmatter():
 
     # Must start at offset 0.
     assert split_frontmatter("\n---\ntitle: x\n---\nbody\n") == (None, 0)
+
+    # Trailing horizontal whitespace is accepted and preserved verbatim.
+    spaced = "--- \t\ntitle: x\n---\t \nbody\n"
+    raw = spaced[: spaced.index("body")]
+    assert split_frontmatter(spaced) == (raw, len(raw))
+
+    # Leading whitespace still disqualifies either delimiter.
+    assert split_frontmatter(" ---\ntitle: x\n---\nbody\n") == (None, 0)
+    assert split_frontmatter("---\ntitle: x\n ---\nbody\n") == (None, 0)
+
+    # A whitespace-suffixed opening delimiter without a close remains a thematic break.
+    assert split_frontmatter("--- \t\n\nJust a rule above.\n") == (None, 0)

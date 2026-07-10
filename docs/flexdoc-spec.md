@@ -219,6 +219,9 @@ A leading YAML frontmatter block (`---`-delimited) is a **non-content region**: 
 excluded from the node table, the block/section views, and the editing view (and so from
 every size/prose count), and exposed verbatim via `FlexDoc.frontmatter`. `source_text`
 retains it, so spans stay absolute and the document still round-trips.
+Opening and closing delimiters begin at column 0 and may have trailing spaces or tabs;
+leading whitespace disqualifies a delimiter.
+The returned frontmatter preserves those delimiter lines verbatim.
 A leading `---` line with no closing `---` line is **not** frontmatter; it parses as an
 ordinary thematic break (a deterministic, lenient reading of the ambiguity).
 
@@ -377,7 +380,7 @@ normalizes line endings (`\r\n` and lone `\r` become `\n`) before retaining
   Structural blocks are otherwise addressed by their own spans or via
   `collect(overlaps=...)`.
 - **Frontmatter:** `FlexDoc.frontmatter` is the leading YAML block from normalized
-  `source_text`, or `None` (§3).
+  `source_text`, or `None`; delimiter whitespace rules are defined in §3.
 - **Sizing:** `size(unit)` and `size_summary()` measure the document in any `TextUnit`
   (see Terminology), including the approximate LLM `tokens` estimate.
 - **Prose projection:** `prose_text(include_tables=False)` returns prose-only text for

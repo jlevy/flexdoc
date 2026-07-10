@@ -81,6 +81,10 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
   Import them from `flexdoc.docs.wordtoks`, `search_tokens`, `token_diffs`, or
   `token_mapping` instead.
   The current Chopdiff integration already uses these owning-module paths.
+- **Frontmatter delimiters tolerate trailing horizontal whitespace.** Opening and
+  closing `---` lines may end in spaces or tabs while remaining verbatim in
+  `frontmatter`; leading whitespace still disqualifies a delimiter, and an unclosed
+  opening remains a thematic break.
 
 Remaining pre-1.0 design decisions and future mechanisms are collected in
 `docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md`.

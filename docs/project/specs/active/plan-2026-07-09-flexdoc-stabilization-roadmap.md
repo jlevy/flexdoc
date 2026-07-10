@@ -159,7 +159,7 @@ source contract.
 | `flexdoc-0cbm` | Rename the navigable-link form constant; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-p60e` | Put resolution beside the public `SpanRef` API; completed 2026-07-09 | `flexdoc-qire` |
 | `flexdoc-s85t` | Tier the `flexdoc.docs` export surface; completed 2026-07-09 | `flexdoc-lv8m` |
-| `flexdoc-aaow` | Decide frontmatter delimiter whitespace tolerance | `flexdoc-lv8m` |
+| `flexdoc-aaow` | Tolerate trailing horizontal whitespace on frontmatter delimiters; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-uogy` | Remove the temporary `FlexDoc` from `Section.size()` | `flexdoc-lv8m` |
 | `flexdoc-pcac` | Refresh the supply-chain gate; completed 2026-07-09 with no exceptions or audit ignores | None |
 | `flexdoc-ek6u` | Align CI coverage with the platform classifier | None |
