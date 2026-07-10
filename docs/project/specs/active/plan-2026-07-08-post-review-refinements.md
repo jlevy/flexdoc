@@ -133,9 +133,10 @@ Suggested sequencing: `Annotation` and `from_quote`/`resolve_batch` first, then
 - [x] **CI matrix vs. classifier**: retain `Operating System :: OS Independent` and run
   the full lint/test gate on `macos-latest` with Python 3.13 in addition to the complete
   supported-version matrix on Ubuntu.
-- [ ] **Release runbook note**: local wheel builds need `git fetch --tags`
-  (uv-dynamic-versioning yields `0.0.1.devN` from a tagless clone; remote tags are
-  fine).
+- [x] **Release runbook note**: local release preparation fetches tags before building
+  and verifies the intended wheel version in an isolated clone with a local-only
+  candidate tag. The reproduced baseline changed from the tagless `0.0.1.devN` form to
+  `0.2.1.dev10+aceb0c7`; a simulated `v0.3.0` produced exact `Version: 0.3.0` metadata.
 
 ## 4. Smaller Items, No Urgency
 

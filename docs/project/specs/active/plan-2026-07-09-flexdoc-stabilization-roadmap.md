@@ -163,7 +163,7 @@ source contract.
 | `flexdoc-uogy` | Remove the temporary `FlexDoc` from `Section.size()` | `flexdoc-lv8m` |
 | `flexdoc-pcac` | Refresh the supply-chain gate; completed 2026-07-09 with no exceptions or audit ignores | None |
 | `flexdoc-ek6u` | Back the OS-independent classifier with representative macOS CI; completed 2026-07-09 | None |
-| `flexdoc-44b1` | Harden the tag-aware local release workflow | None |
+| `flexdoc-44b1` | Harden and reproduce the tag-aware local release workflow; completed 2026-07-09 | None |
 | `flexdoc-63p5` | Validate and publish 0.3.0 | Every preceding Phase 1 deliverable |
 
 `TextUnit` is not in the API batch because its `StrEnum` conversion landed on PR #9. The

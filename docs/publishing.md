@@ -78,9 +78,14 @@ Follow this checklist for each new release.
 
    ```shell
    git checkout main
-   git pull origin main
-   git status  # confirm a clean working tree
+   git fetch --tags --prune origin
+   git pull --ff-only origin main
+   git status --short --branch  # confirm a clean working tree
    ```
+
+   Fetch tags before any local build.
+   `uv-dynamic-versioning` derives the version from Git history; a tagless clone can
+   incorrectly produce `0.0.1.devN` even when releases exist upstream.
 
 2. **Verify all changes are committed and pushed:**
 
@@ -108,17 +113,21 @@ Follow this checklist for each new release.
 5. **Determine the new version number:**
 
    ```shell
-   # Check current/latest version:
+   # These should identify the same latest release.
+   git describe --tags --abbrev=0
    gh release list --limit 1
+
+   NEW_TAG="vX.Y.Z"  # Replace with the intended version.
    ```
 
    Use [semantic versioning](https://semver.org/):
 
    - **Patch** (e.g., `v0.5.8` → `v0.5.9`): Bug fixes, minor changes
 
-   - **Minor** (e.g., `v0.5.9` → `v0.6.0`): New features, backward-compatible
+   - **Minor** (e.g., `v0.5.9` → `v0.6.0`): New features; before 1.0, breaking changes
+     also require a minor bump
 
-   - **Major** (e.g., `v0.6.0` → `v1.0.0`): Breaking changes
+   - **Major** (e.g., `v0.6.0` → `v1.0.0`): Breaking changes after 1.0
 
 #### Create the Release
 
@@ -129,13 +138,40 @@ Follow this checklist for each new release.
    LAST_TAG=$(gh release list --limit 1 --json tagName -q '.[0].tagName')
 
    # View commits since last release:
-   git log ${LAST_TAG}..HEAD --oneline
+   git log "${LAST_TAG}..HEAD" --oneline
 
    # View full diff:
-   git diff ${LAST_TAG}..HEAD
+   git diff "${LAST_TAG}..HEAD"
    ```
 
-7. **Write the release notes in a file, then create the release:**
+7. **Verify the tag-derived wheel version locally:**
+
+   Build from an isolated clone with a local-only candidate tag.
+   This proves the wheel reports the intended version without creating or pushing a
+   repository tag:
+
+   ```shell
+   (
+     set -euo pipefail
+     VERSION="${NEW_TAG#v}"
+     CHECK_DIR="$(mktemp -d)"
+     trap 'rm -rf -- "${CHECK_DIR:?}"' EXIT
+
+     git clone --no-local --quiet . "${CHECK_DIR}/repo"
+     git -C "${CHECK_DIR}/repo" tag "${NEW_TAG}"
+     uv build --wheel --directory "${CHECK_DIR}/repo"
+
+     WHEEL="${CHECK_DIR}/repo/dist/flexdoc-${VERSION}-py3-none-any.whl"
+     test -f "${WHEEL}"
+     unzip -p "${WHEEL}" "flexdoc-${VERSION}.dist-info/METADATA" \
+       | grep -Fx "Version: ${VERSION}"
+   )
+   ```
+
+   The metadata check must print exactly `Version: X.Y.Z`. Stop if the filename or
+   metadata differs; do not create the GitHub release.
+
+8. **Write the release notes in a file, then create the release:**
 
    Author the notes as plain Markdown in a file (see
    [Release Notes Format](#release-notes-format) below), then pass it with
@@ -147,8 +183,6 @@ Follow this checklist for each new release.
    `https://github.com/OWNER/PROJECT/compare/v0.1.0...v0.2.0`.
 
    ```shell
-   NEW_TAG="vX.Y.Z"  # Replace with the actual version
-
    # Edit release-notes.md in your editor, ending with the concrete compare link.
 
    gh release create "${NEW_TAG}" --title "${NEW_TAG}" --notes-file release-notes.md
@@ -156,7 +190,7 @@ Follow this checklist for each new release.
 
    Alternatively, use `--generate-notes` for GitHub’s auto-generated notes.
 
-8. **Verify the release published successfully:**
+9. **Verify the release published successfully:**
 
    ```shell
    # Check the release workflow:

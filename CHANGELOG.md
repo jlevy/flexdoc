@@ -88,6 +88,9 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
 - **The OS-independent classifier is backed by macOS CI.** Ubuntu still covers every
   supported Python version, and Python 3.13 now runs the full lint/test gate on
   `macos-latest` as a representative second platform.
+- **Local release preparation is tag-aware.** The runbook fetches tags before building
+  and verifies candidate wheel metadata from an isolated local tag, preventing a tagless
+  clone from silently producing a `0.0.1.devN` release artifact.
 
 Remaining pre-1.0 design decisions and future mechanisms are collected in
 `docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md`.
