@@ -3,9 +3,9 @@ type: is
 id: is-01kx4v9qnawqqrjvcwnwcy4f0t
 title: "Merge PR #9 and ratify the normalized source contract"
 kind: task
-status: open
+status: closed
 priority: 1
-version: 11
+version: 13
 spec_path: docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md
 labels:
   - release-0.3
@@ -33,6 +33,8 @@ dependencies:
     target: is-01kx1w32h8f8920d8kp9xh8ngc
 parent_id: is-01kx4rdq9kt2dy2hzfc2c7fjdw
 created_at: 2026-07-10T01:46:58.089Z
-updated_at: 2026-07-10T01:50:03.098Z
+updated_at: 2026-07-10T02:11:17.560Z
+closed_at: 2026-07-10T02:11:17.559Z
+close_reason: "Merged PR #9 as squash commit 6d0546b after the senior review, normalized-source contract ratification, supply-chain refresh, unignored audit, and all required checks passed."
 ---
 Review and merge PR #9 as the baseline for the roadmap, explicitly accepting LF-normalized source coordinates, frontmatter blanking, visible ambiguous-anchor failure, and the temporary audit-exception disposition. Done when the PR is merged, its changelog states the breaking 0.3.0 boundary, and no review thread remains unresolved.
