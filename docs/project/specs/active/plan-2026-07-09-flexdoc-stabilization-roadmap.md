@@ -26,8 +26,8 @@ foundation.
   one documented 0.3.0 boundary
 - Preserve one normalized source string and one Unicode-code-point offset space across
   every projection
-- Make anchoring failures visible, including the unresolved context-free offset-hint
-  case
+- Make anchoring failures visible, including context-free offset hints over duplicate
+  quotes
 - Add annotation, suggestion, chunking, and outline mechanisms with explicit ownership,
   conflict, and schema-version semantics
 - Complete the synthetic layer and downstream Chopdiff adoption after the public API is
@@ -56,12 +56,8 @@ The follow-up review also found and fixed a remaining double parse: documents wi
 frontmatter built links from a second body-only parse even though the blanked shared
 parse was already safe to reuse.
 
-The review also confirmed four planning gaps:
+The review also confirmed three planning gaps:
 
-- A `SpanRef` with offsets but no prefix or suffix can still silently select the wrong
-  duplicate after an edit.
-  The current implementation cannot distinguish a valid same-source position from a
-  stale position without context or source identity.
 - The proposed `collect(recursive=True)` behavior needs a tri-state API if callers are
   to distinguish an omitted `inline` option from an explicit `inline=False` override.
 - An `Annotation` model alone does not define who owns annotations or how they enter a
@@ -69,11 +65,8 @@ The review also confirmed four planning gaps:
 - A `SuggestedEdit` record alone does not define batch application, overlap conflicts,
   stale anchors, or atomic failure behavior.
 
-The supply-chain cutoff is also stale.
-CI passes only because the audit job explicitly ignores two advisories in
-audit-tool-only dependencies.
-The repository policy requires maintainer ratification or a reviewed cutoff and lockfile
-refresh before promotion.
+The supply-chain cutoff and lockfile were refreshed on 2026-07-09. All expired package
+exceptions and audit ignores are removed, and the unignored audit passes.
 
 ## Tracking
 
@@ -160,7 +153,7 @@ source contract.
 | Bead | Deliverable | Blocked By |
 | --- | --- | --- |
 | `flexdoc-lv8m` | Merge PR #9 and ratify normalized source coordinates | None |
-| `flexdoc-qire` | Resolve context-free `SpanRef` hint ambiguity | `flexdoc-lv8m` |
+| `flexdoc-qire` | Reject context-free hints over duplicate quotes; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-lcuh` | Group the eight pre-1.0 API cleanup beads | `flexdoc-lv8m` establishes the baseline |
 | `flexdoc-ltzx` | Make paragraph heading metadata properties | `flexdoc-lv8m` |
 | `flexdoc-ikm6` | Define recursive inline collection semantics | `flexdoc-lv8m` |
@@ -238,10 +231,6 @@ workflow APIs and the Chopdiff migration.
 
 ## Open Questions
 
-- Will the maintainer ratify the current audit ignores temporarily, or require the
-  cutoff and lockfile refresh before PR #9 merges?
-- Should a context-free positional hint select a duplicate in an unchanged source, and
-  if so, what source identity proves that the source is unchanged?
 - Should recursive collection include inline nodes by default, and what explicit API
   excludes them?
 - Should cached structural objects be immutable, or should public methods return deep

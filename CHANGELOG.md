@@ -32,6 +32,8 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
   (§11), a `SpanRef` quote that occurs multiple times with no disambiguating
   prefix/suffix (or a tied context score) now resolves to `None` instead of silently
   anchoring to the first occurrence.
+  A context-free position hint also cannot select a duplicate, because no context or
+  source identity proves which occurrence was intended.
   A zero-width quote (`exact=""`) also resolves to `None` on both the fast and slow
   paths.
 - **`collect(overlaps=...)` treats empty intervals as empty.** A degenerate `[x, x)`

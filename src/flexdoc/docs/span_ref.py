@@ -3,13 +3,10 @@
 
 The quoted text (`exact` plus optional `prefix`/`suffix` context) is the
 canonical durable anchor; the offsets (`start`/`end`) are a recomputable hint.
-Resolution accepts an offset fast path only when `exact` and any captured context
-match, then falls back to quote search with prefix/suffix disambiguation.
-
-Context-free refs are a deliberate boundary: an exact-matching offset is accepted
-because no context can corroborate or reject it. Callers persisting a ref across edits
-should use `from_span()`/`from_node()` so context is captured, or drop the offsets with
-`to_persisted()`.
+Resolution accepts an offset fast path only when `exact` and captured context match,
+then falls back to quote search with prefix/suffix disambiguation. A context-free hint
+cannot choose between duplicate quotes; callers should use `from_span()`/`from_node()`
+so context is captured, or drop the offsets with `to_persisted()`.
 """
 
 from __future__ import annotations
@@ -113,27 +110,28 @@ def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
     does not mutate `span_ref` (use `resolve_and_update` to also write the
     offsets back).
 
-    Fast path: if `start`/`end` are present, the text at those offsets matches
-    `exact`, and any captured `prefix`/`suffix` also matches the surrounding
-    text there, return immediately. The context check is what keeps a *stale*
-    hint from silently anchoring to a different duplicate of the quote after an
-    edit; a hint whose context disagrees falls through to the quote search.
+    Fast path: if `start`/`end` and at least one captured context window are
+    present, the text at those offsets matches `exact`, and the captured
+    `prefix`/`suffix` matches the surrounding text there, return immediately.
+    Requiring context keeps a stale hint from silently anchoring to a different
+    duplicate of the quote after an edit; a context-free or context-mismatched
+    hint falls through to the quote search.
     Otherwise, search the full text for `exact`, disambiguating with
     `prefix`/`suffix`. When the quote occurs more than once and the context
     does not single out one occurrence (no context, or a tied best score), the
     result is None rather than a guess; resolution failure is a visible value,
     never a silent wrong anchor (spec section 11).
 
-    With neither `prefix` nor `suffix`, an exact-matching offset is trusted. Such a ref
-    cannot detect that an edit moved its intended occurrence onto another duplicate;
-    durable refs should capture context or omit the position hint.
+    With neither `prefix` nor `suffix`, offsets cannot disambiguate duplicate quotes.
+    A unique quote still resolves through the search path.
     """
     # A zero-width quote anchors nothing; reject it on both paths.
     if not span_ref.exact:
         return None
 
-    # Fast path: offsets are valid and any captured context corroborates them.
-    if span_ref.start is not None and span_ref.end is not None:
+    # A position hint is trustworthy only when captured context corroborates it.
+    has_context = span_ref.prefix is not None or span_ref.suffix is not None
+    if has_context and span_ref.start is not None and span_ref.end is not None:
         s, e = span_ref.start, span_ref.end
         if (
             0 <= s <= e <= len(source_text)
@@ -193,9 +191,9 @@ def _context_matches_at(span_ref: SpanRef, source_text: str, start: int, end: in
 def resolve_and_update(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
     """
     Resolve a `SpanRef` and, on success, write the recomputed offsets back into
-    `span_ref.start`/`span_ref.end` so subsequent resolves hit the fast path.
-    Returns the `(start, end)` offsets or None. The mutating counterpart to
-    `resolve()`.
+    `span_ref.start`/`span_ref.end`. Refs with captured context can then use the
+    fast path; context-free refs retain the offsets only as a position hint.
+    Returns the `(start, end)` offsets or None. The mutating counterpart to `resolve()`.
     """
     result = resolve(span_ref, source_text)
     if result is not None:

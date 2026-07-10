@@ -101,8 +101,8 @@ def test_to_persisted_has_no_offsets_but_still_resolves():
     assert result == para.source_span
 
 
-def test_fast_path_returns_immediately():
-    """When offsets are valid and text matches, the fast path is used."""
+def test_context_free_position_hint_resolves_a_unique_quote():
+    """A unique quote resolves without context; its position hint is not needed."""
     ref = SpanRef(
         exact="sample link",
         prefix=None,
@@ -112,7 +112,6 @@ def test_fast_path_returns_immediately():
     )
     assert ref.start is not None
 
-    # Fast path: offsets are valid and text matches.
     result = resolve(ref, _DOC_TEXT)
     assert result is not None
     assert result == (ref.start, ref.end)
@@ -200,6 +199,20 @@ def test_stale_offset_hint_on_wrong_duplicate_falls_through_to_quote_search():
     assert resolve(ref, new) == expected
 
 
+def test_context_free_offset_hint_cannot_choose_between_duplicates():
+    """A position hint without context cannot prove which duplicate was intended."""
+    text = "A target. B target."
+    second_start = text.rfind("target")
+    ref = SpanRef(
+        exact="target",
+        start=second_start,
+        end=second_start + len("target"),
+    )
+
+    assert resolve(ref, text) is None
+    assert resolve(ref, "0123456789" + text) is None
+
+
 def test_valid_offset_hint_with_matching_context_fast_paths():
     """An offset hint whose quote and context both match is accepted as-is."""
     text = "one target here. two target there."
@@ -242,7 +255,7 @@ def test_resolve_does_not_mutate():
 
 
 def test_resolve_and_update_writes_offsets():
-    """resolve_and_update() writes the recomputed offsets back for fast-path reuse."""
+    """resolve_and_update() writes the recomputed offsets back as a position hint."""
     ref = SpanRef(exact="target")
     result = resolve_and_update(ref, "before target after")
     assert result is not None
