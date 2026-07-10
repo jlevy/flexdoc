@@ -1043,6 +1043,10 @@ This spec stands alone; the following are background, not dependencies.
   (background for §11), and the layered-parsing brief
   [`research-2026-05-30-multilayer-parsing.md`](project/research/research-2026-05-30-multilayer-parsing.md)
   (background and prior art for §3).
+- The portable reference protocol brief
+  [`research-2026-07-10-text-reference-microformat.md`](project/research/research-2026-07-10-text-reference-microformat.md)
+  evaluates extracting DocRef, SpanRef, SnapshotRef, and TextRef into a standalone
+  cross-language microformat; it is a proposal, not part of the current contract.
 - Dated planning documents under `docs/project/specs/` (active and archived) track the
   incremental work toward this design and reference this spec.
 - flowmark v0.7.1 API relied on for spans and splitting: `flowmark.atomic_spans`
