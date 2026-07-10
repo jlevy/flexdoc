@@ -5,11 +5,16 @@ title: "Synthetic layer: migrate TextNode/parse_divs from chopdiff into the node
 kind: feature
 status: open
 priority: 2
-version: 2
+version: 4
 spec_path: docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md
-labels: []
-dependencies: []
+labels:
+  - synthetic-layer
+  - phase-3
+dependencies:
+  - type: blocks
+    target: is-01kx4v94qy1ht8pa7enfm73wt8
+parent_id: is-01kx4re3wcn6vvzsn36nqw37fd
 created_at: 2026-06-12T16:57:16.449Z
-updated_at: 2026-07-10T00:57:05.317Z
+updated_at: 2026-07-10T01:47:43.454Z
 ---
 Stage 4 of the extraction plan, now concretely mapped there: move chopdiff.divs (TextNode, parse_divs, chunk utils) into flexdoc and re-express marker-tag regions as synthetic-layer nodes keyed into the node table; builder pass over a configurable tag whitelist; partial-overlap fixtures (tags crossing block boundaries) and a LAYER_NESTING decision for non-nesting regions; divs tests migrate. Moderate difficulty; see plan Stage 4 for the step map.
