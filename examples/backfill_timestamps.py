@@ -9,7 +9,10 @@ Run from the repository checkout with: `uv run python examples/backfill_timestam
 import logging
 from textwrap import dedent
 
-from flexdoc.docs import BOF_TOK, EOF_TOK, PARA_BR_TOK, FlexDoc, TokenMapping, search_tokens
+from flexdoc import FlexDoc
+from flexdoc.docs.search_tokens import search_tokens
+from flexdoc.docs.token_mapping import TokenMapping
+from flexdoc.docs.wordtoks import BOF_TOK, EOF_TOK, PARA_BR_TOK
 from flexdoc.html import ContentNotFound, TimestampExtractor
 
 logging.basicConfig(format=">> %(message)s")

@@ -932,6 +932,11 @@ canonical substrate (P1); node ids stable within a parse; derived views over one
 parse (no duplicated content, no stored counts), the node table among them; references
 are quote-canonical; additive (existing behavior preserved).
 
+The promoted `flexdoc.docs` namespace is the document-model surface.
+Lower-level word-token/search and diff/mapping machinery remains available only through
+its owning modules (`wordtoks`, `search_tokens`, `token_diffs`, and `token_mapping`),
+keeping those pipeline internals out of the model’s advertised namespace.
+
 Non-goals: a parallel runtime `BlockDoc`/`SectionDoc` Python model (DocGraph is a
 projection, not a competing editable model).
 **Naming note:** an abandoned design branch used “FlexDoc” for that competing runtime

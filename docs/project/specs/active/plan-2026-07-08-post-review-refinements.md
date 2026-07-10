@@ -69,12 +69,12 @@ Need a real decision:
   by a docstring. Option A: freeze the dataclasses (children/content become tuples;
   breaking, correct). Option B: deep-copy on return (compatible, slower, keeps the
   mutable interface). Recommendation: A, pre-1.0.
-- [ ] **Tier the `flexdoc.docs` export surface.** 83 symbols, of which ~26 wordtok
-  primitives and ~10 diff/mapping internals exist for chopdiff.
-  Option: drop them from `flexdoc.docs.__all__` (still importable from
-  `flexdoc.docs.wordtoks`/`token_diffs`), keeping the promoted surface the document
-  model. Decide together with chopdiff’s rewire (extraction plan Step 5) so the moved
-  imports land once.
+- [x] **Tier the `flexdoc.docs` export surface.** The promoted surface now contains 44
+  document-model, serialization, query, and render/report names.
+  Word-token/search and diff/mapping machinery remains importable from its owning
+  modules. Chopdiff `origin/main` at `df1337b` already imports these lower-level
+  dependencies from owning modules; its only `flexdoc.docs` import is the promoted
+  `Paragraph`, so no downstream source change is required.
 - [ ] **Frontmatter delimiter whitespace.** `--- ` (trailing spaces/tabs) is rejected
   today (documented, but Jekyll/Hugo/gray-matter tolerate it; invisible editor spaces
   cause silent detection failure).

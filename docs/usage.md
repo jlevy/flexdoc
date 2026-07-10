@@ -138,6 +138,21 @@ doc.replace_str("docs", "guide")
 updated = FlexDoc.from_text(doc.reassemble())
 ```
 
+### Import Lower-Level Token and Diff Utilities Explicitly
+
+`flexdoc.docs` promotes the document model.
+Word-token, token-diff, mapping, and search utilities remain available from their owning
+modules for lower-level pipelines:
+
+```python
+from flexdoc.docs.search_tokens import search_tokens
+from flexdoc.docs.token_diffs import TokenDiff, diff_wordtoks
+from flexdoc.docs.token_mapping import TokenMapping
+from flexdoc.docs.wordtoks import PARA_BR_TOK, wordtokenize
+```
+
+These names are not re-exported from `flexdoc.docs`.
+
 ## Examples
 
 Run the worked examples from a repository checkout:

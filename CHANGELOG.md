@@ -76,6 +76,11 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
   Remove `()` from calls to the two former methods.
 - **The navigable-link constant is accurately named.** Import `NAVIGABLE_LINK_FORMS`
   instead of `TRUE_LINK_FORMS`; no compatibility alias is retained.
+- **`flexdoc.docs` now promotes the document model only.** Word-token/search and
+  diff/mapping names are no longer re-exported.
+  Import them from `flexdoc.docs.wordtoks`, `search_tokens`, `token_diffs`, or
+  `token_mapping` instead.
+  The current Chopdiff integration already uses these owning-module paths.
 
 Remaining pre-1.0 design decisions and future mechanisms are collected in
 `docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md`.

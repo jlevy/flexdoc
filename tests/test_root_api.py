@@ -42,6 +42,58 @@ def test_root_surface_is_deliberate():
     assert not hasattr(flexdoc.docs, "resolve_and_update")
 
 
+def test_docs_surface_promotes_the_document_model_only():
+    assert sorted(flexdoc.docs.__all__) == [
+        "BaseBlock",
+        "Block",
+        "BlockType",
+        "CodeInfo",
+        "DEFAULT_INCLUDE",
+        "Detail",
+        "DocGraph",
+        "FlexDoc",
+        "HeadingInfo",
+        "LAYER_NESTING",
+        "Layer",
+        "Link",
+        "LinkForm",
+        "ListInfo",
+        "NAVIGABLE_LINK_FORMS",
+        "NestingGuarantee",
+        "Node",
+        "NodeKind",
+        "NodeModel",
+        "NodeTable",
+        "Offsets",
+        "Paragraph",
+        "Section",
+        "SentIndex",
+        "Sentence",
+        "SourceInfo",
+        "SpanRef",
+        "TableInfo",
+        "TextUnit",
+        "Views",
+        "base_blocks",
+        "block_type_for",
+        "build_doc_graph",
+        "build_node_table",
+        "collect",
+        "doc_graph_yaml",
+        "doc_report",
+        "doc_report_data",
+        "dump_views",
+        "parse_blocks",
+        "parse_source_span_attr",
+        "render_node_attrs",
+        "walk_blocks",
+        "wrap_with_node_attrs",
+    ]
+
+    for internal_name in ("TokenDiff", "TokenMapping", "wordtokenize"):
+        assert not hasattr(flexdoc.docs, internal_name)
+
+
 def test_root_working_set_covers_the_common_first_lines():
     from flexdoc import FlexDoc, NodeKind, SpanRef, TextUnit
 
