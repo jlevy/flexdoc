@@ -162,7 +162,7 @@ source contract.
 | `flexdoc-aaow` | Tolerate trailing horizontal whitespace on frontmatter delimiters; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-uogy` | Remove the temporary `FlexDoc` from `Section.size()` | `flexdoc-lv8m` |
 | `flexdoc-pcac` | Refresh the supply-chain gate; completed 2026-07-09 with no exceptions or audit ignores | None |
-| `flexdoc-ek6u` | Align CI coverage with the platform classifier | None |
+| `flexdoc-ek6u` | Back the OS-independent classifier with representative macOS CI; completed 2026-07-09 | None |
 | `flexdoc-44b1` | Harden the tag-aware local release workflow | None |
 | `flexdoc-63p5` | Validate and publish 0.3.0 | Every preceding Phase 1 deliverable |
 
@@ -238,7 +238,6 @@ workflow APIs and the Chopdiff migration.
 - Who owns annotations, and how are they supplied to `DocGraph` serialization?
 - Does a populated annotation layer require `DocGraph/v0.2` on every graph or only on
   graphs that include annotations?
-- Is macOS CI required, or should package metadata narrow the platform claim?
 
 ## References
 

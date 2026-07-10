@@ -85,6 +85,9 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
   closing `---` lines may end in spaces or tabs while remaining verbatim in
   `frontmatter`; leading whitespace still disqualifies a delimiter, and an unclosed
   opening remains a thematic break.
+- **The OS-independent classifier is backed by macOS CI.** Ubuntu still covers every
+  supported Python version, and Python 3.13 now runs the full lint/test gate on
+  `macos-latest` as a representative second platform.
 
 Remaining pre-1.0 design decisions and future mechanisms are collected in
 `docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md`.

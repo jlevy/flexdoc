@@ -130,8 +130,9 @@ Suggested sequencing: `Annotation` and `from_quote`/`resolve_batch` first, then
   advisory landed mid-review—both are pip-audit-only transitive deps and both fixes are
   already past their 14-day windows).
   Deliberately kept off the review branch (lockfile churn).
-- [ ] **CI matrix vs. classifier**: add one macOS job (single Python version) or drop
-  `Operating System :: OS Independent`.
+- [x] **CI matrix vs. classifier**: retain `Operating System :: OS Independent` and run
+  the full lint/test gate on `macos-latest` with Python 3.13 in addition to the complete
+  supported-version matrix on Ubuntu.
 - [ ] **Release runbook note**: local wheel builds need `git fetch --tags`
   (uv-dynamic-versioning yields `0.0.1.devN` from a tagless clone; remote tags are
   fine).
