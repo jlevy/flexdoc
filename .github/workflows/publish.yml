@@ -4,6 +4,7 @@ on:
   release:
     types: [published]
   workflow_dispatch: # Enable manual trigger.
+  workflow_call: # Callable from release.yml, which cannot fire the release event.
 
 jobs:
   build-and-publish:
