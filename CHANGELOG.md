@@ -4,11 +4,12 @@ All notable changes to flexdoc are documented here.
 This project uses [semantic versioning](https://semver.org/); while pre-1.0, breaking
 changes bump the **minor** version (see `docs/publishing.md`).
 
-## Unreleased
+## 0.3.0 (2026-07-11)
 
 Fixes from the 2026-07 pre-promotion design review
 (`docs/project/review/senior-engineering-review-flexdoc-2026-07.md`). These changes
-alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch.
+alter documented behavior, so per the pre-1.0 rule this is a minor release, not a
+0.2.x patch.
 
 ### Fixed
 
