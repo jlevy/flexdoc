@@ -1,31 +1,27 @@
 name: Create Release
 
-# Implements the `gh release create` step of docs/publishing.md as a manual
-# workflow, for release operators (including agent sessions) that cannot push
-# tags directly. Creates the tag at the target commit and publishes a GitHub
-# Release with the provided notes.
+# Release automation for operators that cannot push tags or dispatch workflows
+# directly (e.g. remote agent sessions, which can only push their own working
+# branch and merge PRs). To cut a release: update
+# .github/release-request/request.json and notes.md, land the change on main
+# via PR after the docs/publishing.md pre-release checklist passes, and the
+# merge triggers this workflow. It creates the tag and GitHub Release at the
+# merged commit, then calls publish.yml to build, test, and publish to PyPI.
 #
-# Note: the release is created with the workflow's GITHUB_TOKEN, and events
-# from that token do not trigger other workflows, so publish.yml must be
-# dispatched separately on the new tag to publish to PyPI.
+# The release is created with GITHUB_TOKEN, whose events do not trigger other
+# workflows, so publish.yml is invoked here as a reusable workflow instead of
+# through its release-published trigger. PyPI trusted publishing validates the
+# job_workflow_ref claim, which points at publish.yml for the called job, so
+# the registered publisher still matches. Releases cut by a maintainer with
+# gh release create (the runbook path) fire publish.yml directly and never
+# run this workflow.
 
 on:
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: "Release tag (e.g. v0.3.0)"
-        required: true
-        type: string
-      target:
-        description: "Target commit SHA (defaults to the dispatched ref's head)"
-        required: false
-        default: ""
-        type: string
-      notes:
-        description: "Release notes body (Markdown); auto-generated if empty"
-        required: false
-        default: ""
-        type: string
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/release-request/**"
 
 jobs:
   create-release:
@@ -33,19 +29,26 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Checkout (official GitHub action)
+        # actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+
       - name: Create tag and release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag }}
-          TARGET: ${{ inputs.target != '' && inputs.target || github.sha }}
-          NOTES: ${{ inputs.notes }}
         run: |
-          if [ -n "$NOTES" ]; then
-            printf '%s\n' "$NOTES" > "$RUNNER_TEMP/notes.md"
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
-              --target "$TARGET" --title "$TAG" \
-              --notes-file "$RUNNER_TEMP/notes.md"
-          else
-            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
-              --target "$TARGET" --title "$TAG" --generate-notes
-          fi
+          TAG="$(jq -r .tag .github/release-request/request.json)"
+          case "$TAG" in
+            v[0-9]*) ;;
+            *) echo "Invalid tag in release request: $TAG" >&2; exit 1 ;;
+          esac
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --title "$TAG" \
+            --notes-file .github/release-request/notes.md
+
+  publish:
+    needs: create-release
+    permissions:
+      id-token: write
+      contents: read
+    uses: ./.github/workflows/publish.yml
