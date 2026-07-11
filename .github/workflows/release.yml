@@ -1,0 +1,51 @@
+name: Create Release
+
+# Implements the `gh release create` step of docs/publishing.md as a manual
+# workflow, for release operators (including agent sessions) that cannot push
+# tags directly. Creates the tag at the target commit and publishes a GitHub
+# Release with the provided notes.
+#
+# Note: the release is created with the workflow's GITHUB_TOKEN, and events
+# from that token do not trigger other workflows, so publish.yml must be
+# dispatched separately on the new tag to publish to PyPI.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v0.3.0)"
+        required: true
+        type: string
+      target:
+        description: "Target commit SHA (defaults to the dispatched ref's head)"
+        required: false
+        default: ""
+        type: string
+      notes:
+        description: "Release notes body (Markdown); auto-generated if empty"
+        required: false
+        default: ""
+        type: string
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Create tag and release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          TARGET: ${{ inputs.target != '' && inputs.target || github.sha }}
+          NOTES: ${{ inputs.notes }}
+        run: |
+          if [ -n "$NOTES" ]; then
+            printf '%s\n' "$NOTES" > "$RUNNER_TEMP/notes.md"
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --target "$TARGET" --title "$TAG" \
+              --notes-file "$RUNNER_TEMP/notes.md"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --target "$TARGET" --title "$TAG" --generate-notes
+          fi
