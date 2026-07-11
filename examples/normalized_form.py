@@ -11,6 +11,7 @@ Run from the repository checkout with: `uv run python examples/normalized_form.p
 """
 
 from collections import Counter
+from collections.abc import Sequence
 from textwrap import dedent
 
 from flexdoc.docs import Block, BlockType, FlexDoc, Section
@@ -68,7 +69,7 @@ def show_own_links(sections: list[Section]) -> None:
         show_own_links(section.children)
 
 
-def count_descending(blocks: list[Block], counter: Counter[BlockType]) -> None:
+def count_descending(blocks: Sequence[Block], counter: Counter[BlockType]) -> None:
     """Opt-in deep tally: descend into children (e.g. to count list_items)."""
     for block in blocks:
         counter[block.type] += 1

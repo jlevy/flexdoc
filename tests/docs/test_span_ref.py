@@ -1,5 +1,5 @@
 """
-Tests for `SpanRef` and `resolve()`: round-trip construction, re-anchoring
+Tests for `SpanRef` resolution methods: round-trip construction, re-anchoring
 after edits, persisted form resolution, and fast-path behavior.
 """
 
@@ -11,7 +11,7 @@ from textwrap import dedent
 from flexdoc.docs import FlexDoc
 from flexdoc.docs.node import Layer, NodeKind
 from flexdoc.docs.node_table import build_node_table
-from flexdoc.docs.span_ref import SpanRef, resolve, resolve_and_update
+from flexdoc.docs.span_ref import SpanRef
 
 _DOC_TEXT = dedent("""
     # Introduction
@@ -41,7 +41,7 @@ def test_node_to_spanref_roundtrip():
     heading = headings[0]
 
     ref = SpanRef.from_node(heading, table.source_text)
-    result = resolve(ref, table.source_text)
+    result = ref.resolve(table.source_text)
 
     assert result is not None
     assert result == heading.source_span
@@ -66,7 +66,7 @@ def test_resolve_after_prepending_text():
     shift = len("PREPENDED TEXT\n\n")
 
     # The old offsets are now wrong.
-    result = resolve(ref, prepended)
+    result = ref.resolve(prepended)
     assert result is not None
     # The resolved span should be shifted by the prepended length.
     assert result == (original_span[0] + shift, original_span[1] + shift)
@@ -96,13 +96,13 @@ def test_to_persisted_has_no_offsets_but_still_resolves():
     assert persisted.end is None
 
     # But it still resolves.
-    result = resolve(persisted, table.source_text)
+    result = persisted.resolve(table.source_text)
     assert result is not None
     assert result == para.source_span
 
 
-def test_fast_path_returns_immediately():
-    """When offsets are valid and text matches, the fast path is used."""
+def test_context_free_position_hint_resolves_a_unique_quote():
+    """A unique quote resolves without context; its position hint is not needed."""
     ref = SpanRef(
         exact="sample link",
         prefix=None,
@@ -112,8 +112,7 @@ def test_fast_path_returns_immediately():
     )
     assert ref.start is not None
 
-    # Fast path: offsets are valid and text matches.
-    result = resolve(ref, _DOC_TEXT)
+    result = ref.resolve(_DOC_TEXT)
     assert result is not None
     assert result == (ref.start, ref.end)
 
@@ -142,7 +141,7 @@ def test_resolve_with_multiple_occurrences_uses_context():
     ref = SpanRef.from_span(text, second_start, second_start + len("apple"))
 
     # Resolve should find the second occurrence using context.
-    result = resolve(ref, text)
+    result = ref.resolve(text)
     assert result is not None
     assert result == (second_start, second_start + len("apple"))
 
@@ -150,7 +149,7 @@ def test_resolve_with_multiple_occurrences_uses_context():
 def test_resolve_returns_none_for_missing_text():
     """resolve returns None when the exact text is not found."""
     ref = SpanRef(exact="NONEXISTENT TEXT THAT DOES NOT APPEAR")
-    result = resolve(ref, _DOC_TEXT)
+    result = ref.resolve(_DOC_TEXT)
     assert result is None
 
 
@@ -158,30 +157,30 @@ def test_resolve_returns_none_for_ambiguous_quote():
     """An ambiguous quote (multiple occurrences, no disambiguating context) resolves
     to None rather than guessing an occurrence (spec section 11 error posture)."""
     text = "alpha beta gamma. alpha beta gamma."
-    assert resolve(SpanRef(exact="beta"), text) is None
+    assert SpanRef(exact="beta").resolve(text) is None
     # Context matching neither occurrence better is still ambiguous.
-    assert resolve(SpanRef(exact="beta", prefix="zzz", suffix="qqq"), text) is None
+    assert SpanRef(exact="beta", prefix="zzz", suffix="qqq").resolve(text) is None
     # Identical context around both occurrences (a repeated sentence) is a tie.
-    assert resolve(SpanRef(exact="beta", prefix="alpha ", suffix=" gamma"), text) is None
+    assert SpanRef(exact="beta", prefix="alpha ", suffix=" gamma").resolve(text) is None
     # A unique quote needs no context.
-    unique = resolve(SpanRef(exact="gamma. alpha"), text)
+    unique = SpanRef(exact="gamma. alpha").resolve(text)
     assert unique == (text.find("gamma. alpha"), text.find("gamma. alpha") + len("gamma. alpha"))
     # A suffix that fully matches only the first occurrence singles it out.
-    first = resolve(SpanRef(exact="beta", suffix=" gamma. alpha"), text)
+    first = SpanRef(exact="beta", suffix=" gamma. alpha").resolve(text)
     assert first == (text.find("beta"), text.find("beta") + len("beta"))
 
 
 def test_resolve_disambiguates_with_unique_context():
     """Context unique to one occurrence picks that occurrence."""
     text = "one target here. two target there."
-    result = resolve(SpanRef(exact="target", prefix="two "), text)
+    result = SpanRef(exact="target", prefix="two ").resolve(text)
     assert result == (text.find("target", 5), text.find("target", 5) + len("target"))
 
 
 def test_resolve_returns_none_for_empty_exact():
     """A zero-width quote anchors nothing, with or without offsets."""
-    assert resolve(SpanRef(exact=""), _DOC_TEXT) is None
-    assert resolve(SpanRef(exact="", start=5, end=5), _DOC_TEXT) is None
+    assert SpanRef(exact="").resolve(_DOC_TEXT) is None
+    assert SpanRef(exact="", start=5, end=5).resolve(_DOC_TEXT) is None
 
 
 def test_stale_offset_hint_on_wrong_duplicate_falls_through_to_quote_search():
@@ -196,8 +195,52 @@ def test_stale_offset_hint_on_wrong_duplicate_falls_through_to_quote_search():
     # FIRST "target" occurrence, which still reads "target".
     new = "0123456789" + old
     expected = (start + 10, start + 10 + len("target"))
-    assert resolve(ref.to_persisted(), new) == expected
-    assert resolve(ref, new) == expected
+    assert ref.to_persisted().resolve(new) == expected
+    assert ref.resolve(new) == expected
+
+
+def test_context_free_offset_hint_cannot_choose_between_duplicates():
+    """A position hint without context cannot prove which duplicate was intended."""
+    text = "A target. B target."
+    second_start = text.rfind("target")
+    ref = SpanRef(
+        exact="target",
+        start=second_start,
+        end=second_start + len("target"),
+    )
+
+    assert ref.resolve(text) is None
+    assert ref.resolve("0123456789" + text) is None
+
+
+def test_empty_context_cannot_corroborate_duplicate_position_hint():
+    """Empty context is absence, not evidence for a duplicate position hint."""
+    text = "A target. B target."
+    second_start = text.rfind("target")
+
+    for ref in (
+        SpanRef(
+            exact="target",
+            prefix="",
+            start=second_start,
+            end=second_start + len("target"),
+        ),
+        SpanRef(
+            exact="target",
+            suffix="",
+            start=second_start,
+            end=second_start + len("target"),
+        ),
+    ):
+        assert ref.resolve(text) is None
+
+
+def test_empty_actual_context_cannot_disambiguate_duplicate_quotes():
+    """A zero-character partial match at a document edge provides no evidence."""
+    text = "target middle target"
+
+    assert SpanRef(exact="target", prefix="missing ").resolve(text) is None
+    assert SpanRef(exact="target", suffix=" missing").resolve(text) is None
 
 
 def test_valid_offset_hint_with_matching_context_fast_paths():
@@ -205,7 +248,7 @@ def test_valid_offset_hint_with_matching_context_fast_paths():
     text = "one target here. two target there."
     start = text.find("target", 5)
     ref = SpanRef.from_span(text, start, start + len("target"))
-    assert resolve(ref, text) == (start, start + len("target"))
+    assert ref.resolve(text) == (start, start + len("target"))
 
 
 def test_offset_hint_with_edited_context_still_reanchors_by_quote():
@@ -216,7 +259,7 @@ def test_offset_hint_with_edited_context_still_reanchors_by_quote():
     ref = SpanRef.from_span(text, start, start + len("unique-quote"))
     # Same offsets still hold the quote, but the prefix text changed.
     edited = "ALPHA unique-quote omega."
-    assert resolve(ref, edited) == (start, start + len("unique-quote"))
+    assert ref.resolve(edited) == (start, start + len("unique-quote"))
 
 
 def test_to_text_fragment():
@@ -233,18 +276,18 @@ def test_to_text_fragment_percent_encoded():
 
 
 def test_resolve_does_not_mutate():
-    """resolve() is pure: it never writes offsets back into the SpanRef."""
+    """`SpanRef.resolve()` never writes offsets back into the reference."""
     ref = SpanRef(exact="target")
     before = dataclasses.replace(ref)
-    result = resolve(ref, "before target after")
+    result = ref.resolve("before target after")
     assert result is not None
     assert ref == before
 
 
 def test_resolve_and_update_writes_offsets():
-    """resolve_and_update() writes the recomputed offsets back for fast-path reuse."""
+    """`SpanRef.resolve_and_update()` writes the recomputed position hint."""
     ref = SpanRef(exact="target")
-    result = resolve_and_update(ref, "before target after")
+    result = ref.resolve_and_update("before target after")
     assert result is not None
     assert (ref.start, ref.end) == result
 
@@ -272,7 +315,7 @@ def test_resolve_survives_reparse():
     table2 = build_node_table(doc2)
 
     # Resolve against the reparsed source.
-    result = resolve(ref, table2.source_text)
+    result = ref.resolve(table2.source_text)
     assert result is not None
     assert result == heading.source_span
 
@@ -288,7 +331,7 @@ def test_persisted_resolves_after_edit():
 
     # Edit the document: change "Introduction" to "Intro" (earlier in doc).
     edited = _DOC_TEXT.replace("# Introduction", "# Intro")
-    result = resolve(persisted, edited)
+    result = persisted.resolve(edited)
     assert result is not None
     assert edited[result[0] : result[1]] == persisted.exact
 

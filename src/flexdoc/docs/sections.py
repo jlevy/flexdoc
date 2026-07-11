@@ -5,18 +5,19 @@ for the construction rules.
 """
 
 # pyright: reportImportCycles=false
-# The TYPE_CHECKING/function-local imports of FlexDoc create a type-only cycle with
-# flex_doc.py (which runtime-imports Section). No module-level runtime cycle exists.
+# The TYPE_CHECKING import of FlexDoc creates a type-only cycle with flex_doc.py (which
+# runtime-imports Section). No module-level runtime cycle exists.
 
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import cached_property
 from typing import TYPE_CHECKING
 
 from flexdoc.docs.block_tree import Block, parse_blocks
-from flexdoc.docs.links import TRUE_LINK_FORMS, Link, block_links
-from flexdoc.docs.paragraphs import Paragraph
+from flexdoc.docs.links import NAVIGABLE_LINK_FORMS, Link, block_links
+from flexdoc.docs.paragraphs import Paragraph, _size_paragraphs, _summarize_paragraphs
 from flexdoc.docs.sizes import TextUnit
 
 if TYPE_CHECKING:
@@ -30,8 +31,8 @@ class Section:
 
     `content` are this section's own content paragraphs (excluding the heading line and
     any subsections); `children` are nested `Section`s. Built by `FlexDoc.sections()`.
-    Sizes are rolled up by reusing `FlexDoc.size` over the section's paragraphs, so every
-    `TextUnit` aggregates uniformly.
+    Sizes use the same private paragraph aggregation as `FlexDoc`, so every `TextUnit`
+    aggregates uniformly without constructing a temporary document.
 
     Both views derive from this section's source region (nothing stored as counts):
 
@@ -44,6 +45,10 @@ class Section:
 
     `heading_block` (with parser-authoritative `HeadingInfo`) is the structural source of
     truth for the heading; `heading` is its projection into the editing view.
+
+    `FlexDoc.sections()` returns an isolated copy of this graph because `content` and
+    `heading` are editable `Paragraph`s. Mutating one returned section therefore changes
+    only that returned view, never the document's cached section derivation.
     """
 
     heading_block: Block
@@ -59,6 +64,19 @@ class Section:
     # so excluded from equality/repr.
     _span: tuple[int, int] | None = field(default=None, compare=False, repr=False)
     _own_span: tuple[int, int] | None = field(default=None, compare=False, repr=False)
+
+    def _public_copy(self) -> Section:
+        """Copy the editable paragraph graph without duplicating the owning document."""
+        return Section(
+            heading_block=self.heading_block,
+            level=self.level,
+            content=deepcopy(self.content),
+            children=[child._public_copy() for child in self.children],
+            source_text=self.source_text,
+            _doc=self._doc,
+            _span=self._span,
+            _own_span=self._own_span,
+        )
 
     def _all_blocks(self) -> list[Block]:
         """The whole-document structural parse, shared via the owning doc's cache when
@@ -143,24 +161,21 @@ class Section:
     def size(self, unit: TextUnit, subtree: bool = True) -> int:
         """
         Size in `unit`, rolled up over the whole subtree by default (`subtree=True`) or
-        the section's own content only (`subtree=False`). Reuses `FlexDoc.size`.
+        the section's own content only (`subtree=False`). Uses the same paragraph
+        aggregation as `FlexDoc.size`.
         """
-        # Local import: flex_doc imports Section, so a module-level import would cycle.
-        from flexdoc.docs.flex_doc import FlexDoc
-
         paragraphs = self.subtree_paragraphs() if subtree else self.own_paragraphs()
-        return FlexDoc(paragraphs).size(unit)
+        return _size_paragraphs(paragraphs, unit)
 
     def size_summary(self, subtree: bool = True) -> str:
-        from flexdoc.docs.flex_doc import FlexDoc
-
+        """Standard size summary for the subtree or this section's own content."""
         paragraphs = self.subtree_paragraphs() if subtree else self.own_paragraphs()
-        return FlexDoc(paragraphs).size_summary()
+        return _summarize_paragraphs(paragraphs)
 
     def links(self) -> list[Link]:
         """
-        All navigable links in this section's subtree (true-link forms only; not images or
-        reference definitions), in document order. Derived from a document-level parse of
+        All navigable links in this section's subtree (not images or reference
+        definitions), in document order. Derived from a document-level parse of
         `source_text` (so reference links resolve across blocks) and filtered to links whose
         span falls within the section's span. Links with `span=None` (an unlocatable
         reference) are omitted because they cannot be attributed to a section by offset.
@@ -169,7 +184,7 @@ class Section:
         return [
             link
             for link in self._all_links()
-            if link.link_form in TRUE_LINK_FORMS
+            if link.link_form in NAVIGABLE_LINK_FORMS
             and link.span is not None
             and sec_start <= link.span[0]
             and link.span[1] <= sec_end

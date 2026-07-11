@@ -5,9 +5,11 @@ size stats, the flat table of contents, and exact source spans / offset lookups.
 Run from the repository checkout with: `uv run python examples/doc_structure.py`
 """
 
+from collections.abc import Sequence
 from textwrap import dedent
 
-from flexdoc.docs import Block, BlockType, FlexDoc, TextUnit
+from flexdoc import BlockType, FlexDoc, SpanRef, TextUnit
+from flexdoc.docs import Block
 
 _SAMPLE = dedent(
     """
@@ -74,6 +76,8 @@ def main() -> None:
     assert para is not None and sent_index is not None
     print(f"  offset {offset} is in paragraph {para.original_text[:30]!r}...")
     print(f"  and in sentence {doc.get_sent(sent_index).text!r}")
+    ref = SpanRef.from_span(doc.source_text, *para.span).to_persisted()
+    print(f"  durable paragraph reference resolves to {ref.resolve(doc.source_text)}")
 
     print("\n--- Total words across paragraph blocks only ---")
     paragraphs_only = doc.filtered(include={BlockType.paragraph})
@@ -84,7 +88,7 @@ def main() -> None:
     print("\n--- Structural block tree (whole-document view) ---")
     block_doc = FlexDoc.from_text(_BLOCK_SAMPLE)
 
-    def show_blocks(blocks: list[Block], depth: int = 0) -> None:
+    def show_blocks(blocks: Sequence[Block], depth: int = 0) -> None:
         for block in blocks:
             preview = _BLOCK_SAMPLE[block.span[0] : block.span[1]].splitlines()[0]
             print(f"  {'  ' * depth}{block.type.value}: {preview!r}")

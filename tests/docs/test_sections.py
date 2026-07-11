@@ -34,6 +34,25 @@ def test_sections_tree_structure():
     assert secs[1].children == []
 
 
+def test_sections_returns_recursively_isolated_editing_views():
+    doc = FlexDoc.from_text(_DOC)
+    first = doc.sections()
+    second = doc.sections()
+
+    assert first[0] is not second[0]
+    assert first[0].children[0] is not second[0].children[0]
+    assert first[0].content[0] is not second[0].content[0]
+
+    first[0].children.clear()
+    first[0].content[0].sentences[0].text = "poisoned"
+    first[0].heading.sentences[0].text = "poisoned"
+
+    fresh = doc.sections()[0]
+    assert [child.title for child in fresh.children] == ["Sub A", "Sub B"]
+    assert fresh.content[0].sentences[0].text != "poisoned"
+    assert fresh.heading.sentences[0].text != "poisoned"
+
+
 def test_section_span_covers_heading_through_subtree():
     doc = FlexDoc.from_text(_DOC)
     top = doc.sections()[0]
@@ -52,6 +71,14 @@ def test_rolled_up_size_sums_subtree():
     assert full > own
     # Words are additive across blocks, so subtree == own + each child's subtree.
     assert full == own + sum(c.size(TextUnit.words, subtree=True) for c in top.children)
+
+
+def test_section_size_summary_distinguishes_own_content_and_subtree():
+    top = FlexDoc.from_text(_DOC).sections()[0]
+    assert top.size_summary(subtree=False) == (
+        "30 bytes (3 lines, 2 paras, 2 sents, 6 words, ~8 tok)"
+    )
+    assert top.size_summary() == "94 bytes (11 lines, 6 paras, 6 sents, 21 words, ~25 tok)"
 
 
 def test_section_blocks_are_scoped_and_in_span():

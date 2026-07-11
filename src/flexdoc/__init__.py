@@ -19,16 +19,19 @@ words = doc.size(TextUnit.words)
 The full public surfaces live in the submodules:
 
 - `flexdoc.docs` — `FlexDoc`, `Paragraph`, `Sentence`, `Section`, `Block`, `BlockType`,
-  the node table, `collect()`, `DocGraph`, `SpanRef` and its resolvers, render helpers
-  for source-linked HTML, token diffs/mappings, and word-token utilities.
+  the node table, `collect()`, `DocGraph`, `SpanRef`, and source-linked render/report
+  helpers.
+- `flexdoc.docs.wordtoks`, `flexdoc.docs.search_tokens`,
+  `flexdoc.docs.token_diffs`, and `flexdoc.docs.token_mapping` — lower-level token,
+  search, diff, and mapping machinery, importable explicitly but not promoted by
+  `flexdoc.docs`.
 - `flexdoc.html` — html-in-md, html/plaintext conversion, HTML tag helpers, the content
   extractor, and timestamp extraction.
 - `flexdoc.util` — read-time and token-count estimation.
 
 Unit types (`Paragraph`, `Sentence`, `Section`, `Block`, `Node`) are reached from a
-parsed `FlexDoc` rather than imported, so they stay in `flexdoc.docs`, as do functions
-whose bare names need module context (e.g. `resolve`). Root additions are deliberate;
-`tests/test_root_api.py` pins the exact surface.
+parsed `FlexDoc` rather than imported, so they stay in `flexdoc.docs`. Root additions
+are deliberate; `tests/test_root_api.py` pins the exact surface.
 """
 
 from flexdoc.docs import (

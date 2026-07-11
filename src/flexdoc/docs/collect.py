@@ -39,7 +39,7 @@ def collect(
     kinds: set[NodeKind] | None = None,
     where: Callable[[Node], bool] | None = None,
     recursive: bool = False,
-    inline: bool = False,
+    inline: bool | None = None,
     layer: set[Layer] | None = None,
 ) -> list[Node]:
     """
@@ -56,12 +56,12 @@ def collect(
     nodes, so `within=section_id` needs no `recursive=True`.
 
     `kinds`: restrict to these `NodeKind`s (None = any).
-    `where`: additional `Node -> bool` predicate. `inline`: include inline-kind
-    nodes; an explicit `kinds` naming inline kinds (e.g. `{NodeKind.link}`) implies
-    this, so the common case works without `inline=True`. `layer`: restrict to
-    these parse layers (None = all); since the same span can appear in several
-    layers (e.g. a `markdown` block and a `textual` paragraph), scope by `layer` to
-    avoid cross-layer duplicates.
+    `where`: additional `Node -> bool` predicate. `inline`: include or exclude
+    inline-kind nodes explicitly. When omitted, recursive traversal includes inline
+    descendants and an explicit inline `kinds` filter includes them, while other
+    non-recursive queries exclude them. `layer`: restrict to these parse layers
+    (None = all); since the same span can appear in several layers (e.g. a `markdown`
+    block and a `textual` paragraph), scope by `layer` to avoid cross-layer duplicates.
     """
     want_within = within is not None
     want_overlaps = overlaps is not None
@@ -71,9 +71,8 @@ def collect(
     if (want_within and within_region is None) or (want_overlaps and overlaps_region is None):
         return []
 
-    # An explicit kind selection that names inline kinds implies inline inclusion,
-    # so `collect(kinds={NodeKind.link})` is not silently emptied by the inline guard.
-    include_inline = inline or (kinds is not None and bool(kinds & INLINE_KINDS))
+    kind_selects_inline = kinds is not None and bool(kinds & INLINE_KINDS)
+    include_inline = (recursive or kind_selects_inline) if inline is None else inline
 
     if subtree_of is not None:
         candidates = _subtree_nodes(table, subtree_of, recursive)

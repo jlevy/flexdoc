@@ -36,6 +36,62 @@ def test_root_surface_is_deliberate():
         "SpanRef",
         "TextUnit",
     ]
+    assert not hasattr(flexdoc, "resolve")
+    assert not hasattr(flexdoc, "resolve_and_update")
+    assert not hasattr(flexdoc.docs, "resolve")
+    assert not hasattr(flexdoc.docs, "resolve_and_update")
+
+
+def test_docs_surface_promotes_the_document_model_only():
+    assert sorted(flexdoc.docs.__all__) == [
+        "BaseBlock",
+        "Block",
+        "BlockType",
+        "CodeInfo",
+        "DEFAULT_INCLUDE",
+        "Detail",
+        "DocGraph",
+        "FlexDoc",
+        "HeadingInfo",
+        "LAYER_NESTING",
+        "Layer",
+        "Link",
+        "LinkForm",
+        "ListInfo",
+        "NAVIGABLE_LINK_FORMS",
+        "NestingGuarantee",
+        "Node",
+        "NodeKind",
+        "NodeModel",
+        "NodeTable",
+        "Offsets",
+        "Paragraph",
+        "Section",
+        "SentIndex",
+        "Sentence",
+        "SourceInfo",
+        "SpanRef",
+        "TableInfo",
+        "TextUnit",
+        "Views",
+        "base_blocks",
+        "block_type_for",
+        "build_doc_graph",
+        "build_node_table",
+        "collect",
+        "doc_graph_yaml",
+        "doc_report",
+        "doc_report_data",
+        "dump_views",
+        "parse_blocks",
+        "parse_source_span_attr",
+        "render_node_attrs",
+        "walk_blocks",
+        "wrap_with_node_attrs",
+    ]
+
+    for internal_name in ("TokenDiff", "TokenMapping", "wordtokenize"):
+        assert not hasattr(flexdoc.docs, internal_name)
 
 
 def test_root_working_set_covers_the_common_first_lines():
@@ -43,11 +99,17 @@ def test_root_working_set_covers_the_common_first_lines():
 
     doc = FlexDoc.from_text("# T\n\nA sentence with a [link](https://e.com). Another.\n")
     assert doc.size(TextUnit.words) > 0
+    assert doc.paragraphs[0].heading_level == 1
+    assert doc.paragraphs[0].heading_title == "T"
+    assert doc.paragraphs[1].heading_level is None
+    assert doc.paragraphs[1].heading_title is None
     links = doc.collect(kinds={NodeKind.link}, recursive=True)
     assert len(links) == 1
     # Annotating an exact sentence: build a durable ref from its span and resolve it.
     sent = doc.paragraphs[1].sentences[0]
     ref = SpanRef.from_span(doc.source_text, *sent.span)
-    from flexdoc.docs import resolve
+    assert ref.resolve(doc.source_text) == sent.span
 
-    assert resolve(ref, doc.source_text) == sent.span
+    persisted = ref.to_persisted()
+    assert persisted.resolve_and_update(doc.source_text) == sent.span
+    assert (persisted.start, persisted.end) == sent.span

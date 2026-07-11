@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from textwrap import dedent
 
 from flexdoc.docs import FlexDoc
@@ -31,7 +32,7 @@ _DOC = dedent(
 ).strip()
 
 
-def _types(blocks: list[Block]) -> list[BlockType]:
+def _types(blocks: Sequence[Block]) -> list[BlockType]:
     return [b.type for b in blocks]
 
 
@@ -50,7 +51,7 @@ def test_top_level_block_types():
 def test_all_block_spans_round_trip():
     doc = FlexDoc.from_text(_DOC)
 
-    def check(blocks: list[Block]) -> None:
+    def check(blocks: Sequence[Block]) -> None:
         for b in blocks:
             start, end = b.span
             assert _DOC[start:end] == _DOC[start:end].strip()  # span is trimmed
@@ -111,7 +112,7 @@ def test_density_invariant_list_blocks():
     dense = FlexDoc.from_text("- a\n- b\n- c").blocks()
     loose = FlexDoc.from_text("- a\n\n- b\n\n- c").blocks()
 
-    def structure(blocks: list[Block]) -> list[tuple[BlockType, int]]:
+    def structure(blocks: Sequence[Block]) -> list[tuple[BlockType, int]]:
         return [(b.type, len(b.children)) for b in blocks]
 
     assert structure(dense) == structure(loose) == [(BlockType.list, 3)]
@@ -290,7 +291,7 @@ def test_density_invariant_walk_blocks_tallies():
     dense = FlexDoc.from_text("- a\n- b\n- c").blocks()
     loose = FlexDoc.from_text("- a\n\n- b\n\n- c").blocks()
 
-    def tally(blocks: list[Block]) -> Counter[BlockType]:
+    def tally(blocks: Sequence[Block]) -> Counter[BlockType]:
         return Counter(b.type for b, _ in walk_blocks(blocks))
 
     dense_tally = tally(dense)
@@ -299,15 +300,34 @@ def test_density_invariant_walk_blocks_tallies():
 
 
 def test_blocks_is_cached_but_returns_fresh_list():
-    """blocks() memoizes its parse (same Block objects) yet returns a fresh list each
-    call, so reordering/filtering the result cannot poison the shared cache."""
+    """The cached block graph is shared safely behind a fresh root list."""
     td = FlexDoc.from_text(_DOC)
     first, second = td.blocks(), td.blocks()
     assert first is not second
     assert all(a is b for a, b in zip(first, second, strict=True))
-    # Mutating the returned list does not affect the next call.
     first.clear()
     assert len(td.blocks()) > 0
+
+
+def test_cached_block_graph_is_deeply_immutable():
+    doc = FlexDoc.from_text("- item\n  - nested\n\n| a |\n| - |\n| b |")
+    blocks = doc.blocks()
+    list_block = blocks[0]
+    table = blocks[1]
+
+    assert isinstance(list_block.children, tuple)
+    assert isinstance(list_block.children[0].children, tuple)
+    assert table.table_info is not None
+    assert isinstance(table.table_info.alignments, tuple)
+
+    original_span = list_block.span
+    try:
+        list_block.__setattr__("span", (0, 0))
+    except (AttributeError, TypeError):
+        pass
+    else:
+        raise AssertionError("Block fields must reject reassignment")
+    assert doc.blocks()[0].span == original_span
 
 
 def test_sections_reuse_doc_block_cache():

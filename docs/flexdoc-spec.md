@@ -219,6 +219,9 @@ A leading YAML frontmatter block (`---`-delimited) is a **non-content region**: 
 excluded from the node table, the block/section views, and the editing view (and so from
 every size/prose count), and exposed verbatim via `FlexDoc.frontmatter`. `source_text`
 retains it, so spans stay absolute and the document still round-trips.
+Opening and closing delimiters begin at column 0 and may have trailing spaces or tabs;
+leading whitespace disqualifies a delimiter.
+The returned frontmatter preserves those delimiter lines verbatim.
 A leading `---` line with no closing `---` line is **not** frontmatter; it parses as an
 ordinary thematic break (a deterministic, lenient reading of the ambiguity).
 
@@ -377,7 +380,7 @@ normalizes line endings (`\r\n` and lone `\r` become `\n`) before retaining
   Structural blocks are otherwise addressed by their own spans or via
   `collect(overlaps=...)`.
 - **Frontmatter:** `FlexDoc.frontmatter` is the leading YAML block from normalized
-  `source_text`, or `None` (§3).
+  `source_text`, or `None`; delimiter whitespace rules are defined in §3.
 - **Sizing:** `size(unit)` and `size_summary()` measure the document in any `TextUnit`
   (see Terminology), including the approximate LLM `tokens` estimate.
 - **Prose projection:** `prose_text(include_tables=False)` returns prose-only text for
@@ -432,7 +435,7 @@ edited and reassembled.
 - **`Paragraph`**—one blank-line-delimited unit of the source.
   Carries `original_text` (the verbatim slice), its `sentences`, `offsets`, a `span`, a
   cached Markdown classification `block_type` (§5) with heading helpers
-  (`heading_level()`, `heading_title()`), typed `code_info`/`table_info`/`list_info`
+  (`heading_level`, `heading_title`), typed `code_info`/`table_info`/`list_info`
   conveniences, and `links()`.
 - **`Sentence`**—one sentence within a paragraph.
   `text` is the **normalized, editable** content (what reassembly uses); `original_text`
@@ -508,7 +511,8 @@ density caveat, on `Paragraph`. The same facts are flattened into the markdown n
 `attrs`, so they flow into `collect()`/`DocGraph`. Extraction is parser-authoritative
 (marko element attributes, never a regex over source); a table column with no alignment
 marker is `"default"`, not `None`, so `alignments` is always explicit strings of length
-`cols`.
+`cols`. `TableInfo.alignments` is a tuple so this metadata remains immutable when its
+owning block is cached.
 
 ## 6. Block Views: Structural Tree and Sequential Base-Block List
 
@@ -531,10 +535,10 @@ list is a *partition* with a cover invariant).
 
 The recursive view (lazy, cached on the immutable `source_text`):
 
-- `Block(type, span, children, tight)`: `span` is trimmed so `source[start:end]` is the
-  exact text; `children` holds nested blocks.
-  A `list`/`ordered_list` block’s children are its `list_item`s; **containers fully
-  populate their block children** (a blockquote’s or list item’s nested blocks are
+- `Block(type, span, children, tight)`: a frozen record whose `span` is trimmed so
+  `source[start:end]` is the exact text; `children` is an immutable tuple of nested
+  blocks. A `list`/`ordered_list` block’s children are its `list_item`s; **containers
+  fully populate their block children** (a blockquote’s or list item’s nested blocks are
   present). `tight` carries CommonMark list density on list blocks (`None` elsewhere).
 - Resolves what blank-line splitting cannot: a fenced code block stays whole even with
   internal blank lines; a list decomposes into items with nested sublists; a table
@@ -545,6 +549,8 @@ carries an authoritative `element.span = (start, end)` read from marko’s own s
 positions (`flowmark.markdown_ast.block_span`), so flexdoc runs no block-detection regex
 of its own and makes no block-boundary decisions.
 The structure is cross-checked against marko in tests.
+`FlexDoc.blocks()` returns a fresh root list over the shared, recursively immutable
+graph, so callers can reorder the result but cannot mutate cached block state.
 
 ### Sequential block list: `FlexDoc.base_blocks() -> list[BaseBlock]`
 
@@ -669,8 +675,9 @@ re-parse, no stored state.
 
 ### Document-level accessors
 
-- `FlexDoc.sections()`—the list of root sections (computed once and cached; the returned
-  list is a fresh copy, the `Section` objects shared and read-only by contract).
+- `FlexDoc.sections()`—the list of root sections (computed once and cached internally;
+  each call recursively copies the section tree and its editable paragraphs, so caller
+  mutation cannot affect the cache or a later result).
 - `FlexDoc.toc()`—the flat table of contents: `(level, title, span)` per heading, in
   document order, by walking the section tree.
 - `FlexDoc.section_size_tree(units=...)`—a rendered, indented size rollup per section,
@@ -724,11 +731,11 @@ Inline elements (links, code spans, images, inline HTML, footnote references, �
   the name-tagged atomic spans from `flowmark.atomic_spans.iter_atomic_spans` (and a
   trimmed `block_span` for definitions); an identity that cannot be located keeps its
   identity with `span=None`.
-- **`links()` returns navigable links only by default** (`TRUE_LINK_FORMS`: `inline`,
-  `reference`, `autolink`, `bare_url`); `links(link_forms=…)` selects any forms and
-  `images()` is the convenience for `LinkForm.image`. **Reference definitions**
-  (`[id]: url`) are surfaced as `NodeKind.link_ref_def` nodes—parented to their
-  containing block, so a block-scoped `collect()` finds them—and via
+- **`links()` returns navigable links only by default** (`NAVIGABLE_LINK_FORMS`:
+  `inline`, `reference`, `autolink`, `bare_url`); `links(link_forms=…)` selects any
+  forms and `images()` is the convenience for `LinkForm.image`. **Reference
+  definitions** (`[id]: url`) are surfaced as `NodeKind.link_ref_def` nodes—parented to
+  their containing block, so a block-scoped `collect()` finds them—and via
   `links(link_forms={LinkForm.reference_definition})`, never the default `links()` (a
   definition is not a link occurrence).
 - `link → sentence` via `sentence_at_offset(link.span[0])`.
@@ -755,7 +762,7 @@ The surface is **one general query primitive, no blessed per-kind rollups**:
 
 ```python
 collect(*, subtree_of=None, within=None, overlaps=None,
-        kinds=None, where=None, recursive=False, inline=False, layer=None) -> list[Node]
+        kinds=None, where=None, recursive=False, inline=None, layer=None) -> list[Node]
 ```
 
 Available as `doc.collect(...)` (and as the free `collect(table, ...)` over a node
@@ -768,9 +775,12 @@ The **interval** relations are cross-layer and offset-based, each accepting a no
 merely intersects the region.
 Supplying an interval relation scans the whole document, so `within=section_id` needs no
 `recursive=True`. `kinds=` selects by node kind (the typed common case); `where=` is a
-`Node -> bool` predicate escape hatch; `inline` includes inline nodes (an explicit
-inline `kinds` such as `{NodeKind.link}` implies this); `layer=` restricts to parse
-layers. It returns **nodes** (each with `span`, `attrs`, edges).
+`Node -> bool` predicate escape hatch.
+When `inline` is omitted, recursive traversal and an explicit inline `kinds` selection
+include inline nodes; `inline=False` explicitly excludes them, and `inline=True`
+includes them for any query.
+`layer=` restricts parse layers.
+It returns **nodes** (each with `span`, `attrs`, edges).
 **Counts, values, and groupings are standard Python** over the result, documented with
 worked examples, not separate methods:
 
@@ -857,19 +867,22 @@ SpanRef = {
 - **Quote canonical, offset a hint.** The `exact`/`prefix`/`suffix` fields follow the
   [W3C Text Quote Selector](https://www.w3.org/TR/annotation-model/#text-quote-selector),
   while `start`/`end` provide a local position hint.
-  Within one parse the offset is exact (the fast path); across edits the quote recovers
-  the target.
+  Within one parse a ref built by `from_span()` carries corroborating context and can
+  use the offset fast path; across edits the quote recovers the target.
 - **Resolution.** A located model node can produce a source reference with both quote
   and position. Reference resolution first checks an offset hint, accepting it only when
-  the quote and any captured prefix/suffix match there, then searches for the exact
-  quote and disambiguates with prefix/suffix.
-  `resolve()` is pure (it does not mutate the ref), and `resolve_and_update()` is the
-  explicit variant that writes the recomputed offsets back.
+  the quote matches, at least one prefix/suffix window is non-empty, and every non-empty
+  window matches there; it then searches for the exact quote and disambiguates with
+  prefix/suffix. Empty context strings and zero-character partial matches provide no
+  evidence. `SpanRef.resolve()` is pure (it does not mutate the ref), and
+  `SpanRef.resolve_and_update()` is the explicit variant that writes the recomputed
+  offsets back. These methods are available on the root-exported reference type; the
+  generic module-level implementation functions are not package-root exports.
   Fuzzy/edit-distance re-anchoring is deferred (not yet implemented).
-  A context-free ref is the current boundary: when it has an exact-matching position
-  hint, the hint is accepted because no context can corroborate or reject it.
-  Persisted refs should capture context or drop offsets; the remaining duplicate-hint
-  semantics are tracked in the stabilization roadmap.
+  A context-free hint cannot choose between duplicate quotes, even when its offsets
+  match one occurrence; without context or source identity, the resolver cannot prove
+  which duplicate was intended.
+  A unique quote still resolves through the search path.
 - **Persistence** is quote-canonical and source-grounded; offsets are an optional
   position hint (`to_persisted(include_position_hint=...)`, dropped by default) and an
   in-memory `node_id` handle is never persisted.
@@ -891,16 +904,14 @@ Chrome-style `exact`+`prefix`/`suffix` floor) so the node model, schema, and edi
 bridge are designed around it.
 
 **Error handling—references.** Resolution failure is a value, not an exception:
-`resolve()` returns `None` when the quote is absent from the source or remains ambiguous
-after prefix/suffix disambiguation, and callers branch on it (rule 2: the failure is
-visible at the call site).
+`SpanRef.resolve()` returns `None` when the quote is absent from the source or remains
+ambiguous after prefix/suffix disambiguation, and callers branch on it (rule 2: the
+failure is visible at the call site).
 Stale hints with captured context fall back to quote re-anchoring, and
-`resolve_and_update()` refreshes the hint explicitly.
-Context-free hints cannot detect that an edit moved the intended occurrence onto another
-duplicate; callers should omit such hints for durable references until the 0.3.0
-decision is settled.
-Until fuzzy re-anchoring ships (§14), a quote that was itself edited resolves to `None`
-rather than to a guess.
+`SpanRef.resolve_and_update()` refreshes the hint explicitly.
+Context-free hints return `None` for duplicate quotes instead of using an uncorroborated
+position to guess. Until fuzzy re-anchoring ships (§14), a quote that was itself edited
+resolves to `None` rather than to a guess.
 
 ## 12. Editing and Serialization
 
@@ -924,6 +935,11 @@ Invariants: offset-anchored (code points), the source and offset space being the
 canonical substrate (P1); node ids stable within a parse; derived views over one shared
 parse (no duplicated content, no stored counts), the node table among them; references
 are quote-canonical; additive (existing behavior preserved).
+
+The promoted `flexdoc.docs` namespace is the document-model surface.
+Lower-level word-token/search and diff/mapping machinery remains available only through
+its owning modules (`wordtoks`, `search_tokens`, `token_diffs`, and `token_mapping`),
+keeping those pipeline internals out of the model’s advertised namespace.
 
 Non-goals: a parallel runtime `BlockDoc`/`SectionDoc` Python model (DocGraph is a
 projection, not a competing editable model).
@@ -1027,6 +1043,10 @@ This spec stands alone; the following are background, not dependencies.
   (background for §11), and the layered-parsing brief
   [`research-2026-05-30-multilayer-parsing.md`](project/research/research-2026-05-30-multilayer-parsing.md)
   (background and prior art for §3).
+- The portable reference protocol brief
+  [`research-2026-07-10-text-reference-microformat.md`](project/research/research-2026-07-10-text-reference-microformat.md)
+  evaluates extracting DocRef, SpanRef, SnapshotRef, and TextRef into a standalone
+  cross-language microformat; it is a proposal, not part of the current contract.
 - Dated planning documents under `docs/project/specs/` (active and archived) track the
   incremental work toward this design and reference this spec.
 - flowmark v0.7.1 API relied on for spans and splitting: `flowmark.atomic_spans`

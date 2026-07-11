@@ -26,7 +26,7 @@ from flexdoc.docs.block_types import BlockType
 class LinkForm(StrEnum):
     """
     How a link-like construct is written in the source. `inline`, `reference`, `autolink`,
-    and `bare_url` are navigable links (`TRUE_LINK_FORMS`); `image` is an image; and
+    and `bare_url` are navigable links (`NAVIGABLE_LINK_FORMS`); `image` is an image; and
     `reference_definition` is a `[id]: url` definition line, surfaced for completeness.
     """
 
@@ -38,7 +38,7 @@ class LinkForm(StrEnum):
     reference_definition = "reference_definition"
 
 
-TRUE_LINK_FORMS: frozenset[LinkForm] = frozenset(
+NAVIGABLE_LINK_FORMS: frozenset[LinkForm] = frozenset(
     {LinkForm.inline, LinkForm.reference, LinkForm.autolink, LinkForm.bare_url}
 )
 """The navigable-link forms `FlexDoc.links()` returns by default."""

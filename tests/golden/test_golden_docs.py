@@ -28,7 +28,7 @@ from flexdoc.docs import FlexDoc
 from flexdoc.docs.block_types import BlockType
 from flexdoc.docs.collect import INLINE_KINDS
 from flexdoc.docs.debug import doc_graph_yaml, doc_report, doc_report_data
-from flexdoc.docs.links import TRUE_LINK_FORMS, LinkForm
+from flexdoc.docs.links import NAVIGABLE_LINK_FORMS, LinkForm
 from flexdoc.docs.node import Layer, NodeKind
 
 _HERE = Path(__file__).parent
@@ -197,9 +197,9 @@ def test_model_invariants():
             td.collect(kinds={kind})  # inline kinds need no recursive=True
             td.collect(kinds={kind}, recursive=True)
 
-        # Link-form accounting: every links() entry is a true link, and the per-form lists
+        # Link-form accounting: every links() entry is navigable, and the per-form lists
         # match the node-table node counts one-for-one.
-        assert all(link.link_form in TRUE_LINK_FORMS for link in td.links())
+        assert all(link.link_form in NAVIGABLE_LINK_FORMS for link in td.links())
         assert len(td.links()) == len(table.by_kind(NodeKind.link)), f"{where}: link count"
         assert len(td.images()) == len(table.by_kind(NodeKind.image)), f"{where}: image count"
         assert len(td.links(link_forms={LinkForm.reference_definition})) == len(

@@ -1,6 +1,6 @@
 # pyright: reportImportCycles=false
-# Type-only cycles with node_table.py (TYPE_CHECKING import of FlexDoc) and sections.py
-# (TYPE_CHECKING/function-local imports of FlexDoc). No runtime cycle exists.
+# Type-only cycles with node_table.py and sections.py (both TYPE_CHECKING imports of
+# FlexDoc). No runtime cycle exists.
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ from flexdoc.docs.block_types import BlockType
 from flexdoc.docs.collect import collect as _collect
 from flexdoc.docs.doc_graph import DEFAULT_INCLUDE, Detail, DocGraph, build_doc_graph
 from flexdoc.docs.frontmatter import split_frontmatter
-from flexdoc.docs.links import TRUE_LINK_FORMS, Link, LinkForm, block_links
+from flexdoc.docs.links import NAVIGABLE_LINK_FORMS, Link, LinkForm, block_links
 from flexdoc.docs.node import Layer, Node, NodeKind, NodeTable
 from flexdoc.docs.node_table import build_node_table
 from flexdoc.docs.paragraphs import (
@@ -36,6 +36,8 @@ from flexdoc.docs.paragraphs import (
     SentIndex,
     Splitter,
     WordtokMapping,
+    _size_paragraphs,
+    _summarize_paragraphs,
     default_sentence_splitter,
 )
 from flexdoc.docs.sections import Section
@@ -48,7 +50,6 @@ from flexdoc.docs.wordtoks import (
     SENT_BR_STR,
     join_wordtoks,
 )
-from flexdoc.util.token_estimate import estimate_tokens
 
 _PARA_BREAK_REGEX = regex.compile(r"(?:[ \t\r]*\n){2,}[ \t\r]*")
 r"""
@@ -360,10 +361,11 @@ class FlexDoc:
     def frontmatter(self) -> str | None:
         """
         The leading YAML frontmatter block from normalized `source_text` (both `---`
-        delimiters included), or `None` if the document has none. Frontmatter is a
-        non-content region: excluded from `paragraphs`, `blocks()`, `sections()`, the node
-        table, and every size/prose count, but retained so the document round-trips after
-        line-ending normalization.
+        delimiter lines included), or `None` if the document has none. Delimiters allow
+        trailing spaces and tabs but not leading whitespace. Frontmatter is a non-content
+        region: excluded from `paragraphs`, `blocks()`, `sections()`, the node table, and
+        every size/prose count, but retained so the document round-trips after line-ending
+        normalization.
         """
         return split_frontmatter(self.source_text)[0]
 
@@ -468,10 +470,10 @@ class FlexDoc:
         top-level blocks) do not start document sections.
 
         Computed once and cached (see the class contract on read-time caching). Returns
-        a fresh shallow copy of the cached root list each call; the `Section` objects
-        themselves are shared and must be treated as read-only.
+        a recursively isolated copy of the section and editable paragraph graph each
+        call, so caller mutation cannot alter the cached structural view.
         """
-        return list(self._section_list())
+        return [section._public_copy() for section in self._section_list()]
 
     @_memoized_derivation("_cached_sections")
     def _section_list(self) -> list[Section]:
@@ -526,7 +528,7 @@ class FlexDoc:
     def links(self, *, link_forms: set[LinkForm] | None = None) -> list[Link]:
         """
         Links in the document, in document order. By default returns only navigable links
-        (`TRUE_LINK_FORMS`: inline, reference, autolink, bare URL); pass `link_forms` to
+        (`NAVIGABLE_LINK_FORMS`: inline, reference, autolink, bare URL); pass `link_forms` to
         select any `LinkForm`s instead — e.g. `links(link_forms={LinkForm.image})` for
         images, or `links(link_forms={LinkForm.reference_definition})` for `[id]: url`
         definitions. Use `images()` for the common image case.
@@ -537,7 +539,7 @@ class FlexDoc:
         result cannot poison the cache (`Link` is frozen, so the shared elements are safe).
         See `Link`.
         """
-        selected = TRUE_LINK_FORMS if link_forms is None else link_forms
+        selected = NAVIGABLE_LINK_FORMS if link_forms is None else link_forms
         return [link for link in self._link_list() if link.link_form in selected]
 
     def images(self) -> list[Link]:
@@ -656,9 +658,9 @@ class FlexDoc:
         on read-time caching), so `sections()`, `links()`, and the node table all reuse
         one parse. See `flexdoc.docs.block_tree`.
 
-        Returns a fresh shallow copy of the cached list each call, so reordering/filtering
-        the result cannot poison the shared cache; the `Block` objects themselves are
-        shared and must be treated as read-only.
+        Returns a fresh root list each call. The shared `Block` objects are frozen and
+        recursively contain immutable child tuples, so neither root-list edits nor nested
+        mutation can poison the cache.
         """
         return list(self._block_list())
 
@@ -892,43 +894,10 @@ class FlexDoc:
             last_para.sentences.append(sent)
 
     def size(self, unit: TextUnit) -> int:
-        if unit == TextUnit.paragraphs:
-            return len(self.paragraphs)
-        if unit == TextUnit.sentences:
-            return sum(len(para.sentences) for para in self.paragraphs)
-
-        if unit == TextUnit.tokens:
-            return estimate_tokens(self.reassemble())
-
-        base_size = sum(para.size(unit) for para in self.paragraphs)
-        n_para_breaks = max(len(self.paragraphs) - 1, 0)
-        if unit == TextUnit.lines:
-            return base_size + n_para_breaks
-        if unit == TextUnit.bytes:
-            return base_size + n_para_breaks * size_in_bytes(PARA_BR_STR)
-        if unit == TextUnit.chars:
-            return base_size + n_para_breaks * len(PARA_BR_STR)
-        if unit == TextUnit.words:
-            return base_size
-        if unit == TextUnit.wordtoks:
-            return base_size + n_para_breaks
-
-        raise ValueError(f"Unsupported unit for FlexDoc: {unit}")
+        return _size_paragraphs(self.paragraphs, unit)
 
     def size_summary(self) -> str:
-        nbytes = self.size(TextUnit.bytes)
-        if nbytes > 0:
-            return (
-                f"{nbytes} bytes ("
-                f"{self.size(TextUnit.lines)} lines, "
-                f"{self.size(TextUnit.paragraphs)} paras, "
-                f"{self.size(TextUnit.sentences)} sents, "
-                f"{self.size(TextUnit.words)} words, "
-                # f"{self.size(TextUnit.wordtoks)} wordtoks, "
-                f"~{self.size(TextUnit.tokens)} tok)"
-            )
-        else:
-            return f"{nbytes} bytes"
+        return _summarize_paragraphs(self.paragraphs)
 
     def as_wordtok_to_sent(
         self, bof_eof: bool = False
@@ -981,7 +950,7 @@ class FlexDoc:
         kinds: set[NodeKind] | None = None,
         where: Callable[[Node], bool] | None = None,
         recursive: bool = False,
-        inline: bool = False,
+        inline: bool | None = None,
         layer: set[Layer] | None = None,
     ) -> list[Node]:
         """

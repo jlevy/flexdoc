@@ -34,7 +34,7 @@ uv add flexdoc
 
 ## Status
 
-**Beta** (0.2.x). The core model is established, but the API decisions in the
+**Beta** (0.3.x). The core model is established, but the later-stage mechanisms in the
 [stabilization roadmap](https://github.com/jlevy/flexdoc/blob/main/docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md)
 remain open. Breaking changes before 1.0 bump the minor version, so pin a minor version.
 See the [changelog](https://github.com/jlevy/flexdoc/blob/main/CHANGELOG.md).
@@ -82,8 +82,11 @@ golden-test corpus that pins this behavior).
 The full public surfaces live in the submodules:
 
 - `flexdoc.docs`: `FlexDoc`, `Paragraph`, `Sentence`, `Section`, `Block`, `BlockType`,
-  the node table, `collect()`, `DocGraph`, `SpanRef`, token diffs/mappings, and
-  word-token utilities.
+  the node table, `collect()`, `DocGraph`, `SpanRef`, and source-linked render/report
+  helpers.
+- `flexdoc.docs.wordtoks`, `flexdoc.docs.search_tokens`,
+  `flexdoc.docs.token_diffs`, and `flexdoc.docs.token_mapping`: lower-level token,
+  search, diff, and mapping utilities that are not promoted by `flexdoc.docs`.
 - `flexdoc.html`: html-in-md, html/plaintext conversion, HTML tag helpers, the content
   extractor, and timestamp extraction.
 - `flexdoc.util`: read-time and token-count estimation.

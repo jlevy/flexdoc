@@ -483,11 +483,11 @@ blessed per-kind rollups** (DR-4).
   optional layers, default = structural core only (DR-5).
 - **One query primitive**, at document / section / block scope:
   ```python
-  collect(*, kinds=None, where=None, recursive=False, inline=False) -> list[Node]
+  collect(*, kinds=None, where=None, recursive=False, inline=None) -> list[Node]
   ```
   `kinds=` selects by node kind (typed, common case); `where=` is a `Node -> bool`
-  predicate escape hatch for anything else; `recursive` descends into children; `inline`
-  includes inline nodes.
+  predicate escape hatch for anything else; `recursive` descends into children and
+  includes inline descendants by default; `inline=False` excludes them explicitly.
   It returns **nodes**, each carrying `span`, `attrs`, and edges.
 - **Values, counts, and groupings are standard Python over the result**, documented with
   clear examples, not separate methods:
@@ -542,7 +542,7 @@ user who wants a preset defines their own `frozenset`. New parse dimensions are 
 | --- | --- |
 | Rollups of values or counts, any time | one `collect()` over the node set; counts via `len`/`Counter` |
 | Around blocks or whole document, by section | scope handles: document / `section(id)` / `node(id)` |
-| Recursively collect blocks, inline, and relationships | recursive `collect(inline=True)`; parent/section/sentence edges |
+| Recursively collect blocks, inline, and relationships | `collect(recursive=True)`; parent/section/sentence edges |
 | Full recursive structure | fully-populated containment tree in `nodes` |
 | Tree → exact structure or any rollup | containment tree view and rollup projections of one node set |
 | Single serializable JSON for UIs | `DocGraph` schema, id-addressed, parser-agnostic |
@@ -901,10 +901,10 @@ detail):
   with document / section / block scope handles, **including an offset-containment mode
   for cross-layer queries** (E9 hook 2). No per-kind rollup methods (DR-4).
 - [x] Define the `SpanRef` type and resolution: `SpanRef.from_node(node)` (total
-  model→source), `resolve(span_ref, doc)` (source→model: exact fast path, then quote
-  fuzzy re-anchor), and `to_persisted()` (drop transient `node_id`). `SpanRef` is the
-  anchor for edits too, not just annotations (E9 hook 4). No annotation *storage* yet;
-  just the targeting contract the rest of the model is designed around.
+  model→source), `span_ref.resolve(source_text)` (source→model: exact fast path, then
+  quote re-anchor), and `to_persisted()` (drop transient offsets by default).
+  `SpanRef` is the anchor for edits too, not just annotations (E9 hook 4). No annotation
+  *storage* yet; just the targeting contract the rest of the model is designed around.
 - [x] Tests: nested tables/code in blockquotes and list items are counted and locatable;
   per-section value and count rollups; density invariance; section slicing; `SpanRef`
   round-trips (node → source-grounded → re-resolved node) and survives a reparse.

@@ -185,7 +185,7 @@ That caveat is restated on the new `Paragraph` accessors.
 **New typed structs (`block_info.py`), frozen dataclasses:**
 
 ```python
-Alignment = Literal["left", "center", "right"] | None
+Alignment = Literal["left", "center", "right", "default"]
 
 @dataclass(frozen=True)
 class CodeInfo:
@@ -197,7 +197,7 @@ class TableInfo:
     rows: int              # total rows, including the header row
     cols: int              # columns (marko Table.num_of_cols)
     cells: int             # rows * cols
-    alignments: list[Alignment]   # per column, length == cols
+    alignments: tuple[Alignment, ...]   # immutable; length == cols
 
 @dataclass(frozen=True)
 class ListInfo:
@@ -359,7 +359,7 @@ Independent of Phase 1: #21 and #22.
   structs #19/#20 already proposed.
   The flat `attrs` keys still exist for `collect()`/`DocGraph` consumers.
 - **Typed per-element accessors are consistent with “mechanism over menu” (DR-4/P4).**
-  They are element **attributes** (like `heading_level()`, `List.ordered`, `Link.url`),
+  They are element **attributes** (like `heading_level`, `List.ordered`, `Link.url`),
   not per-kind **rollups**. The objection DR-4 forbids is blessed aggregate queries
   (`tables()`/`code_blocks()`); `collect()` remains the only query mechanism.
   Recorded so the distinction is explicit.

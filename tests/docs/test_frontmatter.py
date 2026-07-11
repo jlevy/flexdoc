@@ -37,6 +37,16 @@ def test_frontmatter_property_and_paragraph_exclusion():
     assert all("title: Hello" not in p.original_text for p in doc.paragraphs)
 
 
+def test_frontmatter_delimiters_tolerate_trailing_horizontal_whitespace():
+    frontmatter = "--- \t\ntitle: Hello\n---\t \n"
+    body = "# Heading\n\nBody.\n"
+    doc = FlexDoc.from_text(frontmatter + body)
+
+    assert doc.frontmatter == frontmatter
+    assert doc.paragraphs[0].span[0] == len(frontmatter)
+    assert doc.source_text[doc.paragraphs[0].span[0] :] == body
+
+
 def test_frontmatter_excluded_from_size():
     with_fm = FlexDoc.from_text(_FM + _BODY)
     body_only = FlexDoc.from_text(_BODY)

@@ -7,7 +7,7 @@ structural layer lives in `flexdoc.docs.block_tree`.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Generator, Iterable
+from collections.abc import Callable, Generator, Iterable, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 from typing import NamedTuple, TypeAlias
@@ -31,6 +31,7 @@ from flexdoc.docs.block_types import BlockType, block_type_for
 from flexdoc.docs.links import Link, block_links
 from flexdoc.docs.sizes import TextUnit, size, size_in_bytes
 from flexdoc.docs.wordtoks import (
+    PARA_BR_STR,
     SENT_BR_STR,
     SENT_BR_TOK,
     is_break_or_space,
@@ -353,10 +354,12 @@ class Paragraph:
         """This paragraph's Markdown block kind (see `_block_info`)."""
         return self._block_info.block_type
 
+    @property
     def heading_level(self) -> int | None:
         """The Markdown heading level (1-6) if this block is a heading, else None."""
         return self._block_info.heading_level
 
+    @property
     def heading_title(self) -> str | None:
         """The heading text without `#` markers if this block is a heading, else None."""
         return self._block_info.heading_title
@@ -393,3 +396,46 @@ class Paragraph:
     def links(self) -> list[Link]:
         """Links in this block, in order (identity always; absolute span when recoverable)."""
         return block_links(self.original_text, self.offsets.doc_offset)
+
+
+def _size_paragraphs(paragraphs: Sequence[Paragraph], unit: TextUnit) -> int:
+    """Aggregate a paragraph sequence with the same break semantics as `FlexDoc`."""
+    if unit == TextUnit.paragraphs:
+        return len(paragraphs)
+    if unit == TextUnit.sentences:
+        return sum(len(paragraph.sentences) for paragraph in paragraphs)
+    if unit == TextUnit.tokens:
+        text = PARA_BR_STR.join(paragraph.reassemble() for paragraph in paragraphs)
+        return estimate_tokens(text)
+
+    base_size = sum(paragraph.size(unit) for paragraph in paragraphs)
+    paragraph_breaks = max(len(paragraphs) - 1, 0)
+    if unit == TextUnit.lines:
+        return base_size + paragraph_breaks
+    if unit == TextUnit.bytes:
+        return base_size + paragraph_breaks * size_in_bytes(PARA_BR_STR)
+    if unit == TextUnit.chars:
+        return base_size + paragraph_breaks * len(PARA_BR_STR)
+    if unit == TextUnit.words:
+        return base_size
+    if unit == TextUnit.wordtoks:
+        return base_size + paragraph_breaks
+
+    raise ValueError(f"Unsupported unit for FlexDoc: {unit}")
+
+
+def _summarize_paragraphs(  # pyright: ignore[reportUnusedFunction]
+    paragraphs: Sequence[Paragraph],
+) -> str:
+    """Format the standard document/section size summary for `paragraphs`."""
+    nbytes = _size_paragraphs(paragraphs, TextUnit.bytes)
+    if nbytes == 0:
+        return f"{nbytes} bytes"
+    return (
+        f"{nbytes} bytes ("
+        f"{_size_paragraphs(paragraphs, TextUnit.lines)} lines, "
+        f"{_size_paragraphs(paragraphs, TextUnit.paragraphs)} paras, "
+        f"{_size_paragraphs(paragraphs, TextUnit.sentences)} sents, "
+        f"{_size_paragraphs(paragraphs, TextUnit.words)} words, "
+        f"~{_size_paragraphs(paragraphs, TextUnit.tokens)} tok)"
+    )

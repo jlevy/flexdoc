@@ -69,6 +69,13 @@ source .venv/bin/activate
 
 See [uv docs](https://docs.astral.sh/uv/) for details.
 
+## Continuous Integration
+
+CI runs lint and the complete test suite on Ubuntu for every supported Python version
+(3.11–3.14) and on `macos-latest` with Python 3.13. The macOS job provides a
+representative check for the package’s OS-independent classifier; dependency audit and
+wheel smoke jobs remain on Ubuntu.
+
 ## IDE setup
 
 If you use VSCode or a fork like Cursor or Windsurf, you can install the following

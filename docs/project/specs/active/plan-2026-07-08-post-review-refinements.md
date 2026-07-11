@@ -43,47 +43,42 @@ and detail: review doc §5.
 
 Near-mechanical (recommend simply doing):
 
-- [ ] `Paragraph.heading_level()` / `heading_title()` become properties, matching
-  `Block.heading_level` and `Paragraph.block_type`/`code_info`/`table_info`. Today
-  `if paragraph.heading_level:` is truthy for the bound method—silent wrong results.
-  Breaking for callers using `()`.
-- [ ] Rename `TRUE_LINK_FORMS` → `NAVIGABLE_LINK_FORMS` (every surrounding docstring
-  already says “navigable”; alternative name: `DEFAULT_LINK_FORMS`). Breaking for
-  importers.
-- [ ] Export `resolve`/`resolve_and_update` from the package root, or add a
-  `SpanRef.resolve(source_text)` method delegating to the free function (avoids the
-  generic bare name at root; recommended).
-  Today `SpanRef` is a root export but its resolvers are not.
+- [x] `Paragraph.heading_level` / `heading_title` are properties, matching
+  `Block.heading_level` and `Paragraph.block_type`/`code_info`/`table_info`.
+  `if paragraph.heading_level:` now reads the value rather than a truthy bound method.
+  Breaking for callers using `()`; migrated in the 0.3 cleanup.
+- [x] Rename `TRUE_LINK_FORMS` → `NAVIGABLE_LINK_FORMS`; the new name matches the
+  surrounding API language.
+  Breaking for importers and shipped without an alias in the 0.3 cleanup.
+- [x] Add `SpanRef.resolve(source_text)` and `SpanRef.resolve_and_update(source_text)`
+  methods delegating to the implementation functions.
+  The root API stays concise and avoids generic bare resolver names; `flexdoc.docs` no
+  longer promotes those names.
 
-Need a real decision:
+Resolved decisions:
 
-- [ ] **`collect(recursive=True)` and inline nodes.** Today inline kinds are excluded
-  unless `inline=True` (or an inline `kinds` filter implies it); the spec’s own “tally
-  by kind” example silently omits links/code spans.
-  Option A: `recursive=True` implies inline inclusion, with a tri-state `inline` option
-  or equivalent mode so explicit exclusion differs from omission (less surprising;
-  behavioral break). Option B: keep semantics, fix the spec example, and document the
-  behavior. Recommendation: A.
-- [ ] **`Section`/`Block` mutability versus cache sharing.** `sections()` shares mutable
-  `Section` objects with the per-doc cache; mutation corrupts later reads, guarded only
-  by a docstring. Option A: freeze the dataclasses (children/content become tuples;
-  breaking, correct). Option B: deep-copy on return (compatible, slower, keeps the
-  mutable interface). Recommendation: A, pre-1.0.
-- [ ] **Tier the `flexdoc.docs` export surface.** 83 symbols, of which ~26 wordtok
-  primitives and ~10 diff/mapping internals exist for chopdiff.
-  Option: drop them from `flexdoc.docs.__all__` (still importable from
-  `flexdoc.docs.wordtoks`/`token_diffs`), keeping the promoted surface the document
-  model. Decide together with chopdiff’s rewire (extraction plan Step 5) so the moved
-  imports land once.
-- [ ] **Frontmatter delimiter whitespace.** `--- ` (trailing spaces/tabs) is rejected
-  today (documented, but Jekyll/Hugo/gray-matter tolerate it; invisible editor spaces
-  cause silent detection failure).
-  Proposed: `.rstrip()` both delimiter checks—trailing tolerance only; leading
-  whitespace still disqualifies.
-- [ ] **`Section.size()` internals**: extract a `size_of_paragraphs(paragraphs, unit)`
-  helper so `Section` stops building a throwaway `FlexDoc` per call (measured negligible
-  at ~0.4µs, but removes a circular-import workaround).
-  No API change.
+- [x] **`collect(recursive=True)` and inline nodes.** Recursive traversal now includes
+  inline descendants by default. The `inline` option is tri-state, so explicit
+  `inline=False` remains a block-only override and an inline-kind filter still works
+  without `recursive=True`.
+- [x] **`Section`/`Block` mutability versus cache sharing.** The implemented hybrid
+  keeps cached `Block` graphs deeply immutable and returns recursively isolated
+  `Section`/`Paragraph` graphs. This preserves the editable paragraph model without
+  exposing mutable cache state.
+- [x] **Tier the `flexdoc.docs` export surface.** The promoted surface now contains 44
+  document-model, serialization, query, and render/report names.
+  Word-token/search and diff/mapping machinery remains importable from its owning
+  modules. Chopdiff `origin/main` at `df1337b` already imports these lower-level
+  dependencies from owning modules; its only `flexdoc.docs` import is the promoted
+  `Paragraph`, so no downstream source change is required.
+- [x] **Frontmatter delimiter whitespace.** Opening and closing delimiters tolerate
+  trailing spaces and tabs while leading whitespace still disqualifies them.
+  Detection preserves the delimiter text and absolute body offset; an unclosed opening
+  remains a thematic break.
+- [x] **`Section.size()` internals**: `FlexDoc` and `Section` share private paragraph
+  size and summary aggregation.
+  Section sizing no longer builds a throwaway `FlexDoc` or needs the function-local
+  circular import; the public API and results are unchanged.
 
 ## 2. AI Annotation/Commenting Mechanisms (Bead `flexdoc-6582`)
 
@@ -123,19 +118,16 @@ Suggested sequencing: `Annotation` and `from_quote`/`resolve_batch` first, then
 
 ## 3. Release Mechanics Before Promotion (Bead `flexdoc-r634`)
 
-- [ ] **Supply-chain refresh** (maintainer-gated by policy): bump `exclude-newer` from
-  2026-05-11 to (today − 14 days); remove the expired strif/flowmark/idna per-package
-  overrides and their SUPPLY-CHAIN-SECURITY.md entries; `make upgrade`; re-run
-  `pip-audit` and drop both audit-gate ignores from ci.yml if they clear
-  (`PYSEC-2026-196` in pip; `GHSA-6v7p-g79w-8964` in msgpack, added 2026-07-08 when the
-  advisory landed mid-review—both are pip-audit-only transitive deps and both fixes are
-  already past their 14-day windows).
-  Deliberately kept off the review branch (lockfile churn).
-- [ ] **CI matrix vs. classifier**: add one macOS job (single Python version) or drop
-  `Operating System :: OS Independent`.
-- [ ] **Release runbook note**: local wheel builds need `git fetch --tags`
-  (uv-dynamic-versioning yields `0.0.1.devN` from a tagless clone; remote tags are
-  fine).
+- [x] **Supply-chain refresh**: bumped `exclude-newer` to 2026-06-26, removed the
+  expired strif/flowmark/idna exceptions, refreshed the committed lock, and removed the
+  pip/msgpack audit ignores after resolving fixed versions. The unignored audit passes.
+- [x] **CI matrix vs. classifier**: retain `Operating System :: OS Independent` and run
+  the full lint/test gate on `macos-latest` with Python 3.13 in addition to the complete
+  supported-version matrix on Ubuntu.
+- [x] **Release runbook note**: local release preparation fetches tags before building
+  and verifies the intended wheel version in an isolated clone with a local-only
+  candidate tag. The reproduced baseline changed from the tagless `0.0.1.devN` form to
+  `0.2.1.dev10+aceb0c7`; a simulated `v0.3.0` produced exact `Version: 0.3.0` metadata.
 
 ## 4. Smaller Items, No Urgency
 

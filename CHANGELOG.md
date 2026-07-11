@@ -32,6 +32,8 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
   (§11), a `SpanRef` quote that occurs multiple times with no disambiguating
   prefix/suffix (or a tied context score) now resolves to `None` instead of silently
   anchoring to the first occurrence.
+  A context-free position hint also cannot select a duplicate, because no context or
+  source identity proves which occurrence was intended.
   A zero-width quote (`exact=""`) also resolves to `None` on both the fast and slow
   paths.
 - **`collect(overlaps=...)` treats empty intervals as empty.** A degenerate `[x, x)`
@@ -53,6 +55,45 @@ alter documented behavior and target 0.3.0; do not release them as a 0.2.x patch
   `TextUnit.words == "words"` now holds.
   Source-compatible for enum-member access; only `str()`/equality-with-string behavior
   changes.
+- **Recursive `collect()` includes inline descendants by default.** The `inline`
+  parameter is now tri-state: omission follows recursive traversal or an explicit
+  inline-kind filter, `inline=False` excludes inline nodes, and `inline=True` includes
+  them for any query. Callers that need the previous block-only recursive result must
+  pass `inline=False`.
+- **Cached structural views are mutation-safe.** `Block` is now frozen, `Block.children`
+  and `TableInfo.alignments` are tuples, and `sections()` returns recursively isolated
+  section/paragraph copies.
+  Code constructing blocks directly must pass child tuples; code comparing or building
+  table metadata must use alignment tuples.
+  Mutation of a returned section remains local to that view and does not persist to a
+  later call.
+- **`SpanRef` owns its public resolution API.** Call `ref.resolve(source_text)` or
+  `ref.resolve_and_update(source_text)` on the root-exported type.
+  The generic `resolve` and `resolve_and_update` names are no longer promoted from
+  `flexdoc.docs`; update package-level imports and calls to use the methods.
+- **Paragraph heading metadata is property-based.** `Paragraph.heading_level` and
+  `Paragraph.heading_title` now match `Paragraph.block_type` and `Block.heading_level`.
+  Remove `()` from calls to the two former methods.
+- **The navigable-link constant is accurately named.** Import `NAVIGABLE_LINK_FORMS`
+  instead of `TRUE_LINK_FORMS`; no compatibility alias is retained.
+- **`flexdoc.docs` now promotes the document model only.** Word-token/search and
+  diff/mapping names are no longer re-exported.
+  Import them from `flexdoc.docs.wordtoks`, `search_tokens`, `token_diffs`, or
+  `token_mapping` instead.
+  The current Chopdiff integration already uses these owning-module paths.
+- **Frontmatter delimiters tolerate trailing horizontal whitespace.** Opening and
+  closing `---` lines may end in spaces or tabs while remaining verbatim in
+  `frontmatter`; leading whitespace still disqualifies a delimiter, and an unclosed
+  opening remains a thematic break.
+- **The OS-independent classifier is backed by macOS CI.** Ubuntu still covers every
+  supported Python version, and Python 3.13 now runs the full lint/test gate on
+  `macos-latest` as a representative second platform.
+- **Local release preparation is tag-aware.** The runbook fetches tags before building
+  and verifies candidate wheel metadata from an isolated local tag, preventing a tagless
+  clone from silently producing a `0.0.1.devN` release artifact.
+- **Section sizing no longer constructs temporary documents.** `FlexDoc` and `Section`
+  now share private paragraph aggregation for every `TextUnit` and size summary; public
+  results and signatures are unchanged.
 
 Remaining pre-1.0 design decisions and future mechanisms are collected in
 `docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md`.

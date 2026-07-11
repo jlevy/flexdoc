@@ -4,8 +4,8 @@
 
 **Author:** Joshua Levy and Codex
 
-**Status:** In progress; execution beads are mapped and maintainer decisions remain
-open.
+**Status:** In progress; Phase 1 implementation is complete and the 0.3.0 publication
+gate remains open. Later-stage design decisions remain open.
 
 ## Overview
 
@@ -26,8 +26,8 @@ foundation.
   one documented 0.3.0 boundary
 - Preserve one normalized source string and one Unicode-code-point offset space across
   every projection
-- Make anchoring failures visible, including the unresolved context-free offset-hint
-  case
+- Make anchoring failures visible, including context-free offset hints over duplicate
+  quotes
 - Add annotation, suggestion, chunking, and outline mechanisms with explicit ownership,
   conflict, and schema-version semantics
 - Complete the synthetic layer and downstream Chopdiff adoption after the public API is
@@ -56,24 +56,15 @@ The follow-up review also found and fixed a remaining double parse: documents wi
 frontmatter built links from a second body-only parse even though the blanked shared
 parse was already safe to reuse.
 
-The review also confirmed four planning gaps:
+The review also confirmed two planning gaps:
 
-- A `SpanRef` with offsets but no prefix or suffix can still silently select the wrong
-  duplicate after an edit.
-  The current implementation cannot distinguish a valid same-source position from a
-  stale position without context or source identity.
-- The proposed `collect(recursive=True)` behavior needs a tri-state API if callers are
-  to distinguish an omitted `inline` option from an explicit `inline=False` override.
 - An `Annotation` model alone does not define who owns annotations or how they enter a
   `DocGraph`; the builder currently receives only a `NodeTable`.
 - A `SuggestedEdit` record alone does not define batch application, overlap conflicts,
   stale anchors, or atomic failure behavior.
 
-The supply-chain cutoff is also stale.
-CI passes only because the audit job explicitly ignores two advisories in
-audit-tool-only dependencies.
-The repository policy requires maintainer ratification or a reviewed cutoff and lockfile
-refresh before promotion.
+The supply-chain cutoff and lockfile were refreshed on 2026-07-09. All expired package
+exceptions and audit ignores are removed, and the unignored audit passes.
 
 ## Tracking
 
@@ -159,25 +150,31 @@ source contract.
 
 | Bead | Deliverable | Blocked By |
 | --- | --- | --- |
-| `flexdoc-lv8m` | Merge PR #9 and ratify normalized source coordinates | None |
-| `flexdoc-qire` | Resolve context-free `SpanRef` hint ambiguity | `flexdoc-lv8m` |
-| `flexdoc-lcuh` | Group the eight pre-1.0 API cleanup beads | `flexdoc-lv8m` establishes the baseline |
-| `flexdoc-ltzx` | Make paragraph heading metadata properties | `flexdoc-lv8m` |
-| `flexdoc-ikm6` | Define recursive inline collection semantics | `flexdoc-lv8m` |
-| `flexdoc-buw9` | Make cached structural views mutation-safe | `flexdoc-lv8m` |
-| `flexdoc-0cbm` | Rename the navigable-link form constant | `flexdoc-lv8m` |
-| `flexdoc-p60e` | Put resolution beside the public `SpanRef` API | `flexdoc-qire` |
-| `flexdoc-s85t` | Tier the `flexdoc.docs` export surface | `flexdoc-lv8m` |
-| `flexdoc-aaow` | Decide frontmatter delimiter whitespace tolerance | `flexdoc-lv8m` |
-| `flexdoc-uogy` | Remove the temporary `FlexDoc` from `Section.size()` | `flexdoc-lv8m` |
+| `flexdoc-lv8m` | Merge PR #9 and ratify normalized source coordinates; completed 2026-07-09 | None |
+| `flexdoc-qire` | Reject context-free hints over duplicate quotes; completed 2026-07-09 | `flexdoc-lv8m` |
+| `flexdoc-lcuh` | Group the eight pre-1.0 API cleanup beads; completed 2026-07-09 | `flexdoc-lv8m` establishes the baseline |
+| `flexdoc-ltzx` | Make paragraph heading metadata properties; completed 2026-07-09 | `flexdoc-lv8m` |
+| `flexdoc-ikm6` | Make recursive collection include inline descendants by default; completed 2026-07-09 | `flexdoc-lv8m` |
+| `flexdoc-buw9` | Make cached structural views mutation-safe; completed 2026-07-09 | `flexdoc-lv8m` |
+| `flexdoc-0cbm` | Rename the navigable-link form constant; completed 2026-07-09 | `flexdoc-lv8m` |
+| `flexdoc-p60e` | Put resolution beside the public `SpanRef` API; completed 2026-07-09 | `flexdoc-qire` |
+| `flexdoc-s85t` | Tier the `flexdoc.docs` export surface; completed 2026-07-09 | `flexdoc-lv8m` |
+| `flexdoc-aaow` | Tolerate trailing horizontal whitespace on frontmatter delimiters; completed 2026-07-09 | `flexdoc-lv8m` |
+| `flexdoc-uogy` | Share paragraph-size aggregation without a temporary `FlexDoc`; completed 2026-07-09 | `flexdoc-lv8m` |
 | `flexdoc-pcac` | Refresh the supply-chain gate; completed 2026-07-09 with no exceptions or audit ignores | None |
-| `flexdoc-ek6u` | Align CI coverage with the platform classifier | None |
-| `flexdoc-44b1` | Harden the tag-aware local release workflow | None |
+| `flexdoc-ek6u` | Back the OS-independent classifier with representative macOS CI; completed 2026-07-09 | None |
+| `flexdoc-44b1` | Harden and reproduce the tag-aware local release workflow; completed 2026-07-09 | None |
 | `flexdoc-63p5` | Validate and publish 0.3.0 | Every preceding Phase 1 deliverable |
 
 `TextUnit` is not in the API batch because its `StrEnum` conversion landed on PR #9. The
 stale root-API beads `flexdoc-l0lc` and `flexdoc-bift` are also closed because their
 implementation and contract tests already landed.
+
+The structural cache decision is hybrid: `Block` graphs and their metadata are deeply
+immutable and shared, while `sections()` recursively copies its tree because sections
+contain deliberately editable `Paragraph` objects.
+Both choices prevent public mutation from corrupting cached reads without freezing the
+editing model.
 
 ### Phase 2: Add Source-Grounded AI Workflow Primitives
 
@@ -231,25 +228,17 @@ workflow APIs and the Chopdiff migration.
 
 ## Rollout Plan
 
-1. Merge PR #9 after its branch tests and CI pass; do not publish it as 0.2.x.
+1. Merge PR #9 after its branch tests and CI pass; completed 2026-07-09 without a
+   0.2.x publication.
 2. Complete Phase 1 and publish 0.3.0 with a migration-focused changelog.
 3. Complete Phase 2 behind the next `DocGraph` schema version and publish 0.4.0.
 4. Complete Phase 3 only after downstream adoption validates the extension APIs.
 
 ## Open Questions
 
-- Will the maintainer ratify the current audit ignores temporarily, or require the
-  cutoff and lockfile refresh before PR #9 merges?
-- Should a context-free positional hint select a duplicate in an unchanged source, and
-  if so, what source identity proves that the source is unchanged?
-- Should recursive collection include inline nodes by default, and what explicit API
-  excludes them?
-- Should cached structural objects be immutable, or should public methods return deep
-  copies?
 - Who owns annotations, and how are they supplied to `DocGraph` serialization?
 - Does a populated annotation layer require `DocGraph/v0.2` on every graph or only on
   graphs that include annotations?
-- Is macOS CI required, or should package metadata narrow the platform claim?
 
 ## References
 

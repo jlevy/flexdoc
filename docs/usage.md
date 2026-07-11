@@ -26,7 +26,8 @@ print(doc.size_summary())
 
 Offsets in paragraphs and sentences point into `doc.source_text`. If the source starts
 with YAML frontmatter, frontmatter is exposed as `doc.frontmatter` and excluded from the
-prose view.
+prose view. Opening and closing `---` delimiters may have trailing spaces or tabs but
+must not have leading whitespace.
 
 ### Extract Prose Text
 
@@ -116,16 +117,15 @@ sentence_nodes = [node for node in graph.nodes if node.id in graph.views.sentenc
 Use `SpanRef` when a tool needs to persist a source reference and re-resolve it after a
 reparse. A `SpanRef` carries a text quote (the durable anchor) plus offsets (a
 recomputable hint): `to_persisted()` drops the offsets, keeping the quote, and
-`resolve()` re-locates the quote in the (possibly changed) source, returning `None` if
-the quote is gone or ambiguous.
+`SpanRef.resolve()` re-locates the quote in the (possibly changed) source, returning
+`None` if the quote is gone or ambiguous.
 
 ```python
 from flexdoc import SpanRef
-from flexdoc.docs import resolve
 
 link_nodes = doc.collect(kinds={NodeKind.link})
 ref = SpanRef.from_node(link_nodes[0], doc.source_text)
-print(resolve(ref.to_persisted(), doc.source_text))
+print(ref.to_persisted().resolve(doc.source_text))
 ```
 
 ### Transform Text
@@ -138,6 +138,21 @@ Reparse transformed output before analyzing its new structure.
 doc.replace_str("docs", "guide")
 updated = FlexDoc.from_text(doc.reassemble())
 ```
+
+### Import Lower-Level Token and Diff Utilities Explicitly
+
+`flexdoc.docs` promotes the document model.
+Word-token, token-diff, mapping, and search utilities remain available from their owning
+modules for lower-level pipelines:
+
+```python
+from flexdoc.docs.search_tokens import search_tokens
+from flexdoc.docs.token_diffs import TokenDiff, diff_wordtoks
+from flexdoc.docs.token_mapping import TokenMapping
+from flexdoc.docs.wordtoks import PARA_BR_TOK, wordtokenize
+```
+
+These names are not re-exported from `flexdoc.docs`.
 
 ## Examples
 
