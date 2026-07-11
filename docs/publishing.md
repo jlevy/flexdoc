@@ -207,6 +207,17 @@ Follow this checklist for each new release.
    uvx --from PROJECT==X.Y.Z PROJECT --version
    ```
 
+### Releasing From a Remote Agent Session
+
+Remote agent sessions cannot push tags or dispatch workflows, so steps 7-9 above are
+replaced by the release-request path: after the pre-release checklist passes, update
+`.github/release-request/request.json` (the tag) and `.github/release-request/notes.md`
+(the release notes) and land them on `main` via PR. The merge triggers
+`.github/workflows/release.yml`, which creates the tag and GitHub Release at the merged
+commit and then calls `publish.yml` to test, build, and publish to PyPI.
+Maintainer releases created with `gh release create` fire `publish.yml` directly and
+never run `release.yml`.
+
 ### Release Notes Format
 
 Use this structure for release notes:

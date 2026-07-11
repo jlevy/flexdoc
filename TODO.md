@@ -14,14 +14,15 @@ has the full detail; this file is the summary.
 - **Stabilization and promotion roadmap:** the 2026-07 review’s open decisions and
   future mechanisms are consolidated in
   [plan-2026-07-09-flexdoc-stabilization-roadmap.md](docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md).
-  Epic: `flexdoc-aqjg`, with `flexdoc-r634` (0.3.0 contract and release), `flexdoc-6582`
-  (source-grounded workflow APIs and 0.4.0), and `flexdoc-ww1i` (extensions, downstream
-  adoption, and promotion).
+  Epic: `flexdoc-aqjg`; Phase 1 (`flexdoc-r634`, the 0.3.0 contract and release) is
+  complete with 0.3.0 published 2026-07-11, leaving `flexdoc-6582` (source-grounded
+  workflow APIs and 0.4.0) and `flexdoc-ww1i` (extensions, downstream adoption, and
+  promotion).
 
 ## Downstream Work (in Chopdiff, Not This Repo)
 
-0.1.0 and 0.2.0 are published to PyPI with tags `v0.1.0`/`v0.2.0` (extraction plan, Step
-4, done). Remaining:
+0.1.0 through 0.3.0 are published to PyPI with tags `v0.1.0`/`v0.2.0`/`v0.3.0`
+(extraction plan, Step 4, done). Remaining:
 
 - Rewire Chopdiff to the published FlexDoc release in one breaking migration from
   `chopdiff.docs.TextDoc` to `flexdoc.FlexDoc` (extraction plan, Step 5). Depending on a

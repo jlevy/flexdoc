@@ -1,11 +1,11 @@
 # Feature: Staged FlexDoc Stabilization and Promotion Roadmap
 
-**Date:** 2026-07-09 (last updated 2026-07-09)
+**Date:** 2026-07-09 (last updated 2026-07-11)
 
 **Author:** Joshua Levy and Codex
 
-**Status:** In progress; Phase 1 implementation is complete and the 0.3.0 publication
-gate remains open. Later-stage design decisions remain open.
+**Status:** In progress; Phase 1 is complete and 0.3.0 was published 2026-07-11.
+Later-stage design decisions remain open.
 
 ## Overview
 
@@ -164,7 +164,7 @@ source contract.
 | `flexdoc-pcac` | Refresh the supply-chain gate; completed 2026-07-09 with no exceptions or audit ignores | None |
 | `flexdoc-ek6u` | Back the OS-independent classifier with representative macOS CI; completed 2026-07-09 | None |
 | `flexdoc-44b1` | Harden and reproduce the tag-aware local release workflow; completed 2026-07-09 | None |
-| `flexdoc-63p5` | Validate and publish 0.3.0 | Every preceding Phase 1 deliverable |
+| `flexdoc-63p5` | Validate and publish 0.3.0; completed 2026-07-11 | Every preceding Phase 1 deliverable |
 
 `TextUnit` is not in the API batch because its `StrEnum` conversion landed on PR #9. The
 stale root-API beads `flexdoc-l0lc` and `flexdoc-bift` are also closed because their
@@ -230,7 +230,8 @@ workflow APIs and the Chopdiff migration.
 
 1. Merge PR #9 after its branch tests and CI pass; completed 2026-07-09 without a
    0.2.x publication.
-2. Complete Phase 1 and publish 0.3.0 with a migration-focused changelog.
+2. Complete Phase 1 and publish 0.3.0 with a migration-focused changelog; completed
+   2026-07-11 (tag `v0.3.0`, GitHub Release, and PyPI publication via `release.yml`).
 3. Complete Phase 2 behind the next `DocGraph` schema version and publish 0.4.0.
 4. Complete Phase 3 only after downstream adoption validates the extension APIs.
 
