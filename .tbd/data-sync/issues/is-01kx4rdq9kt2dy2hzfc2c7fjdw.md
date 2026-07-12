@@ -3,9 +3,9 @@ type: is
 id: is-01kx4rdq9kt2dy2hzfc2c7fjdw
 title: "Phase 1: Stabilize and release FlexDoc 0.3.0"
 kind: epic
-status: in_progress
+status: closed
 priority: 1
-version: 11
+version: 12
 spec_path: docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md
 labels:
   - phase-1
@@ -21,6 +21,8 @@ child_order_hints:
   - is-01kx4v801c1edg5016snrj38j4
   - is-01kx4v808gd28tns09r81qhs5q
 created_at: 2026-07-10T00:56:43.058Z
-updated_at: 2026-07-10T01:59:39.098Z
+updated_at: 2026-07-11T02:06:01.993Z
+closed_at: 2026-07-11T02:06:01.992Z
+close_reason: "Phase 1 complete: all API/release-gate beads closed and 0.3.0 published 2026-07-11."
 ---
 Settle the source-coordinate and anchoring contract, complete the bounded pre-1.0 API cleanup, clear supply-chain and platform/release gates, and publish 0.3.0 with migration notes. Done when the 0.3.0 release gate closes.
