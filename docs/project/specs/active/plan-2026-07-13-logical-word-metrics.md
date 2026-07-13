@@ -6,9 +6,9 @@
 
 **Status:** In Review
 
-**Implementation status:** The implementation and follow-up naming revision are locally
-complete and validated. Draft PR #18 requires an updated description and refreshed CI
-before review.
+**Implementation status:** The implementation and follow-up naming revision are
+complete. Draft PR #18 documents the final contract, its GitHub Actions matrix is
+passing, and it is ready for review.
 
 ## Overview
 
