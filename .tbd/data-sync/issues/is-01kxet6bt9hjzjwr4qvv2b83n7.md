@@ -3,9 +3,9 @@ type: is
 id: is-01kxet6bt9hjzjwr4qvv2b83n7
 title: "Spec: Add robust logical word metrics"
 kind: epic
-status: closed
+status: open
 priority: 1
-version: 12
+version: 14
 spec_path: docs/project/specs/active/plan-2026-07-13-logical-word-metrics.md
 labels:
   - github-issue-16
@@ -18,10 +18,11 @@ child_order_hints:
   - is-01kxetembq1w0mh10jmqx0nyn3
   - is-01kxetemkczpzfqsfsaeq7b76w
   - is-01kxew9bfsza98jdd9tpsxx6tc
+  - is-01kxexynjehaf7enanqyzxscgr
 created_at: 2026-07-13T22:40:03.400Z
-updated_at: 2026-07-13T23:25:25.546Z
-closed_at: 2026-07-13T23:25:25.546Z
-close_reason: "Revised PR #18 so TextUnit.words and core words fields use documented logical-word semantics, raw_words preserves whitespace splitting, divergence cases are explicit, 366 tests/build/isolated wheel validation pass, and all seven CI checks are green."
+updated_at: 2026-07-13T23:45:45.549Z
+closed_at: null
+close_reason: null
 ---
 Review and implement GitHub issue #16 end to end. Define explicit raw and logical word metrics, decide the public TextUnit compatibility policy, update token/read-time consumers, validate across prose, CJK, code, and machine text, and publish a PR with a validation plan.
 
