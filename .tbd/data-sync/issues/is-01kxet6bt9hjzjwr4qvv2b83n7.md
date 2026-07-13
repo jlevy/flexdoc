@@ -3,9 +3,9 @@ type: is
 id: is-01kxet6bt9hjzjwr4qvv2b83n7
 title: "Spec: Add robust logical word metrics"
 kind: epic
-status: open
+status: closed
 priority: 1
-version: 14
+version: 15
 spec_path: docs/project/specs/active/plan-2026-07-13-logical-word-metrics.md
 labels:
   - github-issue-16
@@ -20,9 +20,9 @@ child_order_hints:
   - is-01kxew9bfsza98jdd9tpsxx6tc
   - is-01kxexynjehaf7enanqyzxscgr
 created_at: 2026-07-13T22:40:03.400Z
-updated_at: 2026-07-13T23:45:45.549Z
-closed_at: null
-close_reason: null
+updated_at: 2026-07-13T23:56:06.285Z
+closed_at: 2026-07-13T23:56:06.285Z
+close_reason: "PR #18 now includes the tbd-compliant comment/docstring audit and external logical-word definition links; 366 tests, lint/type checks, build, isolated wheel smoke, all seven GitHub Actions jobs, and Cursor Bugbot pass on cbddb24."
 ---
 Review and implement GitHub issue #16 end to end. Define explicit raw and logical word metrics, decide the public TextUnit compatibility policy, update token/read-time consumers, validate across prose, CJK, code, and machine text, and publish a PR with a validation plan.
 
