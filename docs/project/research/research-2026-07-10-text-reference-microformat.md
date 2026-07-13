@@ -1,6 +1,6 @@
 # Research: A Portable DocRef, SpanRef, and TextRef Microformat
 
-**Date:** 2026-07-10 (last updated 2026-07-12)
+**Date:** 2026-07-10 (last updated 2026-07-13)
 
 **Author:** Codex, synthesizing existing FlexDoc and tbd design work
 
@@ -41,8 +41,13 @@ and TypeScript implementations:
 TextRef
 ├── document     DocRef locator and provenance
 ├── source_hash  optional validator for canonical source text
-└── selector     optional typed selector; v0.1 defines text and point selectors
+└── selector     optional typed selector; v0.1 defines span, point, and section
 ```
+
+The four semantic target kinds are `whole_document`, `span`, `point`, and `section`.
+The wire format represents `whole_document` by omitting `selector`, because selecting
+the complete source needs no subresource evidence. APIs should still expose the four
+kinds as an exhaustive enum rather than make callers infer them repeatedly.
 
 One logical TextRef needs several projections because no single encoding is optimal for
 storage, links, hand editing, and agent context:
@@ -67,8 +72,8 @@ Included:
 - Unicode source documents, initially Markdown and other decoded text
 - Local, application-internal, URL, GitHub, and GitLab document locators
 - Optional validators for canonical source text
-- Durable exact-text and zero-width point selectors with contextual and positional
-  evidence
+- Durable span, zero-width point, and Markdown-section selectors with contextual,
+  positional, and structural evidence
 - A normative JSON data model with an optional restricted YAML projection
 - A canonical, round-trippable URI projection and an HTTPS viewer-link wrapper
 - A language-neutral API contract, implemented in Python first and TypeScript when a
@@ -87,6 +92,8 @@ Excluded from the initial protocol:
 - Conflict-free replicated data type (CRDT) anchors and live collaborative editing
 - A normative fuzzy-matching algorithm or threshold
 - A universal document graph or parser model
+- Dedicated table, row, cell, heading, list-item, code-block, or other Markdown-node
+  selector kinds
 - A normative terminal or agent-prompt rendering
 
 These exclusions keep the protocol useful without turning it into a document platform.
@@ -100,12 +107,16 @@ diffs, and redline projections can use TextRef targets without becoming part of 
 
 - **DocRef:** A compact application reference that says where a document can be found.
   It is a requested locator and provenance record, not necessarily immutable identity.
-- **SpanRef:** A selector for one non-empty passage in already-available normalized
-  source text.
+- **SpanRef:** A selector for one non-empty range in already-available normalized source
+  text. Its boundaries are Unicode code-point offsets and need not align with Markdown
+  parser nodes.
 - **Point selector:** The `type: point` branch of TextRef’s selector union, identifying
   one zero-width boundary between Unicode code points.
+- **Section selector:** The `type: section` branch, identifying a complete CommonMark
+  heading section from a durable start-heading anchor and optional end-heading anchor.
 - **TextRef:** A DocRef with an optional source hash and optional typed selector.
-  Without a selector it refers to the whole document.
+  Its target kind is whole document, span, point, or section. Without a selector it
+  refers to the whole document.
 - **Source hash:** An algorithm-qualified strong validator for the canonical source
   text. It binds persisted position hints to one coordinate space but does not locate or
   retrieve historical content.
@@ -225,6 +236,91 @@ Several implementation choices should not silently become protocol rules:
 - Mutation through `resolve_and_update()` may be less suitable than immutable value
   objects in a small protocol package.
 
+### Span Boundaries Are Independent of Markdown Structure
+
+A span selects an exact non-empty source slice. Its start and end may fall anywhere on
+Unicode code-point boundaries: inside inline markup, across Markdown nodes, across
+block boundaries, or around complete structural elements. Markdown parsing is not a
+precondition for constructing or resolving it.
+
+This source-level rule is important for comments on punctuation, formatting markers,
+partial words, malformed Markdown, and ranges that a parser does not expose as one
+node. Requiring node alignment would make parser choice part of basic reference
+identity and prevent otherwise valid references from resolving in a text-only tool.
+
+Semantic alignment remains useful as construction and operation policy:
+
+- The v0.1 `SpanRef.from_span()` contract accepts any non-empty code-point range
+- `SpanRef.from_node()` uses a parser-provided full source span
+- A rendered-selection adapter maps visible text back to source before constructing a
+  SpanRef
+- An edit applicator may require token, node, or grapheme-cluster alignment even though
+  the reference format does not
+
+A span that crosses Markdown boundaries can be a valid source target while having no
+single meaningful rendered-text projection. Exporters must refuse or split such a
+projection rather than reinterpret the source range. Grapheme-cluster alignment is a
+separate Unicode usability rule under consideration; it does not imply Markdown-node
+alignment.
+
+### Sections Need Boundary Anchors, Not Frozen Section Text
+
+A section target represents the heading and all content it owns, including nested
+subsections, through the start of the next heading of equal or higher level. Content
+before the first heading is a preamble rather than a section. These rules match
+FlexDoc's existing section model and CommonMark's parsed ATX and setext headings
+([CommonMark](https://spec.commonmark.org/0.31.2/)).
+
+Persisting the complete section as one `exact` quote would make any edit inside the
+section invalidate its identity. A section selector should instead retain a SpanRef
+anchor over the full source span of its starting heading. It may also retain a second
+SpanRef anchor over the following equal-or-higher heading as independent evidence for
+the exclusive end boundary. A Markdown structure adapter derives the current range
+after the start anchor resolves.
+
+This resembles the W3C RangeSelector's inclusive start selector and exclusive end
+selector, but TextRef gives the section a semantic heading rule and permits the end
+anchor to be omitted when a structure adapter can derive it
+([Web Annotation](https://www.w3.org/TR/annotation-model/#rangeselector)). The end anchor
+is corroborating and disambiguating evidence, not a frozen offset. Edits to section
+content do not affect either heading anchor. Heading edits can use the same future
+normalized or fuzzy relaxation policies as spans.
+
+A section selector requires a declared Markdown structure profile and a compatible
+adapter. A text-only resolver can still parse and transport it but reports
+`unsupported` rather than guessing section boundaries. This keeps parser dependencies
+out of the core while making semantic targeting explicit.
+The v0.1 `commonmark` profile also applies to compatible supersets such as GFM when they
+preserve CommonMark heading recognition. A dialect that changes which source blocks are
+headings needs another named profile rather than silent parser-dependent behavior.
+
+### Tables Use Spans Until Structural Identity Is Required
+
+Version 0.1 can represent the common table cases without table-specific selectors:
+
+- A phrase in a cell uses an arbitrary source span
+- A whole cell or header cell uses its parser-derived source span
+- A row or complete table uses the corresponding full source span when available
+- A point between cell text and adjacent syntax uses a point selector
+
+The word "header" should not become one ambiguous selector kind. A Markdown heading by
+itself is a span, the content it owns is a section, and a table header cell is a span
+over that cell's source. Future structural types should use distinct names such as
+`heading` and `table_cell`.
+
+A parser adapter must map a rendered cell selection to canonical source. Splitting a
+row on raw `|` characters is incorrect because GFM permits optional outer pipes, trims
+cell whitespace, parses inline markup, and allows escaped pipes inside cells
+([GFM tables](https://github.github.com/gfm/#tables-extension-)).
+
+This baseline does not preserve cell identity after the cell's entire text changes or
+after rows and columns move. If a concrete consumer needs that behavior, future
+`table`, `table_row`, or `table_cell` selector kinds can combine a table anchor,
+row/column or header evidence, cell quote, and optional structural hints. Adding those
+kinds does not change the span, point, section, or whole-document shapes. A dedicated
+kind should wait for fixtures that establish how merged cells, missing headers,
+alignment rows, row insertion, and dialect differences behave.
+
 ### A Source Hash Binds Position Evidence to Canonical Text
 
 DocRef and SpanRef compose without a separate state object:
@@ -270,8 +366,8 @@ A resolver must never silently reinterpret a source-text SpanRef against rendere
 Google-Docs-style comments on a Markdown document, stored out-of-band, use every part of
 the proposed shape: a locator for the commented document, an optional source hash for
 cheap staleness detection, and a durable selector per comment.
-A sidecar file can hoist the shared parts to the top level and use bare `text` or
-`point` selectors per annotation, mirroring the FlexDoc guidance that an enclosing
+A sidecar file can hoist the shared parts to the top level and use bare `span`, `point`,
+or `section` selectors per annotation, mirroring the FlexDoc guidance that an enclosing
 container may supply document and source context:
 
 ```yaml
@@ -285,7 +381,7 @@ comments:
     created: 2026-07-12T09:14:00Z
     status: open
     selector:
-      type: text
+      type: span
       exact: "Canonical source is authoritative."
       prefix: "The parser guarantees that "
       suffix: " Derived views are secondary."
@@ -343,7 +439,7 @@ target:
   document: ./book-notes.md
   source_hash: "sha256:83f6d4..."
   selector:
-    type: text
+    type: span
     exact: "Robust anchors use independent evidence."
     prefix: "The central rule is: "
     suffix: " Offsets alone are insufficient."
@@ -408,21 +504,23 @@ An unresolved import record may retain `captured_text`, provider location, ASIN,
 title, and author, but it does not become a valid TextRef until an adapter identifies a
 document representation and target in that representation.
 
-The basic annotation cases then compose without new target types:
+The basic annotation cases compose with the four v0.1 target kinds:
 
 | User Action | Target | Envelope |
 | --- | --- | --- |
-| Highlight text | `text` selector | `highlighting`; optional style |
-| Highlight with note | `text` selector | `highlighting` and `commenting`; text body |
-| Comment on text without visible highlight | `text` selector | `commenting`; text body |
+| Highlight text | `span` selector | `highlighting`; optional style |
+| Highlight with note | `span` selector | `highlighting` and `commenting`; text body |
+| Comment on text without visible highlight | `span` selector | `commenting`; text body |
 | Bookmark or cursor marker | `point` selector | `bookmarking`; optional label/body |
 | Note between characters or at a line boundary | `point` selector | `commenting`; text body |
 | Document-level note | No selector | `commenting`; text body |
 | Proposed insertion | `point` selector | `editing`; typed edit body with source content |
-| Proposed deletion | `text` selector | `editing`; typed delete body |
-| Proposed replacement | `text` selector | `editing`; typed edit body with source content |
-| Comment on a whole Markdown block | `text` selector over its full source span | `commenting`; text body |
-| Answer an embedded question | `text` selector over the question block | `replying`; typed answer body in a later profile |
+| Proposed deletion | `span` selector | `editing`; typed delete body |
+| Proposed replacement | `span` selector | `editing`; typed edit body with source content |
+| Comment on a whole Markdown block | `span` selector over its full source span | `commenting`; text body |
+| Comment on table or cell content | `span` selector over the mapped source range | `commenting`; optional captured rendered text |
+| Comment on a complete heading section | `section` selector | `commenting`; text body |
+| Answer an embedded question | `span` selector over the question block | `replying`; typed answer body in a later profile |
 
 Publication identity remains a separate portability problem.
 EPUB annotation sets use publication metadata and prefer ISBN when available; Readwise
@@ -467,13 +565,14 @@ This distinction matters at exactly the boundaries users care about:
 
 | Intent | Source Target |
 | --- | --- |
-| Mark one visible character | A one-code-point `text` selector over that character |
+| Mark one visible character | A one-code-point `span` selector over that character |
 | Insert before a character | A `point` before it, normally with `after` affinity |
 | Insert after a character | A `point` after it, normally with `before` affinity |
 | End of a non-final line | The boundary immediately before canonical `\n`; affinity depends on whether the anchor owns the preceding text or following newline |
 | End of the final line | The document-end boundary, with `before` affinity |
 | Start of a line | The boundary after the preceding `\n`, with `after` affinity |
-| Annotate a Markdown heading | A `text` selector over the heading node’s full source span |
+| Annotate a Markdown heading only | A `span` selector over the heading node’s full source span |
+| Annotate a heading and all content it owns | A `section` selector anchored at that heading |
 | Insert before or after a heading | A `point` at the heading source span’s start or end |
 
 At a non-final line end, `before` keeps the point attached to the existing line text;
@@ -846,13 +945,13 @@ For example, the readable form can use a versioned scheme-specific path and quer
 parameters:
 
 ```text
-textref:0.1?doc=.%2Fdesign.md&type=text&exact=Canonical%20source&start=1842
+textref:0.1?doc=.%2Fdesign.md&type=span&exact=Canonical%20source&start=1842
 ```
 
 A conforming viewer can wrap it without changing the inner value:
 
 ```text
-https://viewer.example/open#textref:0.1?doc=.%2Fdesign.md&type=text&exact=Canonical%20source&start=1842
+https://viewer.example/open#textref:0.1?doc=.%2Fdesign.md&type=span&exact=Canonical%20source&start=1842
 ```
 
 `textref` is not currently registered in the IANA URI Scheme Registry.
@@ -1044,7 +1143,7 @@ Source: sha256:83f6d4... (matched)
 @@ L41-L45 @@
   41 | The parser normalizes line endings before hashing.
   42 | Canonical source is authoritative.
-     | [A1 text L42:C1-L42:C35] "Canonical source is authoritative."
+     | [A1 span L42:C1-L42:C35] "Canonical source is authoritative."
      | [A1 commenting] Define which normalization profile is canonical.
   43 | Derived views are secondary.
      | [A2 point before L43:C1] Add a transition before this sentence.
@@ -1066,9 +1165,12 @@ The renderer should follow deterministic rules:
 - Use one-based `L` and `C` labels for people and agents; declare that columns count
   Unicode code points, not UTF-16 units, bytes, grapheme clusters, or terminal cells
 - Include the matched source lines and enough exact quote to identify every resolved
-  text target; mark size-budget elision explicitly and keep the complete quote in the
+  span or section anchor; mark size-budget elision explicitly and keep the complete quote in the
   structured sidecar rather than relying on a caret underline as the only evidence
 - Render point affinity and the owning context explicitly
+- Render a section annotation at its heading with the complete derived line range.
+  When the section does not fit the context budget, show separate start and end windows
+  with explicit intervening elision rather than printing unrelated document content
 - Merge overlapping context windows as diff tools merge nearby hunks, with a
   configurable but reported context-line count
 - Sort resolved annotations by source position and then stable annotation ID
@@ -1180,7 +1282,7 @@ target:
   document: ./design.md
   source_hash: "sha256:83f6d4..."
   selector:
-    type: text
+    type: span
     exact: old wording
     prefix: "The paragraph uses "
     suffix: " here."
@@ -1198,8 +1300,8 @@ The three basic operations use existing target shapes:
 | Operation | Target | Edit Body |
 | --- | --- | --- |
 | Insert | `point` selector | Required non-empty source content |
-| Delete | Non-empty `text` selector | No replacement content |
-| Replace | Non-empty `text` selector | Required source content |
+| Delete | Non-empty `span` selector | No replacement content |
+| Replace | Non-empty `span` selector | Required source content |
 
 Replacing a whole document can use a TextRef without a selector.
 Moves, file renames, and cross-file changes can initially decompose into delete and
@@ -1272,7 +1374,7 @@ The resulting ownership is:
 
 | Concern | Status | Owner |
 | --- | --- | --- |
-| Passage or point target | First-class in v0.1 | TextRef |
+| Whole-document, span, point, or section target | First-class in v0.1 | TextRef |
 | Single insert, delete, or replace proposal | First-class when an editing profile is defined | Annotation envelope |
 | Atomic multi-edit or cross-file change | Deferred until a consumer defines its semantics | Sibling change-set protocol |
 | Git/source patch | Existing primary change artifact | Git or source-control adapter |
@@ -1593,7 +1695,7 @@ This has several consequences:
 This simplification works for a single review transaction but does not support a
 portable reference format.
 A whole-block comment needs no new selector type: a Markdown adapter can create a normal
-`text` selector over the block node’s complete source span.
+`span` selector over the block node’s complete source span.
 An element index, node type, heading path, or parser ID may remain a namespaced
 fast-path hint, but the target should retain source quote, context, position, and
 optional source hash evidence.
@@ -1640,7 +1742,7 @@ demonstrates two useful concepts outside the TextRef core:
 - Annotation bodies can evolve through a discriminated union such as plain text, single
   choice, and multiple choice without changing the target reference.
 
-For portability, an answer can target a `text` selector over the question block’s full
+For portability, an answer can target a `span` selector over the question block’s full
 Markdown source span, use `replying` as its motivation, and keep the question ID under a
 profile-defined field or namespaced extension.
 The ID helps find the object, while the source quote and optional hash detect a reused
@@ -2047,9 +2149,10 @@ it once as a protocol.
 
 The protocol should meet these requirements:
 
-1. **Small:** Three public reference concepts, one compact JSON shape, and a narrow pure
-   API.
-2. **Composable:** Whole-document, passage, and point references use the same top level.
+1. **Small:** Three public reference concepts, four target kinds, one compact JSON
+   shape, and a narrow pure API.
+2. **Composable:** Whole-document, span, point, and section references use the same top
+   level.
 3. **Source-grounded:** v0.1 selects one precisely defined Unicode source stream.
 4. **Verifiable:** An optional source hash can verify the selector coordinate space.
 5. **Durable:** Quotes and boundary context can recover selections after positions move.
@@ -2068,6 +2171,9 @@ The protocol should meet these requirements:
     have explicit conversion and authority boundaries.
 13. **Line-friendly without line fragility:** Consumers can construct and display
     one-based line references without making line numbers durable selector identity.
+14. **Structure only when requested:** Spans remain valid at arbitrary source
+    boundaries; section and future structural targets declare their parsing profile and
+    do not make every TextRef parser-dependent.
 
 ## Comparison Matrix
 
@@ -2196,20 +2302,43 @@ The public vocabulary should be:
 
 - `DocRef`: requested document locator
 - `SpanRef`: passage selector over supplied normalized text
-- `TextRef`: whole-document, passage, or point reference
+- `TextRef`: whole-document, span, point, or section reference
 
 `source_hash` is an optional field, not a separate public value type.
 It validates the canonical source used by a position hint.
-The persisted `selector` is a discriminated union; v0.1 defines `type: text` backed by
-SpanRef evidence and `type: point` backed by boundary evidence.
-The point branch does not require a standalone PointRef wire format or a fourth public
-reference concept.
+The persisted `selector` is a discriminated union; v0.1 defines `type: span` backed by
+SpanRef evidence, `type: point` backed by boundary evidence, and `type: section` backed
+by heading anchors plus a structure profile. Selector absence represents the complete
+document. The public API exposes this as a derived `target_kind` with exactly four
+values:
+
+| Target Kind | Wire Shape | Meaning |
+| --- | --- | --- |
+| `whole_document` | `selector` absent | The complete canonical source |
+| `span` | `selector.type: span` | One non-empty arbitrary source range |
+| `point` | `selector.type: point` | One zero-width source boundary |
+| `section` | `selector.type: section` | One complete parsed heading section |
+
+Whole-document references do not need a redundant `type: document` selector. Point and
+section branches likewise do not require standalone PointRef or SectionRef wire types.
+SpanRef remains a useful value over supplied text because FlexDoc already exposes it and
+section boundary anchors reuse its evidence shape.
 
 `TextRef` is preferable to `DocumentTarget` because it is concise and states the
 representation boundary: v0.1 refers to text, not arbitrary binary resources or rendered
 layout.
 
 ### Persisted Shapes
+
+A whole-document reference has no selector:
+
+```json
+{
+  "format": "textref/0.1",
+  "document": "github:owner/repo@main//docs/design.md",
+  "source_hash": "sha256:83f6d4..."
+}
+```
 
 A passage reference uses a non-empty source quote:
 
@@ -2219,7 +2348,7 @@ A passage reference uses a non-empty source quote:
   "document": "github:owner/repo@main//docs/design.md",
   "source_hash": "sha256:83f6d4...",
   "selector": {
-    "type": "text",
+    "type": "span",
     "exact": "Canonical source is authoritative.",
     "prefix": "The parser guarantees that ",
     "suffix": " Derived views are secondary.",
@@ -2245,6 +2374,33 @@ A point reference uses context around a zero-width source boundary:
 }
 ```
 
+A section reference anchors its starting heading and may corroborate the exclusive end
+with the next equal-or-higher heading:
+
+```json
+{
+  "format": "textref/0.1",
+  "document": "github:owner/repo@main//docs/design.md",
+  "source_hash": "sha256:83f6d4...",
+  "selector": {
+    "type": "section",
+    "syntax": "commonmark",
+    "start_anchor": {
+      "exact": "## TextRef Design",
+      "prefix": "This is the recommended approach.\n\n",
+      "suffix": "\n\n### Protocol Types",
+      "start": 7421
+    },
+    "end_anchor": {
+      "exact": "## Open Decisions",
+      "prefix": "Rendered browser fragments remain a separate adapter concern.\n\n",
+      "suffix": "\n\n### Document Location and Portability",
+      "start": 12684
+    }
+  }
+}
+```
+
 The v0.1 rules are:
 
 - `format` and `document` are required.
@@ -2255,13 +2411,17 @@ The v0.1 rules are:
 - A TextRef containing `selector` has no independently recognized Git or URL fragment.
   The final DocRef rules must define this per kind before it is enforced.
 - `selector.type` is required.
-  v0.1 defines `text` and `point`.
-- A `text` selector requires an `exact` string containing at least one Unicode code
+  v0.1 defines `span`, `point`, and `section`.
+- A `span` selector requires an `exact` string containing at least one Unicode code
   point. `prefix` and `suffix` are optional, non-empty immediate context strings.
   `start` is an optional non-negative JSON-safe integer measured in Unicode code points.
   The selected half-open range is `[start, start + code_point_length(exact))`. In-memory
   SpanRef APIs may retain a derived `end`, but the wire format does not store the
   redundant value.
+- Span boundaries need not align with Markdown tokens, inline nodes, blocks, headings,
+  lines, rendered selections, or parser nodes. They are boundaries in canonical source
+  text. A consumer may impose stricter alignment for a particular operation without
+  changing TextRef validity.
 - A `point` selector requires `affinity: before | after` and normally contains a
   non-negative JSON-safe `position` plus non-empty immediate `prefix` and/or `suffix`
   context. `position` identifies a boundary and can equal the source length.
@@ -2275,6 +2435,28 @@ The v0.1 rules are:
   At document start, use `after`; at document end, use `before`. Empty text is both
   boundaries: either affinity may express insertion behavior, but the point cannot
   recover after a source-hash mismatch because it has no content evidence.
+- A `section` selector requires `syntax: commonmark` and `start_anchor` containing the
+  same `exact`, `prefix`, `suffix`, and `start` evidence as a SpanRef, without a nested
+  `type`. The start anchor selects the complete parsed source span of an ATX or setext
+  heading. The section starts at the first code point of that heading and includes its
+  nested subsections.
+- `end_anchor` is optional and has the same evidence shape. When present, it selects the
+  complete heading that begins immediately after the section: the next heading of equal
+  or higher level. That heading is excluded from the resolved range. A last section has
+  no end anchor because its exclusive end is the end of the document.
+- A section constructor should capture `end_anchor` whenever that following heading is
+  available. Omitting it is a valid compact form, but loses independent detection of an
+  inserted peer heading or other boundary change.
+- Section resolution requires a compatible structure adapter. The adapter derives the
+  current exclusive end from the parsed heading hierarchy. An end anchor corroborates
+  and disambiguates that result but does not replace structural verification. A
+  text-only resolver reports `unsupported` instead of treating the reference as a span
+  or extending it to the end of the document.
+- A mismatch between a resolved end anchor and the derived structural boundary is
+  visible `boundary_mismatched` evidence. The resolver must not silently expand or
+  contract the section. If only the end heading text changes but the start heading and
+  structure remain unambiguous, a consumer may resolve the section while reporting the
+  stale end evidence.
 - Unknown fields are rejected at every defined schema level.
   Optional non-standard data belongs under an `extensions` object whose keys are
   namespaced by their owner.
@@ -2285,23 +2467,27 @@ The optional fields form four useful profiles:
 | --- | --- | --- |
 | Absent | Absent | Floating reference to the whole document |
 | Present | Absent | Verifiable reference to one canonical source value |
-| Absent | Present | Passage or point that can re-anchor in the resolved document |
-| Present | Present | Source-bound selection with content-based recovery after edits |
+| Absent | Present | Span, point, or section that can re-anchor in the resolved document |
+| Present | Present | Source-bound target with recovery evidence after edits |
 
 The hash does not make a mutable DocRef retrieve an old version.
 A reproducible citation should use an immutable DocRef, such as a Git commit, or
 consumer-owned archival provenance.
 
 `selector` is a discriminated union so future selector kinds can be added without
-changing `type: text` or `type: point`:
+changing the existing branches:
 
-- `range` for start and end selectors that require different evidence
-- `structural` for consumer-specific document structures
+- `table`, `table_row`, or `table_cell` when consumers need structural identity that a
+  source span cannot preserve
+- Other structural objects such as list items, code blocks, headings without their
+  owned section content, or parser-specific nodes
+- Discontinuous or multi-span selections
 - rendered-text or media selectors with explicit representation semantics
 
 These are extension points, not v0.1 commitments.
-Normalized and fuzzy text matching do not need new selector kinds because they consume
-the same `exact`, context, source hash, and position evidence.
+Normalized and fuzzy matching do not need new selector kinds because they consume the
+same `exact`, context, source hash, and position evidence, including the SpanRef evidence
+inside section anchors.
 
 The JSON object is the normative persisted data model and is encoded as UTF-8. YAML is
 only a convenience projection: it must use string keys and JSON-compatible values,
@@ -2322,24 +2508,29 @@ contain the URI or its equivalent JSON TextRef.
 | --- | --- | --- |
 | `doc` | Complete DocRef string | All references |
 | `hash` | Algorithm-qualified `source_hash` | Optional |
-| `type` | `text` or `point` | References with selectors |
-| `exact` | Non-empty source quote | Text selector |
-| `prefix`, `suffix` | Immediate source context | Text or point selector |
-| `start` | Code-point position hint | Text selector |
+| `type` | `span`, `point`, or `section` | References with selectors |
+| `exact` | Non-empty source quote | Span selector |
+| `prefix`, `suffix` | Immediate source context | Span or point selector |
+| `start` | Code-point position hint | Span selector |
 | `position` | Code-point boundary hint | Point selector |
 | `affinity` | `before` or `after` | Point selector |
+| `syntax` | `commonmark` | Section selector |
+| `start_exact`, `start_prefix`, `start_suffix`, `start_pos` | Start-heading anchor | Section selector |
+| `end_exact`, `end_prefix`, `end_suffix`, `end_pos` | Optional exclusive end-heading anchor | Section selector |
 
 Examples:
 
 ```text
 textref:0.1?doc=.%2Fdesign.md
-textref:0.1?doc=.%2Fdesign.md&hash=sha256%3A83f6d4...&type=text&exact=Canonical%20source%20is%20authoritative.&prefix=The%20parser%20guarantees%20that%20&suffix=%20Derived%20views%20are%20secondary.&start=1842
+textref:0.1?doc=.%2Fdesign.md&hash=sha256%3A83f6d4...&type=span&exact=Canonical%20source%20is%20authoritative.&prefix=The%20parser%20guarantees%20that%20&suffix=%20Derived%20views%20are%20secondary.&start=1842
 textref:0.1?doc=.%2Fdesign.md&type=point&prefix=authoritative.&suffix=%0ADerived%20views&position=1881&affinity=before
+textref:0.1?doc=.%2Fdesign.md&type=section&syntax=commonmark&start_exact=%23%23%20TextRef%20Design&start_pos=7421&end_exact=%23%23%20Open%20Decisions&end_pos=12684
 ```
 
 Canonical serialization should:
 
-- Map `format: textref/0.1` to the `0.1` path and emit parameters in the table’s order
+- Map `format: textref/0.1` to the `0.1` path and emit parameters in the table’s order.
+  Within a section, emit every `start_*` field before every `end_*` field
 - Encode every value as UTF-8 and percent-encode every byte except RFC 3986 unreserved
   characters; encode spaces as `%20`, never `+`
 - Emit only fields present in the object and never shorten or normalize their string
@@ -2358,7 +2549,7 @@ The codec performs no I/O. A custom-scheme handler may resolve the returned Text
 an HTTPS viewer may embed the complete inner URI in its fragment:
 
 ```text
-https://viewer.example/open#textref:0.1?doc=.%2Fdesign.md&type=text&exact=Canonical%20source
+https://viewer.example/open#textref:0.1?doc=.%2Fdesign.md&type=span&exact=Canonical%20source
 ```
 
 The `textref:` scheme remains a specification candidate until registration and
@@ -2387,7 +2578,7 @@ source_hash: "sha256:83f6d4..."
 annotations:
   - id: A1
     target:
-      type: text
+      type: span
       exact: Canonical source is authoritative.
       prefix: "The parser guarantees that "
       suffix: " Derived views are secondary."
@@ -2408,11 +2599,42 @@ annotations:
     body:
       type: text
       value: Add a transition before this sentence.
+
+  - id: A3
+    target:
+      type: section
+      syntax: commonmark
+      start_anchor:
+        exact: "## TextRef Design"
+        prefix: "This is the recommended approach.\n\n"
+        suffix: "\n\n### Protocol Types"
+        start: 7421
+      end_anchor:
+        exact: "## Open Decisions"
+        prefix: "Rendered browser fragments remain a separate adapter concern.\n\n"
+        suffix: "\n\n### Document Location and Portability"
+        start: 12684
+    motivations: [commenting]
+    body:
+      type: text
+      value: Review the complete design section after internal edits.
+
+  - id: A4
+    target: document
+    motivations: [commenting]
+    body:
+      type: text
+      value: This note applies to the complete document.
 ```
 
 `text-annotations/0.1` is a consumer profile around TextRef, not another selector
 protocol. A consumer expands each `target` into a complete TextRef using the hoisted
 fields before validation or resolution.
+The literal `target: document`, as in `A4`, expands to a TextRef without `selector` and
+therefore targets the whole document. An object target must be a bare `span`, `point`,
+or `section` selector. An omitted target, `null`, `{}`, and an invented
+`type: document` are rejected so missing data cannot silently become a whole-document
+annotation.
 This profile should initially contain exactly one document; a cross-document annotation
 uses a complete TextRef or a later explicitly multi-document container.
 
@@ -2463,7 +2685,7 @@ Line notation belongs in constructors and resolved results:
 
 - `from_lines(source, first_line, last_line)` accepts one-based inclusive line labels,
   selects from the start of `first_line` to the start of the following line, and creates
-  a normal text selector.
+  a normal span selector.
   The last selected line includes its terminating LF when one is present.
 - `from_line_column(source, line, column, affinity)` creates a point selector at a
   one-based line and code-point column.
@@ -2519,7 +2741,7 @@ Resolution separates document acquisition from selector resolution:
 6. Return a typed result containing source-validation status, selection outcome, and
    method.
 
-Recommended exact tiers for a `text` selector:
+Recommended exact tiers for a `span` selector:
 
 1. **Source-bound position:** If hashes match and the range derived from `start` equals
    `exact`, accept the position even when the quote occurs elsewhere.
@@ -2552,7 +2774,30 @@ Affinity controls how a point survives an insertion at its boundary; it is not i
 evidence that an otherwise weak match is correct.
 If the owning context is deleted or repeated, exact resolution can legitimately orphan
 the point. Normalized and fuzzy policies may compare or relax point context in later
-stages, using the same thresholds and runner-up margin requirements as text matching.
+stages, using the same thresholds and runner-up margin requirements as span and anchor
+matching.
+
+A `section` selector resolves its anchors and structure separately:
+
+1. **Start heading:** Resolve `start_anchor` through the span exact ladder and require
+   the structure adapter to identify the matched range as one complete top-level
+   CommonMark heading.
+2. **Derived boundary:** Derive the exclusive end at the next heading of equal or higher
+   level, or at document end.
+3. **End corroboration:** If `end_anchor` is present, resolve it and prefer a start
+   candidate whose derived boundary equals the end anchor's start. This can disambiguate
+   repeated heading text.
+4. **Boundary disagreement:** If both anchors resolve but do not describe one parsed
+   section, report `boundary_mismatched`; do not silently turn the target into an
+   arbitrary source range.
+5. **Visible unsupported state:** If the syntax profile or structure adapter is
+   unavailable, report `unsupported`; do not treat the start anchor as the complete
+   target.
+
+The resolved section range is derived state. Its interior text is not stored as selector
+evidence, so edits within that range do not require re-anchoring. A changed heading can
+enter the normalized or fuzzy anchor stages under the same policy and confirmation rules
+as a span.
 
 ### Optional Relaxed Resolution
 
@@ -2571,8 +2816,9 @@ Each policy includes the preceding policy before adding new stages:
    normalization, or case folding.
    Each transformation is explicit because these equivalences are unsafe for some
    source-editing and multilingual use cases.
-3. `fuzzy` first searches within a bounded window around `start`, then may search the
-   whole document using quote similarity, prefix/suffix agreement, and proximity.
+3. `fuzzy` first searches within a bounded window around a span or anchor position, then
+   may search the whole document using quote similarity, prefix/suffix agreement, and
+   proximity.
 
 “Closest” is not a sufficient acceptance rule.
 An approximate candidate resolves automatically only when all of the following hold:
@@ -2609,7 +2855,10 @@ No individual field is a permanent anchor:
 | `exact` | Supplies primary passage evidence | Edits within the selected text |
 | `prefix` and `suffix` | Disambiguate and score context | Nearby edits and moved boilerplate |
 | Point `affinity` | Chooses the owning side at an insertion boundary | Deletion or repetition of owning context |
-| Future structural scope | Narrows candidate search | Heading rename or document restructure |
+| Section `start_anchor` | Identifies the owning heading without freezing its content | Heading rename, deletion, or duplication |
+| Section `end_anchor` | Corroborates the exclusive boundary | Boundary-heading rename or hierarchy change |
+| Section structure profile | Derives current owned content | Parser disagreement or heading-level change |
+| Future structural scope | Narrows table, cell, or other candidates | Document restructure or dialect change |
 
 Robustness comes from resolving these signals together and degrading visibly when they
 disagree. The design does not require a document region, heading path, node identifier,
@@ -2631,8 +2880,8 @@ re-anchored reference into one status:
 | --- | --- |
 | Document | `resolved`, `unavailable`, `invalid` |
 | Source validation | `absent`, `matched`, `mismatched` |
-| Selector | `whole_document`, `resolved`, `missing`, `ambiguous` |
-| Method | `source_position`, `context_position`, `exact_quote`, `context_quote`, `point_context`, `point_affinity`, `normalized_quote`, `fuzzy_quote`, `none` |
+| Selector | `whole_document`, `resolved`, `missing`, `ambiguous`, `boundary_mismatched`, `unsupported` |
+| Method | `source_position`, `context_position`, `exact_quote`, `context_quote`, `point_context`, `point_affinity`, `section_structure`, `section_anchors`, `normalized_quote`, `fuzzy_quote`, `none` |
 
 A convenience nullable API may wrap these results, but persisted tools and edit
 workflows need the distinctions.
@@ -2658,14 +2907,16 @@ behavior for every consumer.
 The eventual shared core should provide:
 
 - DocRef parsing, formatting, normalization, validation, and structural equality
-- TextRef, SpanRef, and point-selector validation and serialization
+- TextRef plus span-, point-, and section-selector validation and serialization
 - Canonical TextRef URI parsing and formatting
 - Canonical source normalization and hashing
 - SpanRef construction from a string and offsets
 - Point-selector construction from a source boundary and affinity
+- Section-selector construction from heading and optional end-heading SpanRefs
 - One-based line-range and line-boundary constructors that materialize source selectors
 - Derived one-based line and code-point-column display locations
-- Exact text and point resolution over caller-supplied text
+- Exact span and point resolution over caller-supplied text
+- Section resolution through a consumer-supplied CommonMark structure adapter
 - Code-point and UTF-16 offset conversion
 - Typed resolution results
 
@@ -2758,6 +3009,8 @@ FlexDoc should prove the TextRef shape while keeping FlexDoc-specific adapters l
 - Keep `SpanRef.from_node()` in FlexDoc
 - Add a point-selector constructor and source-span boundary helpers without making
   points pretend to be empty SpanRefs
+- Add a section-selector constructor from `Section.heading_block.source_span`, with an
+  optional end anchor from the next equal-or-higher heading
 - Keep the existing public SpanRef API while testing the new wire projection
 - Persist `start` when a TextRef also carries `source_hash`; continue treating unbound
   positions as hints
@@ -2766,12 +3019,13 @@ FlexDoc should prove the TextRef shape while keeping FlexDoc-specific adapters l
 - Preserve `DocGraph/v0.1`
 - Add document locator, optional source hash, and typed annotation targets in an
   explicit later schema version
-- Use bare `text` or `point` selectors for annotations embedded in a DocGraph whose
-  enclosing source already supplies document and source-hash context
+- Use bare `span`, `point`, or `section` selectors for annotations embedded in a
+  DocGraph whose enclosing source already supplies document and source-hash context
 - Use complete TextRef for annotations detached from a graph or targeting another
   document
-- Map annotations on a parsed heading or other node to its full `source_span`; require
-  an explicit adapter when a selection originates from rendered text instead
+- Map annotations on a parsed node to its full `source_span`; map a complete heading
+  section to a section selector; require an explicit adapter when a selection originates
+  from rendered text instead
 
 The protocol decision should precede Phase 2 work on annotation ownership, batch
 resolution, and source-validated suggested edits.
@@ -2827,72 +3081,85 @@ Rendered browser fragments remain a separate FlexDoc adapter concern.
     or must every selector resolve independently so iteration order and assumptions
     about target uniqueness cannot manufacture certainty?
 
+### Section Construction and Resolution
+
+18. **Structure profile:** Is `syntax: commonmark` sufficiently precise for ATX and
+    setext heading sections across implementations, or does the format need a named
+    parser/conformance profile?
+19. **End-anchor policy:** Should the recommended default to capture `end_anchor`
+    whenever a following equal-or-higher heading exists become a normative requirement
+    for full-profile exporters? Define whether missing end evidence is advisory and
+    whether a resolved disagreement always produces `boundary_mismatched`.
+20. **Section granularity:** Does v0.1 need only a complete section including nested
+    subsections, or also the heading alone and direct content excluding subsections?
+    The latter two are currently ordinary spans.
+
 ### Annotation Sidecar Composition
 
-18. **Orphan representation:** Should the resolution result define a persistable
+21. **Orphan representation:** Should the resolution result define a persistable
     orphaned state and a confidence score for approximate methods, so independent
     sidecar tools share failure semantics instead of inventing their own?
-19. **Web Annotation mapping:** Should the specification include a normative directional
+22. **Web Annotation mapping:** Should the specification include a normative directional
     mapping from sidecar annotations to W3C Web Annotation JSON so anchors can move
     between sidecars and annotation stores despite their different ambiguity behavior?
-20. **Annotation profile ownership:** Should FlexDoc publish the proposed small
+23. **Annotation profile ownership:** Should FlexDoc publish the proposed small
     `text-annotation/0.1` envelope, or only examples showing consumers how to compose
     TextRef with W3C/EPUB-compatible motivations, bodies, styles, and provenance?
-21. **Captured display text:** What limits and normalization apply when `captured_text`
-    intentionally differs from source-grounded `selector.exact`?
-22. **Container synchronization:** Should an annotation sidecar standardize generations,
+24. **Captured display text:** What limits and normalization apply when `captured_text`
+    intentionally differs from a source-grounded span or section-anchor quote?
+25. **Container synchronization:** Should an annotation sidecar standardize generations,
     tombstones, and deletion timestamps, or leave those to live-sync and autosave
     containers as Plannotator does?
 
 Sidecar hoisting is a consumer composition rule: a sidecar may supply shared `document`
-and `source_hash` context at the container level for bare `text` or `point` selectors
-without changing the protocol’s standalone TextRef shape.
+and `source_hash` context at the container level for bare `span`, `point`, or `section`
+selectors without changing the protocol’s standalone TextRef shape.
 Because the shared hash binds every retained position, consumers must update all
 positions or drop stale positions before changing the hoisted hash.
 
 ### Edits, Diffs, and Redlines
 
-23. **Edit body schema:** Should the first editing profile define explicit `insert`,
+26. **Edit body schema:** Should the first editing profile define explicit `insert`,
     `delete`, and `replace` variants, or derive the operation from target type and the
     presence of replacement content?
-24. **Application precondition:** Must every automatically applicable edit carry a
+27. **Application precondition:** Must every automatically applicable edit carry a
     matching `source_hash`, or can an immutable DocRef plus exact target evidence
     satisfy the same requirement?
-25. **Stale proposals:** Which user confirmation or consumer-defined validation permits
+28. **Stale proposals:** Which user confirmation or consumer-defined validation permits
     a relocated edit to apply after its base hash differs?
-26. **Change-set semantics:** Which consumer first needs portable atomic groups, and
+29. **Change-set semantics:** Which consumer first needs portable atomic groups, and
     what ordering, overlap, co-located insertion, cross-file, and rollback rules does it
     require?
-27. **Projection guarantees:** Which metadata and operations must survive directional
+30. **Projection guarantees:** Which metadata and operations must survive directional
     Git patch, CriticMarkup, GLFM, HTML, Pandoc, SARIF, and review-suggestion adapters?
 
 ### Export and Context Projections
 
-28. **URI deployment:** Should `textref:` ship only after provisional IANA registration,
+31. **URI deployment:** Should `textref:` ship only after provisional IANA registration,
     and which application or organization owns its stable specification and change
     control? Which HTTPS viewer base supplies universally clickable links before then?
-29. **URI limits:** What minimum input size must conforming parsers accept, when must an
+32. **URI limits:** What minimum input size must conforming parsers accept, when must an
     exporter refuse, and which extensions or future selector fields require a new URI
     version rather than additional parameters?
-30. **Sidecar ownership:** Should FlexDoc publish `text-annotations/0.1` as a concrete
+33. **Sidecar ownership:** Should FlexDoc publish `text-annotations/0.1` as a concrete
     one-document YAML profile, including its body and workflow vocabulary, or should a
     separate annotation consumer own it?
-31. **Context-view contract:** Which defaults for context lines, size budgets, resolved
+34. **Context-view contract:** Which defaults for context lines, size budgets, resolved
     workflow states, elision markers, and unresolved sections produce stable agent
     handoffs without encouraging consumers to parse the display output?
-32. **Line shorthand:** Which one-based forms cover whole lines, line ranges, columns,
+35. **Line shorthand:** Which one-based forms cover whole lines, line ranges, columns,
     and line boundaries without colliding with Windows paths or DocRef syntax?
 
 ### Safety, Privacy, and Evolution
 
-33. **Quote limits:** What maximum `exact`, `captured_text`, prefix, suffix, document
+36. **Quote limits:** What maximum `exact`, `captured_text`, prefix, suffix, document
     size, and candidate count prevent denial of service and accidental copying of large
     copyrighted or sensitive passages?
-34. **Versioning:** What changes are compatible within `textref/0.x`, and when does a
+37. **Versioning:** What changes are compatible within `textref/0.x`, and when does a
     new major become necessary?
-35. **Governance:** Who owns releases and adjudicates behavior changes when tbd and
+38. **Governance:** Who owns releases and adjudicates behavior changes when tbd and
     FlexDoc need different policies?
-36. **Extraction compatibility:** When the second-language implementation is justified,
+39. **Extraction compatibility:** When the second-language implementation is justified,
     does FlexDoc preserve its current import/module identity or take an intentional
     pre-1.0 breaking change?
 
@@ -2904,78 +3171,90 @@ profiles. They should not be left to diverging implementation defaults.
 1. Prove TextRef through FlexDoc and a YAML sidecar consumer before extracting a
    standalone repository.
 2. Define one language-neutral specification and conformance corpus.
-3. Model TextRef as `document + optional source_hash + optional typed selector`.
+3. Model TextRef as `document + optional source_hash + optional typed selector`, with
+   the exhaustive target kinds `whole_document`, `span`, `point`, and `section`.
+   Keep selector absence as the compact whole-document wire representation.
 4. Keep DocRef as the locator, `source_hash` as an optional strong validator, and
-   SpanRef as quote/context/position evidence over supplied text.
+   SpanRef as quote/context/position evidence over arbitrary non-empty source ranges.
+   Do not require Markdown-node alignment for basic span validity.
 5. Include a distinct `point` selector with boundary context and before/after affinity;
    do not encode points as empty quotes or one-character spans.
-6. Use structured JSON as the normative data model, with a restricted YAML projection
+6. Include a `section` selector with a CommonMark structure profile, a required
+   start-heading SpanRef anchor, and an optional exclusive end-heading anchor. Derive
+   the current range from parsed heading structure rather than freezing section text.
+7. Represent table, row, cell, header-cell, heading-only, and other Markdown-node
+   annotations as source spans in v0.1. Add structural selector kinds only when a
+   consumer demonstrates identity requirements that spans cannot meet.
+8. Use structured JSON as the normative data model, with a restricted YAML projection
    and a canonical, reversible TextRef URI projection.
-7. Restrict v0.1 to normalized Unicode source text.
-8. Keep all I/O and rendering in consumer-owned adapters.
-9. Keep annotation bodies, motivations, styles, tags, publication metadata, and provider
+9. Restrict v0.1 to normalized Unicode source text.
+10. Keep all I/O, Markdown structure parsing, and rendering in consumer-owned adapters.
+11. Keep annotation bodies, motivations, styles, tags, publication metadata, and provider
    locations in a small consumer envelope rather than TextRef.
-10. Use `selector.exact` as the retained source quote; add `captured_text` only when the
-    user-visible or imported text differs from that source representation.
-11. Give annotations their own IDs and allow several annotations to share a target; do
+12. Use a span's `selector.exact` and a section anchor's `exact` as retained source
+    quotes; add `captured_text` only when the user-visible or imported text differs from
+    that source representation.
+13. Give annotations their own IDs and allow several annotations to share a target; do
     not key persisted comments by an element index, line range, or serialized TextRef.
-12. Make source-validation, ambiguity, method, and orphan outcomes visible.
-13. Keep exact-v1 behavior stable while adding normalized and fuzzy resolver policies
+14. Make source-validation, ambiguity, boundary disagreement, unsupported structure,
+    method, and orphan outcomes visible.
+15. Keep exact-v1 behavior stable while adding normalized and fuzzy resolver policies
     without changing persisted references.
-14. Require thresholds, runner-up margins, and independent corroboration before an
+16. Require thresholds, runner-up margins, and independent corroboration before an
     approximate candidate resolves automatically.
-15. Never rewrite persisted evidence after approximate matching without confirmation.
-16. Resolve each selector conservatively on its own evidence.
+17. Never rewrite persisted evidence after approximate matching without confirmation.
+18. Resolve each selector conservatively on its own evidence.
     A batch API may expose or rank joint candidates, but iteration order, `used` sets,
     and assumed target uniqueness must not convert ambiguity into a match.
-17. Validate the sidecar profile against MRSF, W3C Web Annotation, EPUB Annotations,
+19. Validate the sidecar profile against MRSF, W3C Web Annotation, EPUB Annotations,
     EPUB CFI recovery, Readwise imports, Plannotator share/draft/API projections, and an
     edited-document corpus before publishing v0.1; include Markdown Review whole-block
     comments, embedded questions, HiNote in-band highlight fixtures, and a directional
     Remark review export.
-18. Keep the logical JSON format structured and versioned.
+20. Keep the logical JSON format structured and versioned.
     Treat contextual Markdown, compressed URLs, encrypted links, and server-backed short
     links as optional projections around the canonical object or URI.
-19. Keep autosave generations, tombstones, and live event sequencing in the annotation
+21. Keep autosave generations, tombstones, and live event sequencing in the annotation
     container rather than TextRef.
-20. Keep annotation workflow status independent from document, source-validation, and
+22. Keep annotation workflow status independent from document, source-validation, and
     selector-resolution outcomes.
     An unresolved annotation may be anchored, relocated, or orphaned.
-21. Let an annotation container retain a last-known target, confirmed target revisions,
+23. Let an annotation container retain a last-known target, confirmed target revisions,
     and actor-attributed events.
     These are history around TextRef, not additional fields inside TextRef.
-22. Require a concrete edit or explicit human decision before an agent marks review work
+24. Require a concrete edit or explicit human decision before an agent marks review work
     complete; source-hash mismatch, re-anchoring, and orphaning are not completion.
-23. Keep diff, redline, and edit-operation semantics out of TextRef.
+25. Keep diff, redline, and edit-operation semantics out of TextRef.
     A TextRef identifies the source target regardless of how a consumer presents or
     changes it.
-24. Use Git/source diffs as the primary artifact for reviewing and applying Markdown
+26. Use Git/source diffs as the primary artifact for reviewing and applying Markdown
     changes. Treat rendered and syntax-tree diffs as derived review views.
-25. Add a discriminated `editing` body in an annotation profile for insert, delete, and
-    replace proposals; use point selectors for insertions and text selectors for
+27. Add a discriminated `editing` body in an annotation profile for insert, delete, and
+    replace proposals; use point selectors for insertions and span selectors for
     deletions and replacements.
-26. Require a matching base source hash before automatic edit application.
+28. Require a matching base source hash before automatic edit application.
     A relocated stale proposal remains reviewable but requires confirmation or
     regeneration.
-27. Define directional adapters for Git patches, CriticMarkup, GLFM inline diffs, raw
+29. Define directional adapters for Git patches, CriticMarkup, GLFM inline diffs, raw
     `<ins>/<del>`, Pandoc tracked-change spans, SARIF fixes, and platform suggestions.
     Standardize a separate atomic change-set format only when a concrete consumer needs
     its ordering, overlap, and rollback semantics.
-28. Define the readable `textref:0.1?...` codec beside the JSON schema, with canonical
+30. Define the readable `textref:0.1?...` codec beside the JSON schema, with canonical
     parameter order, UTF-8 percent encoding, strict parsing, round-trip fixtures, size
     limits, and visible refusal.
     Do not append it to the target document’s fragment.
-29. Use an application-controlled HTTPS fragment wrapper for clickable links until the
+31. Use an application-controlled HTTPS fragment wrapper for clickable links until the
     `textref` scheme has stable governance and provisional registration.
     Keep browser text fragments and GitHub line permalinks as separate directional
     navigation exports.
-30. Publish a concise one-document YAML sidecar profile that hoists `document` and
-    `source_hash`, retains typed bare selectors, and expands mechanically to complete
-    TextRefs before validation.
-31. Standardize a non-normative ASCII context view for agent handoff: merged
+32. Publish a concise one-document YAML sidecar profile that hoists `document` and
+    `source_hash`, retains bare span, point, and section selectors, treats omitted
+    targets as invalid, uses literal `target: document` for whole-document references,
+    and expands mechanically to complete TextRefs before validation.
+33. Standardize a non-normative ASCII context view for agent handoff: merged
     line-numbered excerpts, adjacent ID-tagged annotation rows, explicit point affinity,
-    source and resolution status, and a separate unresolved section.
-32. Encourage one-based line and column notation for user and agent input and display,
+    section boundaries, source and resolution status, and a separate unresolved section.
+34. Encourage one-based line and column notation for user and agent input and display,
     but materialize it immediately into quote/context/position TextRefs.
     Never persist a line range as the only mutable-document anchor.
 
@@ -2985,10 +3264,18 @@ profiles. They should not be left to diverging implementation defaults.
 - [ ] Prototype normative TextRef JSON plus canonical URI parsing and formatting, with
   cross-language round-trip, ordering, percent-encoding, invalid-input, and size-limit
   fixtures
+- [ ] Prototype the four target kinds: selector-free whole document, arbitrary source
+  span, boundary point, and CommonMark section with start and optional end anchors
+- [ ] Add section fixtures for ATX and setext headings, nested subsections, repeated and
+  renamed headings, end-of-document sections, moved boundaries, missing adapters, and
+  explicit end-anchor disagreement
 - [ ] Prototype the one-document YAML annotation sidecar with hoisted `document` and
-  `source_hash`, typed bare selectors, and mechanical expansion to complete TextRefs
+  `source_hash`, bare span/point/section selectors, literal whole-document targets, and
+  mechanical expansion to complete TextRefs
 - [ ] Prototype one-based `from_lines`, `from_line_column`, `from_line_boundary`, and
   `display_location` helpers without adding a persisted line-selector branch
+- [ ] Add arbitrary-span fixtures that begin and end inside inline syntax, cross block
+  and node boundaries, select full nodes, and exercise the grapheme-boundary decision
 - [ ] Prototype the small annotation envelope for highlights, notes, bookmarks, styles,
   tags, `captured_text`, and import provenance
 - [ ] Prototype a typed edit-annotation profile for insert, delete, and replace bodies,
@@ -2998,11 +3285,15 @@ profiles. They should not be left to diverging implementation defaults.
   fixes, and GitHub/GitLab suggestions
 - [ ] Compare line, word, rendered, and Markdown-tree diff views on reflowed prose,
   links, emphasis, lists, tables, metadata, and code fences
+- [ ] Test table annotations as source spans over phrases, complete cells, header cells,
+  rows, and tables, including escaped pipes and inline markup; record the first use case
+  that cannot preserve required identity without a structural table selector
 - [ ] Evaluate `*.md diff=markdown` and an appropriate Markdown word-diff policy for the
   repository without changing patch or merge semantics
 - [ ] Defer an atomic `TextChangeSet` schema until a consumer supplies concrete overlap,
   ordering, cross-file, rollback, and result-validation requirements
-- [ ] Write the normative TextRef/DocRef/SpanRef specifications and JSON Schemas
+- [ ] Write the normative TextRef/DocRef/SpanRef specifications and JSON Schemas,
+  including the section-selector structure-adapter contract
 - [ ] Specify point-selector construction, affinity, exact recovery, and conformance
   vectors
 - [ ] Build shared exact-resolution and edited-document fixtures
@@ -3056,9 +3347,10 @@ The evidence base includes:
 - RFC 5147 plain-text character and line fragments, RFC 7763 Markdown line fragments,
   SARIF regions and context regions, rustc structured and rendered diagnostics, and
   reviewdog’s compact and structured diagnostic inputs
-- CommonMark raw HTML, GFM strikethrough, HTML `ins`/`del`, CriticMarkup through
-  MultiMarkdown, Pandoc tracked-change spans, Lowdown’s Markdown-tree diff, Web
-  Annotation’s `editing` motivation, and SARIF structured fixes
+- CommonMark heading structure, GFM tables and strikethrough, HTML `ins`/`del`,
+  CriticMarkup through MultiMarkdown, Pandoc tracked-change spans, Lowdown’s
+  Markdown-tree diff, Web Annotation RangeSelector and `editing` motivation, and SARIF
+  structured fixes
 - The 2026 EPUB Annotations draft, its use cases and vocabulary, the Web Annotation
   model, and DOM collapsed-range boundary semantics
 - Official Readwise API and Reader documentation for highlight text, notes, colors,
@@ -3097,6 +3389,9 @@ semantics also require fixtures and implementation tests.
 The proposed TextRef URI codec, YAML container profile, line constructors, and
 contextual agent view have no implementation spike or cross-tool usability measurement;
 URL size limits and context-budget defaults remain open decisions.
+The section selector also lacks cross-parser conformance fixtures, and the span-only
+table approach has not yet been tested against rendered cell selection or structural
+edits.
 
 ## References
 
@@ -3164,7 +3459,9 @@ URL size limits and context-budget defaults remain open decisions.
 - [GitLab suggested changes](https://docs.gitlab.com/user/project/merge_requests/reviews/suggestions/)
 - [CommonMark raw HTML](https://spec.commonmark.org/0.31.2/#raw-html)
 - [CommonMark fenced code blocks](https://spec.commonmark.org/0.31.2/#fenced-code-blocks)
+- [CommonMark ATX and setext headings](https://spec.commonmark.org/0.31.2/#atx-headings)
 - [GFM strikethrough](https://github.github.com/gfm/#strikethrough-extension-)
+- [GFM tables](https://github.github.com/gfm/#tables-extension-)
 - [GitHub fenced code blocks](https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-and-highlighting-code-blocks)
 - [HTML insertion and deletion elements](https://html.spec.whatwg.org/dev/edits.html)
 - [MultiMarkdown CriticMarkup](https://fletcher.github.io/MultiMarkdown-6/MMD_Users_Guide.html#criticmarkup)
