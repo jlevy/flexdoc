@@ -1,7 +1,7 @@
 source:
   sha256: 17b2904b6ab058ad343a50bed13c5c6ab67d53367ec0ebba519ea129eb78dc74
   length: 362
-  size_summary: 361 bytes (13 lines, 6 paras, 6 sents, 53 logical words, ~85 tok)
+  size_summary: 361 bytes (13 lines, 6 paras, 6 sents, 53 words, ~85 tok)
 base_blocks:
   cover_ok: true
   uncovered_nonspace: 0
@@ -38,7 +38,7 @@ sections:
 - level: 1
   title: Inline pathology
   span: 0:361
-  logical_words: 53
+  words: 53
 node_table:
 - id: n0001
   layer: markdown

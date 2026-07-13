@@ -19,16 +19,22 @@ Markdown syntax.
 
 ```python
 for paragraph in doc.paragraphs:
-    print(paragraph.original_text, paragraph.size(TextUnit.logical_words))
+    print(paragraph.original_text, paragraph.size(TextUnit.words))
 
 print(doc.size_summary())
 ```
 
-`TextUnit.logical_words` is the normal human-readable size metric. It normalizes long
-identifiers, URLs, punctuation-dense code, and wide/fullwidth scripts into comparable
-word-equivalent units. Use `TextUnit.raw_words` only when literal whitespace-delimited
-behavior is required; it preserves the behavior of the pre-0.4 `TextUnit.words` member.
-Document and section logical-word totals are computed over the full aggregate before
+`TextUnit.words` is the normal human-readable size metric and always means logical
+words. For non-wide text, it equals `TextUnit.raw_words` when the average
+whitespace-delimited word has 3–6 non-whitespace characters. Longer averages increase
+the logical count; shorter averages decrease it. Wide/fullwidth characters contribute
+0.5 word each, making unspaced CJK text measurable. Long identifiers, URLs, Markdown
+syntax, code, and other non-textual or symbolic runs can therefore differ from an
+ordinary expected word count.
+
+Both measures use an HTML plain-text projection, so non-visible HTML markup is excluded.
+Use `TextUnit.raw_words` when a literal whitespace-delimited count of that projection is
+required. Document and section word totals are computed over the full aggregate before
 rounding, so they can differ from the sum of independently rounded sentence counts.
 
 Offsets in paragraphs and sentences point into `doc.source_text`. If the source starts
@@ -75,7 +81,7 @@ Each `Section` can report its own content, subtree content, sizes, and links.
 
 ```python
 for section in doc.sections():
-    print(section.title, section.size(TextUnit.logical_words))
+    print(section.title, section.size(TextUnit.words))
     for link in section.links():
         print(link.text, link.url)
 ```

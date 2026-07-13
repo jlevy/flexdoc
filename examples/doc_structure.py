@@ -56,21 +56,18 @@ _BLOCK_SAMPLE = dedent(
 def main() -> None:
     doc = FlexDoc.from_text(_SAMPLE)
 
-    print("--- Section size tree (logical words + sentences, rolled up) ---")
-    print(doc.section_size_tree(units=(TextUnit.logical_words, TextUnit.sentences)))
+    print("--- Section size tree (words + sentences, rolled up) ---")
+    print(doc.section_size_tree(units=(TextUnit.words, TextUnit.sentences)))
 
     print("\n--- Table of contents (level, title, span) ---")
     for level, title, span in doc.toc():
         print(f"  {'  ' * (level - 1)}{title}  @{span}")
 
-    print("\n--- Per-section rolled-up logical word counts ---")
+    print("\n--- Per-section rolled-up word counts (logical) ---")
     for section in doc.sections():
-        own = section.size(TextUnit.logical_words, subtree=False)
-        whole = section.size(TextUnit.logical_words, subtree=True)
-        print(
-            f"  {section.title}: {own} logical words own, "
-            f"{whole} logical words including subsections"
-        )
+        own = section.size(TextUnit.words, subtree=False)
+        whole = section.size(TextUnit.words, subtree=True)
+        print(f"  {section.title}: {own} words own, {whole} words including subsections")
 
     print("\n--- Exact spans and offset lookup ---")
     offset = _SAMPLE.index("dependency-light")
@@ -82,10 +79,10 @@ def main() -> None:
     ref = SpanRef.from_span(doc.source_text, *para.span).to_persisted()
     print(f"  durable paragraph reference resolves to {ref.resolve(doc.source_text)}")
 
-    print("\n--- Total logical words across paragraph blocks only ---")
+    print("\n--- Total words across paragraph blocks only (logical) ---")
     paragraphs_only = doc.filtered(include={BlockType.paragraph})
     print(
-        f"  {paragraphs_only.size(TextUnit.logical_words)} logical words in "
+        f"  {paragraphs_only.size(TextUnit.words)} words in "
         f"{len(paragraphs_only.paragraphs)} paragraphs"
     )
 

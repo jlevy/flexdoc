@@ -277,7 +277,7 @@ class Paragraph:
 
         if unit == TextUnit.tokens:
             return estimate_tokens(self.reassemble())
-        if unit == TextUnit.logical_words:
+        if unit == TextUnit.words:
             return size(self.reassemble(), unit)
 
         base_size = sum(sent.size(unit) for sent in self.sentences)
@@ -409,7 +409,7 @@ def _size_paragraphs(paragraphs: Sequence[Paragraph], unit: TextUnit) -> int:
     if unit == TextUnit.tokens:
         text = PARA_BR_STR.join(paragraph.reassemble() for paragraph in paragraphs)
         return estimate_tokens(text)
-    if unit == TextUnit.logical_words:
+    if unit == TextUnit.words:
         text = PARA_BR_STR.join(paragraph.reassemble() for paragraph in paragraphs)
         return size(text, unit)
 
@@ -432,7 +432,7 @@ def _size_paragraphs(paragraphs: Sequence[Paragraph], unit: TextUnit) -> int:
 def _summarize_paragraphs(  # pyright: ignore[reportUnusedFunction]
     paragraphs: Sequence[Paragraph],
 ) -> str:
-    """Format the standard document/section size summary for `paragraphs`."""
+    """Format the standard summary; its `words` field uses logical-word semantics."""
     nbytes = _size_paragraphs(paragraphs, TextUnit.bytes)
     if nbytes == 0:
         return f"{nbytes} bytes"
@@ -441,6 +441,6 @@ def _summarize_paragraphs(  # pyright: ignore[reportUnusedFunction]
         f"{_size_paragraphs(paragraphs, TextUnit.lines)} lines, "
         f"{_size_paragraphs(paragraphs, TextUnit.paragraphs)} paras, "
         f"{_size_paragraphs(paragraphs, TextUnit.sentences)} sents, "
-        f"{_size_paragraphs(paragraphs, TextUnit.logical_words)} logical words, "
+        f"{_size_paragraphs(paragraphs, TextUnit.words)} words, "
         f"~{_size_paragraphs(paragraphs, TextUnit.tokens)} tok)"
     )

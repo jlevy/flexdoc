@@ -1,7 +1,7 @@
 source:
   sha256: b70e09493e94a9a4bd182afa3d2b701cab1358e4cb2f6da058db3e342814ce82
   length: 131
-  size_summary: 150 bytes (6 lines, 3 paras, 3 sents, 22 logical words, ~36 tok)
+  size_summary: 150 bytes (6 lines, 3 paras, 3 sents, 22 words, ~36 tok)
 base_blocks:
   cover_ok: true
   uncovered_nonspace: 0
@@ -26,7 +26,7 @@ sections:
 - level: 1
   title: Unicode 🌍
   span: 0:130
-  logical_words: 22
+  words: 22
 node_table:
 - id: n0001
   layer: markdown

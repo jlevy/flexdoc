@@ -1,7 +1,7 @@
 source:
   sha256: 613b556081ab78fa2add904a0368d2d19cf6ca55170aaf0e40a466f6bee63d7f
   length: 347
-  size_summary: 340 bytes (24 lines, 9 paras, 9 sents, 66 logical words, ~106 tok)
+  size_summary: 340 bytes (24 lines, 9 paras, 9 sents, 66 words, ~106 tok)
 base_blocks:
   cover_ok: true
   uncovered_nonspace: 0
@@ -63,15 +63,15 @@ sections:
 - level: 1
   title: Kitchen Sink
   span: 0:346
-  logical_words: 66
+  words: 66
 - level: 2
   title: Lists
   span: 93:224
-  logical_words: 24
+  words: 24
 - level: 2
   title: Quote
   span: 226:346
-  logical_words: 29
+  words: 29
 node_table:
 - id: n0001
   layer: markdown

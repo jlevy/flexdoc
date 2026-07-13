@@ -698,10 +698,11 @@ class FlexDoc:
         walk(self.sections())
         return entries
 
-    def section_size_tree(self, units: tuple[TextUnit, ...] = (TextUnit.logical_words,)) -> str:
+    def section_size_tree(self, units: tuple[TextUnit, ...] = (TextUnit.words,)) -> str:
         """
         Render the section hierarchy as an indented tree with rolled-up sizes per
-        section (each line covers the section and all its subsections).
+        section (each line covers the section and all its subsections). The default
+        `words` unit is the logical count documented by `TextUnit.words`.
         """
         lines: list[str] = []
 
@@ -745,7 +746,7 @@ class FlexDoc:
         elif unit == TextUnit.chars:
             size_sent_break = len(SENT_BR_STR)
             size_para_break = len(PARA_BR_STR)
-        elif unit in {TextUnit.raw_words, TextUnit.logical_words}:
+        elif unit in {TextUnit.raw_words, TextUnit.words}:
             size_sent_break = 0
             size_para_break = 0
         elif unit == TextUnit.wordtoks:
@@ -863,7 +864,7 @@ class FlexDoc:
         """
         Return a new sub-document containing only the paragraphs matching the given
         `BlockType` filter, e.g.
-        `doc.filtered(include={BlockType.paragraph}).size(TextUnit.logical_words)` gives
+        `doc.filtered(include={BlockType.paragraph}).size(TextUnit.words)` gives
         the total logical words across all prose paragraphs.
 
         The returned document deep-copies the matched paragraphs, so it is independent

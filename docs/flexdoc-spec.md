@@ -19,7 +19,7 @@ back to the source by exact character offset:
 - **Language structure:** paragraphs, sentences, and words, with the exact spacing
   between them.
 - **Document structure:** heading hierarchy and table of contents.
-- **Document sizes at every grain:** bytes, characters, lines, raw and logical words,
+- **Document sizes at every grain:** bytes, characters, lines, raw and normalized words,
   sentences, paragraphs—and **approximate LLM token estimates**—all derived on demand,
   never stored. Sizing matters because the model’s main consumers window, chunk, and
   budget documents for LLM processing.
@@ -59,12 +59,14 @@ Terms used throughout; each is detailed in the section noted.
 - **Frontmatter**—a leading `---`-delimited YAML block, treated as a non-content region
   (§3).
 - **Sizes and `TextUnit`**—the units a document or any unit can be measured in: `bytes`,
-  `chars`, `lines`, `raw_words`, `logical_words`, `wordtoks`, `sentences`, `paragraphs`,
-  `tokens`. `raw_words` is a literal whitespace-delimited count. `logical_words` is the
-  default human-size metric: a normalized word-equivalent count across natural
-  languages and code. The `tokens` unit is an **approximate LLM token estimate** derived
-  from logical words, useful for windowing and budgeting; it is never a provider-exact
-  count.
+  `chars`, `lines`, `raw_words`, `words`, `wordtoks`, `sentences`, `paragraphs`,
+  `tokens`. `raw_words` is a literal whitespace-delimited count. `words` always means
+  logical words: the default normalized word-equivalent count across natural languages
+  and code. It equals `raw_words` for non-wide text averaging 3–6 non-whitespace
+  characters per whitespace-delimited word. Longer averages increase it, shorter
+  averages decrease it, and wide/fullwidth characters contribute `0.5` each. The
+  `tokens` unit is an **approximate LLM token estimate** derived from this measure,
+  useful for windowing and budgeting; it is never a provider-exact count.
 - **Wordtok**—the model’s lowest-level lexical unit, used by the editing view and by
   downstream word-oriented diff/window machinery: a word, a punctuation character, a
   whitespace break, or an embedded HTML tag kept whole, with sentence/paragraph breaks
@@ -385,10 +387,10 @@ normalizes line endings (`\r\n` and lone `\r` become `\n`) before retaining
 - **Frontmatter:** `FlexDoc.frontmatter` is the leading YAML block from normalized
   `source_text`, or `None`; delimiter whitespace rules are defined in §3.
 - **Sizing:** `size(unit)` and `size_summary()` measure the document in any `TextUnit`
-  (see Terminology), including the approximate LLM `tokens` estimate. Summaries use
-  logical words. Document and section logical-word totals measure the full paragraph
-  sequence before rounding, so they can differ from a sum of independently rounded
-  sentence counts.
+  (see Terminology), including the approximate LLM `tokens` estimate. A summary's
+  `words` field uses logical-word semantics. Document and section word totals measure
+  the full paragraph sequence before rounding, so they can differ from a sum of
+  independently rounded sentence counts.
 - **Prose projection:** `prose_text(include_tables=False)` returns prose-only text for
   editorial linting and metrics—prose-bearing blocks (paragraphs/headings, and table
   cells when `include_tables=True`) with inline code/footnote refs dropped, links/images
@@ -687,7 +689,8 @@ re-parse, no stored state.
 - `FlexDoc.toc()`—the flat table of contents: `(level, title, span)` per heading, in
   document order, by walking the section tree.
 - `FlexDoc.section_size_tree(units=...)`—a rendered, indented size rollup per section,
-  for quick structural inspection; its default unit is `logical_words`.
+  for quick structural inspection; its default unit is `words`, using logical-word
+  semantics.
 
 ### Error Handling: Document Layer
 
@@ -984,12 +987,17 @@ Non-obvious choices, each grounded in a principle:
   blockquotes are always atomic (P13).
 - **Fast/approximate sentence segmentation is accepted** (P16): the regex splitter
   avoids a heavy NLP dependency; offsets stay exact via the span-aware splitter.
-- **Logical words normalize cross-language volume** (P16): non-whitespace Unicode wide
+- **`words` normalizes cross-language volume** (P16): every core `words` field means the
+  logical measure. Non-whitespace Unicode wide
   and fullwidth characters contribute `0.5` word each. For the remaining text, the raw
   whitespace-delimited count is clamped to an average of 3–6 non-whitespace characters
-  per word. The combined non-negative result is rounded to the nearest integer with
-  ties upward. Aggregates are measured before rounding. `raw_words` remains available
-  when a caller specifically needs the former whitespace-split behavior.
+  per word: it equals the raw count inside that range, increases above six, and
+  decreases below three. Long identifiers and URLs, short-token sequences, Markdown,
+  code, and symbolic runs can therefore differ from an ordinary expected word count.
+  Non-visible HTML markup is removed before both measures. The combined non-negative
+  result is rounded to the nearest integer with ties upward, and aggregates are
+  measured before rounding. `raw_words` remains available when a caller specifically
+  needs whitespace-split behavior.
 - **Fast/approximate token sizing is accepted** (P16): `estimate_tokens` is a heuristic,
   not provider-keyed. It rounds up `logical_word_count(text) * 1.6` by default; callers
   can calibrate a different positive finite multiplier for another model family.
@@ -1013,9 +1021,9 @@ Non-obvious choices, each grounded in a principle:
   (`CodeInfo`/`TableInfo`/`ListInfo`, §5).
 - Sections/TOC/size rollups built from structural headings (§7), cached like the other
   derived views; inline-link rollups and link-aware sentences; inline kinds including
-  `footnote_ref` (§8). Raw and logical word sizes, summary defaults, and logical-word
-  token estimates are implemented across sentences, paragraphs, sections, and
-  documents.
+  `footnote_ref` (§8). Raw word sizes and normalized `words` fields, summary defaults,
+  and logical-word token estimates are implemented across sentences, paragraphs,
+  sections, and documents.
 - The recursive node table with deterministic contiguous-preorder ids (contract-tested)
   and strict layer-nesting validation at build (§4.3); JSON-safe `attrs` validated at
   serialization; the single `collect()` query primitive (§9); composable

@@ -2,7 +2,7 @@
 Reading-time estimates from a logical word count.
 
 Nothing inside flexdoc uses this; it is kept as a small convenience for downstream
-consumers that already have flexdoc logical word counts (`TextUnit.logical_words`) in
+consumers that already have flexdoc logical word counts (`TextUnit.words`) in
 hand. At the default rate, the wide-character weight implies about 450 CJK characters
 per minute.
 """

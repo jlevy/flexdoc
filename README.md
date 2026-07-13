@@ -50,12 +50,12 @@ markdown_text = "# Introduction\n\nSee [docs](https://example.com/docs).\n"
 doc = FlexDoc.from_text(markdown_text)
 
 # Section hierarchy with rolled-up sizes:
-print(doc.section_size_tree(units=(TextUnit.logical_words, TextUnit.sentences)))
-# # Introduction  (8 logical_words, 2 sentences)
+print(doc.section_size_tree(units=(TextUnit.words, TextUnit.sentences)))
+# # Introduction  (8 words, 2 sentences)
 
 # Sizes at every grain, including approximate LLM tokens:
 print(doc.size_summary())
-# 53 bytes (3 lines, 2 paras, 2 sents, 8 logical words, ~13 tok)
+# 53 bytes (3 lines, 2 paras, 2 sents, 8 words, ~13 tok)
 
 # One query primitive across all layers:
 link = doc.collect(kinds={NodeKind.link})[0]
@@ -65,6 +65,11 @@ print(link.attrs["url"], link.source_span)
 # Round-trips back to normalized Markdown:
 print(doc.reassemble())
 ```
+
+`TextUnit.words` is a logical-word measure: it matches a whitespace count for ordinary
+non-wide prose averaging 3–6 characters per word, but normalizes wide/fullwidth scripts,
+long identifiers and URLs, short-token sequences, and punctuation-dense code or
+Markdown. Use `TextUnit.raw_words` for a literal whitespace-delimited count.
 
 Every located source-backed unit carries an exact `[start, end)` span into normalized
 `source_text`; paragraphs and sentences also expose that slice as `original_text`. Some

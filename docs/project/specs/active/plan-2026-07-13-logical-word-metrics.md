@@ -6,30 +6,28 @@
 
 **Status:** In Review
 
-**Implementation status:** Word-count primitives, the `TextUnit` migration, aggregate
-sizing behavior, token estimates, reading-time guidance, golden reports, public
-documentation, migration guidance, branch review, and local package validation are
-complete. Draft PR #18 is published with its GitHub Actions matrix passing and is ready
-for review.
+**Implementation status:** The implementation and follow-up naming revision are locally
+complete and validated. Draft PR #18 requires an updated description and refreshed CI
+before review.
 
 ## Overview
 
 Add a language- and format-robust logical word measure based on GitHub issue #16.
-Replace the ambiguous `TextUnit.words` name with two explicit units:
-`TextUnit.raw_words` for the existing whitespace-delimited behavior and
-`TextUnit.logical_words` for the normalized volume measure. Make logical words the
-default word-like metric in summaries, section trees, token estimates, and usage
-guidance.
+Define `TextUnit.words` as the normalized logical-word measure and add
+`TextUnit.raw_words` for the existing whitespace-delimited behavior. Core structured
+fields and summaries keep the concise `words` name, with docstrings and public docs
+making its logical semantics and divergence from ordinary word counts explicit. Use
+this measure for section trees, token estimates, and usage guidance.
 
-This is an intentional pre-1.0 API break. The old behavior remains available under its
-accurate name, but the old `TextUnit.words` member and character-based token-estimator
-configuration are not retained as aliases.
+This is an intentional pre-1.0 semantic break. The old behavior remains available under
+the accurate `raw_words` name, while `TextUnit.words` changes meaning. The
+character-based token-estimator configuration is not retained as an alias.
 
 ## Goals
 
 - Preserve the existing whitespace-delimited word measure as `raw_words`.
-- Add `logical_words`, which remains close to raw words for ordinary spaced prose and
-  stays useful for CJK, code, URLs, math, and machine-readable text.
+- Define `words` as the logical measure, which remains close to raw words for ordinary
+  spaced prose and stays useful for CJK, code, URLs, math, and machine-readable text.
 - Base tokenizer-free token estimates on logical words rather than raw character count.
 - Make default document and section metrics use logical words without hiding the raw
   measure from callers that specifically need it.
@@ -43,8 +41,8 @@ configuration are not retained as aliases.
 - Exact token counts for any model or provider.
 - Per-language, per-script, per-format, or per-model correction tables.
 - Tokenizer dependencies or network-based validation in the test suite.
-- A compatibility alias for `TextUnit.words`, `CHARS_PER_TOKEN`, or the
-  `chars_per_token` keyword.
+- A separate `TextUnit.logical_words` member or a compatibility alias for
+  `CHARS_PER_TOKEN` or the `chars_per_token` keyword.
 - A package release or version tag; this change is prepared for the next pre-1.0 minor
   release.
 
@@ -86,11 +84,11 @@ The reference implementations need two clarifications before adoption:
 Implement the word-counting primitives in a small utility module with named constants
 and no external dependencies. `TextUnit` applies both word measures to the same
 `html_to_plaintext()` projection, so `raw_words` exactly preserves the former `words`
-behavior and `logical_words` measures reader-visible content.
+behavior and `words` measures normalized reader-visible content.
 
 `estimate_tokens()` applies logical word counting directly to the supplied serialized
 text. This intentionally includes Markdown or HTML syntax that an LLM would receive,
-while `TextUnit.logical_words` continues to measure the plain-text projection used for
+while `TextUnit.words` continues to measure the plain-text projection used for
 human-facing word counts.
 
 Logical word counts are computed over the complete paragraph, document, or section
@@ -128,19 +126,26 @@ The final expression is explicit half-up rounding for a non-negative measure.
 
 Change `TextUnit` as follows:
 
-- remove `words = "words"`
+- retain `words = "words"` but change it to logical-word semantics
 - add `raw_words = "raw_words"`
-- add `logical_words = "logical_words"`
+- do not add a separate `logical_words` member
 
 `size(text, raw_words)` retains the former `words` implementation exactly.
-`size(text, logical_words)` applies `logical_word_count()` to the same HTML-to-plain-text
+`size(text, words)` applies `logical_word_count()` to the same HTML-to-plain-text
 projection. `Sentence`, `Paragraph`, `FlexDoc`, `Section`, `seek_to_sent()`, filtered
 documents, frontmatter exclusion, and section rollups support both units.
 
-The standard `size_summary()` field changes from `N words` to `N logical words`.
-`section_size_tree()` defaults to `TextUnit.logical_words`. Debug reports rename their
-section metric key from `words` to `logical_words`. Raw counts remain available through
-explicit `size(TextUnit.raw_words)` calls.
+The standard `size_summary()` and debug-report fields remain `words`, and their
+docstrings define them as logical counts. `section_size_tree()` defaults to
+`TextUnit.words`. Raw counts remain available through explicit
+`size(TextUnit.raw_words)` calls.
+
+With the default bounds, logical and raw counts are equal for non-wide text averaging
+3–6 non-whitespace characters per whitespace-delimited word. A longer average raises
+the logical count, a shorter average lowers it, and wide/fullwidth characters contribute
+0.5 each. Long identifiers, URLs, short-token sequences, Markdown, code, and symbolic
+runs can therefore differ from an ordinary expected count. Non-visible HTML markup is
+removed by the shared plain-text projection before either `TextUnit` word measure.
 
 #### Token Estimation
 
@@ -160,34 +165,36 @@ word, and that exact model limits require that model's tokenizer.
 
 `format_read_time()` remains numerically unchanged because it accepts a count rather
 than source text. Its documentation and examples recommend passing
-`TextUnit.logical_words`; at 225 logical words per minute, the 0.5 CJK weight implies
+`TextUnit.words`; at 225 logical words per minute, the 0.5 CJK weight implies
 about 450 wide characters per minute.
 
 #### Documentation and Behavioral Artifacts
 
 Update the root API example, README, usage guide, FlexDoc specification, changelog,
 TODO/spec index, docstrings, tests, and golden reports. Examples that mean normalized
-content volume use `logical_words`; examples that demonstrate the literal historical
+content volume use `words`; examples that demonstrate the literal historical
 measure use `raw_words` explicitly.
 
 ### API Changes
 
-- Added `TextUnit.raw_words` and `TextUnit.logical_words`.
-- Removed `TextUnit.words` without an alias.
+- Added `TextUnit.raw_words`.
+- Changed `TextUnit.words` from whitespace-delimited to logical-word semantics.
+- Did not add a separate `TextUnit.logical_words` member.
 - Added `raw_word_count()` and `logical_word_count()` under `flexdoc.util`.
 - Added logical-word constants under `flexdoc.util`.
 - Replaced `CHARS_PER_TOKEN` with `TOKENS_PER_LOGICAL_WORD`.
 - Replaced the `estimate_tokens(..., chars_per_token=...)` keyword with
   `tokens_per_logical_word`.
-- Changed `size_summary()`, `section_size_tree()`, and debug-report defaults from raw to
-  logical words.
+- Changed the values behind `size_summary()`, `section_size_tree()`, and debug-report
+  `words` fields from raw to logical words without lengthening their field names.
 
 ### Backward Compatibility
 
-- **Code types, methods, and function signatures:** DO NOT MAINTAIN. Rename the enum
-  member and token-estimator configuration directly; update all in-repository callers.
-- **Library APIs:** DO NOT MAINTAIN. This is a documented pre-1.0 minor-version break,
-  with no aliases or deprecation stubs.
+- **Code types, methods, and function signatures:** DO NOT MAINTAIN. Change the
+  `TextUnit.words` semantics and token-estimator configuration directly; update all
+  in-repository callers.
+- **Library APIs:** DO NOT MAINTAIN. This is a documented pre-1.0 minor-version semantic
+  break, with `raw_words` providing the old measurement under its accurate name.
 - **Server APIs:** N/A.
 - **File formats:** N/A. Checked-in golden debug reports change intentionally and are
   regenerated and reviewed.
@@ -200,8 +207,8 @@ measure use `raw_words` explicitly.
 - [x] Add failing behavior tests for raw/logical counts, cross-language rounding,
   whitespace, bounds, mixed content, and token estimates.
 - [x] Implement the word-counting utility and logical-word-based token estimator.
-- [x] Replace `TextUnit.words` with `raw_words` and `logical_words` across every size
-  grain and ensure aggregate counts are computed before rounding.
+- [x] Define `TextUnit.words` as logical and add `raw_words` across every size grain,
+  ensuring aggregate counts are computed before rounding.
 - [x] Switch summaries, section-tree defaults, debug reports, and reading-time guidance
   to logical words.
 - [x] Update all callers, public examples, API/spec documentation, changelog, and work
@@ -229,9 +236,9 @@ measure use `raw_words` explicitly.
 
 Land as one pre-1.0 feature PR targeting `main`, with the breaking changes called out in
 the changelog and PR body. The next release should be a minor version (expected 0.4.0),
-not a 0.3.x patch. Downstream callers migrate `TextUnit.words` according to intent:
-usually `logical_words`, or `raw_words` when literal whitespace-delimited behavior is
-required.
+not a 0.3.x patch. Downstream callers that want the new normalized measure continue to
+use `TextUnit.words`; callers requiring literal whitespace-delimited behavior migrate
+to `TextUnit.raw_words`.
 
 ## Open Questions
 

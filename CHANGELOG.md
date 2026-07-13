@@ -11,19 +11,21 @@ not a 0.3.x patch.
 
 ### Added
 
-- **Cross-language logical word metrics.** `TextUnit.logical_words` measures normalized
+- **Cross-language logical word metrics.** `TextUnit.words` now measures normalized
   word-equivalent volume across natural language, CJK text, source code, URLs, and other
-  punctuation-dense content. `flexdoc.util.logical_word_count()` exposes the same
-  dependency-free primitive, while `raw_word_count()` preserves literal
-  whitespace-delimited counting.
+  punctuation-dense content. `TextUnit.raw_words` and `raw_word_count()` preserve
+  literal whitespace-delimited counting, while `logical_word_count()` exposes the
+  dependency-free normalized primitive.
 
 ### Changed
 
-- **`TextUnit.words` is replaced by explicit raw and logical units.** Most callers
-  should migrate to `TextUnit.logical_words`; callers that require the exact previous
-  whitespace-split behavior should use `TextUnit.raw_words`. No deprecated alias is
-  retained. Size summaries, section-tree defaults, and debug reports now use logical
-  words, and aggregate counts are rounded only after the full text is measured.
+- **`TextUnit.words` changes from raw to logical semantics.** It matches the raw count
+  for ordinary non-wide prose averaging 3–6 characters per word, but differs for
+  wide/fullwidth scripts, longer or shorter average word lengths, URLs, code, and other
+  symbolic content. Callers requiring the exact previous whitespace-split behavior
+  must use `TextUnit.raw_words`; there is no separate `TextUnit.logical_words` member.
+  Size summaries, section-tree defaults, and debug-report `words` fields use the logical
+  measure, and aggregate counts are rounded only after the full text is measured.
 - **Approximate token estimates now scale logical words.** `estimate_tokens()` uses
   `TOKENS_PER_LOGICAL_WORD` (default `1.6`) instead of the former
   `CHARS_PER_TOKEN`/`chars_per_token` API. This is still a model-family heuristic; use

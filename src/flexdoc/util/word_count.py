@@ -34,7 +34,10 @@ def logical_word_count(
 
     Non-whitespace wide and fullwidth characters contribute `wide_char_weight` each.
     The remaining whitespace-delimited count is clamped to the configured average
-    character bounds, then the combined non-negative count is rounded half-up.
+    character bounds, then the combined non-negative count is rounded half-up. With
+    the defaults, non-wide text matches a raw count when it averages 3–6 non-whitespace
+    characters per word; longer averages increase the count and shorter averages
+    decrease it.
     """
     if not isfinite(minimum_chars_per_word) or minimum_chars_per_word <= 0:
         raise ValueError("minimum_chars_per_word must be a positive finite number")

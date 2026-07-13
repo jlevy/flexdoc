@@ -1,7 +1,7 @@
 source:
   sha256: 22d5ebc9162e8b9cee554a273f14ef56afdb405ae5f6c08d01dbd17f4b1fb202
   length: 438
-  size_summary: 437 bytes (13 lines, 5 paras, 5 sents, 61 logical words, ~104 tok)
+  size_summary: 437 bytes (13 lines, 5 paras, 5 sents, 61 words, ~104 tok)
 base_blocks:
   cover_ok: true
   uncovered_nonspace: 0
@@ -44,7 +44,7 @@ sections:
 - level: 1
   title: Link taxonomy
   span: 0:437
-  logical_words: 61
+  words: 61
 node_table:
 - id: n0001
   layer: markdown

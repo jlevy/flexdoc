@@ -1,7 +1,7 @@
 source:
   sha256: 6ac66a8fb02f20130b8e84c19a7068e2eae27b48037cf2adb3fa0e4ccaced3fe
   length: 644
-  size_summary: 643 bytes (29 lines, 11 paras, 12 sents, 98 logical words, ~178 tok)
+  size_summary: 643 bytes (29 lines, 11 paras, 12 sents, 98 words, ~178 tok)
 base_blocks:
   cover_ok: true
   uncovered_nonspace: 0
@@ -79,31 +79,31 @@ sections:
 - level: 1
   title: Top
   span: 0:165
-  logical_words: 15
+  words: 15
 - level: 2
   title: Marker preceded
   span: 106:165
-  logical_words: 9
+  words: 9
 - level: 1
   title: Setext title
   span: 167:368
-  logical_words: 36
+  words: 36
 - level: 4
   title: Jumped to level four
   span: 194:368
-  logical_words: 33
+  words: 33
 - level: 1
   title: Top
   span: 370:472
-  logical_words: 17
+  words: 17
 - level: 1
   title: Tight outer
   span: 474:643
-  logical_words: 30
+  words: 30
 - level: 2
   title: Tight inner
   span: 559:643
-  logical_words: 15
+  words: 15
 node_table:
 - id: n0001
   layer: markdown
