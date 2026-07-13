@@ -31,6 +31,13 @@ def test_logical_word_count_clamps_symbolic_and_short_token_text():
     assert logical_word_count("你好 abcdefghijkl") == 3
 
 
+def test_logical_word_count_handles_empty_and_long_unbroken_text():
+    url = "https://example.com/really-long-path?query=value&other=two"
+    assert logical_word_count("") == 0
+    assert raw_word_count(url) == 1
+    assert logical_word_count(url) > raw_word_count(url)
+
+
 def test_logical_word_count_supports_custom_bounds_and_wide_weight():
     assert logical_word_count("你好", wide_char_weight=1.0) == 2
     assert (
