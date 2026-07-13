@@ -76,7 +76,7 @@ def doc_report_data(doc: FlexDoc, *, item_partition_depth: int = 6) -> dict[str,
                     "level": sec.level,
                     "title": sec.title,
                     "span": _span_str(sec.span),
-                    "words": sec.size(TextUnit.words),
+                    "logical_words": sec.size(TextUnit.logical_words),
                 }
             )
             _walk(sec.children)

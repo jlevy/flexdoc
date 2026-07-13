@@ -698,7 +698,7 @@ class FlexDoc:
         walk(self.sections())
         return entries
 
-    def section_size_tree(self, units: tuple[TextUnit, ...] = (TextUnit.words,)) -> str:
+    def section_size_tree(self, units: tuple[TextUnit, ...] = (TextUnit.logical_words,)) -> str:
         """
         Render the section hierarchy as an indented tree with rolled-up sizes per
         section (each line covers the section and all its subsections).
@@ -731,7 +731,9 @@ class FlexDoc:
     def seek_to_sent(self, offset: int, unit: TextUnit) -> tuple[SentIndex, int]:
         """
         Find the last sentence that starts before a given offset. Returns the SentIndex
-        and the offset of the sentence start in the original document.
+        and the offset of the sentence start in the original document. Logical-word
+        offsets accumulate rounded sentence sizes, so they can differ slightly from a
+        whole-document logical-word count.
         """
         current_size = 0
         last_fit_index = None
@@ -743,7 +745,7 @@ class FlexDoc:
         elif unit == TextUnit.chars:
             size_sent_break = len(SENT_BR_STR)
             size_para_break = len(PARA_BR_STR)
-        elif unit == TextUnit.words:
+        elif unit in {TextUnit.raw_words, TextUnit.logical_words}:
             size_sent_break = 0
             size_para_break = 0
         elif unit == TextUnit.wordtoks:
@@ -861,8 +863,8 @@ class FlexDoc:
         """
         Return a new sub-document containing only the paragraphs matching the given
         `BlockType` filter, e.g.
-        `doc.filtered(include={BlockType.paragraph}).size(TextUnit.words)` gives
-        the total words across all prose paragraphs.
+        `doc.filtered(include={BlockType.paragraph}).size(TextUnit.logical_words)` gives
+        the total logical words across all prose paragraphs.
 
         The returned document deep-copies the matched paragraphs, so it is independent
         of this document: editing one does not affect the other. (Use `iter_paragraphs`

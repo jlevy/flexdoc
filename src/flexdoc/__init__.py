@@ -13,7 +13,7 @@ from flexdoc import FlexDoc, NodeKind, TextUnit
 
 doc = FlexDoc.from_text(markdown_text)
 links = doc.collect(kinds={NodeKind.link}, recursive=True)
-words = doc.size(TextUnit.words)
+logical_words = doc.size(TextUnit.logical_words)
 ```
 
 The full public surfaces live in the submodules:

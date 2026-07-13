@@ -1,7 +1,7 @@
 source:
   sha256: 015b6ed2fc3e737e57d44027a23c77ad6e7422232cb0b8fdcd9be34f36b55f4f
   length: 437
-  size_summary: 424 bytes (17 lines, 8 paras, 8 sents, 55 words, ~112 tok)
+  size_summary: 424 bytes (17 lines, 8 paras, 8 sents, 57 logical words, ~112 tok)
 base_blocks:
   cover_ok: true
   uncovered_nonspace: 0
@@ -17,8 +17,7 @@ base_blocks:
   - depth: 0
     type: paragraph
     span: 71:156
-    text: 'A bare autolink: <https://auto.example> and a plain https://bare.example
-      URL.[^multi]'
+    text: 'A bare autolink: <https://auto.example> and a plain https://bare.example URL.[^multi]'
   - depth: 0
     type: paragraph
     span: 158:183
@@ -45,7 +44,7 @@ sections:
 - level: 1
   title: References
   span: 0:436
-  words: 55
+  logical_words: 57
 node_table:
 - id: n0001
   layer: markdown
@@ -116,8 +115,7 @@ node_table:
   span: 71:156
   parent: n0013
   attrs:
-    text: 'A bare autolink: <https://auto.example> and a plain https://bare.example
-      URL.[^multi]'
+    text: 'A bare autolink: <https://auto.example> and a plain https://bare.example URL.[^multi]'
 - id: n0015
   layer: textual
   kind: paragraph

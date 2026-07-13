@@ -3,6 +3,7 @@ from enum import StrEnum
 from flexdoc.docs.wordtoks import wordtokenize
 from flexdoc.html.html_plaintext import html_to_plaintext
 from flexdoc.util.token_estimate import estimate_tokens
+from flexdoc.util.word_count import logical_word_count, raw_word_count
 
 
 def size_in_bytes(text: str) -> int:
@@ -21,7 +22,10 @@ class TextUnit(StrEnum):
     lines = "lines"
     bytes = "bytes"
     chars = "chars"
-    words = "words"
+    raw_words = "raw_words"
+    """Whitespace-delimited words after converting HTML to plain text."""
+    logical_words = "logical_words"
+    """Normalized word-equivalent volume after converting HTML to plain text."""
     wordtoks = "wordtoks"
     paragraphs = "paragraphs"
     sentences = "sentences"
@@ -36,9 +40,11 @@ def size(text: str, unit: TextUnit) -> int:
         return size_in_bytes(text)
     elif unit == TextUnit.chars:
         return len(text)
-    elif unit == TextUnit.words:
+    elif unit == TextUnit.raw_words:
         # Roughly accurate for HTML, text, or Markdown docs.
-        return len(html_to_plaintext(text).split())
+        return raw_word_count(html_to_plaintext(text))
+    elif unit == TextUnit.logical_words:
+        return logical_word_count(html_to_plaintext(text))
     elif unit == TextUnit.wordtoks:
         return size_in_wordtoks(text)
     elif unit == TextUnit.tokens:

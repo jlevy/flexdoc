@@ -6,8 +6,9 @@
 
 **Status:** Approved
 
-**Implementation status:** Word-count primitives and focused tests are complete.
-`TextUnit`, token-estimator, documentation, golden-report, and validation work remains.
+**Implementation status:** Word-count primitives, the `TextUnit` migration, aggregate
+sizing behavior, and the first golden-report update are complete. Token-estimator,
+documentation, final golden-report, and validation work remains.
 
 ## Overview
 

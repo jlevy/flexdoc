@@ -1,7 +1,7 @@
 source:
   sha256: 6ac66a8fb02f20130b8e84c19a7068e2eae27b48037cf2adb3fa0e4ccaced3fe
   length: 644
-  size_summary: 643 bytes (29 lines, 11 paras, 12 sents, 98 words, ~170 tok)
+  size_summary: 643 bytes (29 lines, 11 paras, 12 sents, 98 logical words, ~170 tok)
 base_blocks:
   cover_ok: true
   uncovered_nonspace: 0
@@ -58,8 +58,7 @@ base_blocks:
   - depth: 0
     type: paragraph
     span: 377:472
-    text: A second top-level section with a duplicate title (sections are 
-      identified by span, not title).
+    text: A second top-level section with a duplicate title (sections are identified by span, not title).
   - depth: 0
     type: heading
     span: 474:487
@@ -80,31 +79,31 @@ sections:
 - level: 1
   title: Top
   span: 0:165
-  words: 15
+  logical_words: 15
 - level: 2
   title: Marker preceded
   span: 106:165
-  words: 8
+  logical_words: 9
 - level: 1
   title: Setext title
   span: 167:368
-  words: 36
+  logical_words: 36
 - level: 4
   title: Jumped to level four
   span: 194:368
-  words: 33
+  logical_words: 33
 - level: 1
   title: Top
   span: 370:472
-  words: 17
+  logical_words: 17
 - level: 1
   title: Tight outer
   span: 474:643
-  words: 30
+  logical_words: 30
 - level: 2
   title: Tight inner
   span: 559:643
-  words: 15
+  logical_words: 15
 node_table:
 - id: n0001
   layer: markdown
@@ -303,8 +302,7 @@ node_table:
   span: 37:124
   parent: n0033
   attrs:
-    text: '<!-- a marker comment with no blank line before the next heading --> ##
-      Marker preceded'
+    text: '<!-- a marker comment with no blank line before the next heading --> ## Marker preceded'
 - id: n0035
   layer: textual
   kind: paragraph
@@ -381,8 +379,7 @@ node_table:
   span: 377:472
   parent: n0047
   attrs:
-    text: A second top-level section with a duplicate title (sections are 
-      identified by span, not title).
+    text: A second top-level section with a duplicate title (sections are identified by span, not title).
 - id: n0049
   layer: textual
   kind: paragraph
@@ -393,13 +390,11 @@ node_table:
   span: 474:558
   parent: n0049
   attrs:
-    text: '# Tight outer Intro glued directly under the tight outer heading with no
-      blank line.'
+    text: '# Tight outer Intro glued directly under the tight outer heading with no blank line.'
 - id: n0051
   layer: textual
   kind: sentence
   span: 559:643
   parent: n0049
   attrs:
-    text: '## Tight inner Body glued directly under the tight inner heading with no
-      blank line.'
+    text: '## Tight inner Body glued directly under the tight inner heading with no blank line.'

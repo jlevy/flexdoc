@@ -1,3 +1,6 @@
+from flexdoc import FlexDoc
+from flexdoc.docs import SentIndex
+from flexdoc.docs.sizes import TextUnit, size
 from flexdoc.util import logical_word_count, raw_word_count
 
 
@@ -48,3 +51,31 @@ def test_logical_word_count_rejects_invalid_configuration():
             assert expected_name in str(error)
         else:
             raise AssertionError(f"Expected invalid {expected_name} to raise ValueError")
+
+
+def test_text_units_distinguish_raw_and_logical_plaintext_words():
+    text = "<p>你好世界</p>"
+    assert "words" not in {unit.value for unit in TextUnit}
+    assert size(text, TextUnit.raw_words) == 1
+    assert size(text, TextUnit.logical_words) == 2
+
+
+def test_document_logical_words_round_once_across_all_paragraphs():
+    doc = FlexDoc.from_text("a.\n\nb.\n\nc.")
+    assert doc.size(TextUnit.logical_words) == logical_word_count(doc.reassemble()) == 2
+    assert sum(paragraph.size(TextUnit.logical_words) for paragraph in doc.paragraphs) == 3
+
+
+def test_section_sizes_and_tree_default_to_logical_words():
+    doc = FlexDoc.from_text("# T\n\n你好世界你好世界")
+    section = doc.sections()[0]
+    assert section.size(TextUnit.raw_words) == 3
+    assert section.size(TextUnit.logical_words) == 5
+    assert doc.section_size_tree() == "# T  (5 logical_words)"
+    assert "5 logical words" in doc.size_summary()
+
+
+def test_seek_to_sent_supports_both_word_units():
+    doc = FlexDoc.from_text("This is the first sentence. This is the second sentence.")
+    for unit in (TextUnit.raw_words, TextUnit.logical_words):
+        assert doc.seek_to_sent(5, unit) == (SentIndex(0, 1), 5)
