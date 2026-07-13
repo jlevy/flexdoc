@@ -7,8 +7,8 @@
 **Status:** Approved
 
 **Implementation status:** Word-count primitives, the `TextUnit` migration, aggregate
-sizing behavior, and the first golden-report update are complete. Token-estimator,
-documentation, final golden-report, and validation work remains.
+sizing behavior, token estimates, reading-time guidance, and golden reports are
+complete. Public documentation and final validation work remains.
 
 ## Overview
 
@@ -195,16 +195,16 @@ measure use `raw_words` explicitly.
 
 ### Phase 1: Metrics and API Migration
 
-- [ ] Add failing behavior tests for raw/logical counts, cross-language rounding,
+- [x] Add failing behavior tests for raw/logical counts, cross-language rounding,
   whitespace, bounds, mixed content, and token estimates.
-- [ ] Implement the word-counting utility and logical-word-based token estimator.
-- [ ] Replace `TextUnit.words` with `raw_words` and `logical_words` across every size
+- [x] Implement the word-counting utility and logical-word-based token estimator.
+- [x] Replace `TextUnit.words` with `raw_words` and `logical_words` across every size
   grain and ensure aggregate counts are computed before rounding.
-- [ ] Switch summaries, section-tree defaults, debug reports, and reading-time guidance
+- [x] Switch summaries, section-tree defaults, debug reports, and reading-time guidance
   to logical words.
 - [ ] Update all callers, public examples, API/spec documentation, changelog, and work
   tracking references.
-- [ ] Regenerate golden reports and review every changed field.
+- [x] Regenerate golden reports and review every changed field.
 
 ## Testing Strategy
 

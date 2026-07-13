@@ -76,10 +76,10 @@ def test_rolled_up_size_sums_subtree():
 def test_section_size_summary_distinguishes_own_content_and_subtree():
     top = FlexDoc.from_text(_DOC).sections()[0]
     assert top.size_summary(subtree=False) == (
-        "30 bytes (3 lines, 2 paras, 2 sents, 6 logical words, ~8 tok)"
+        "30 bytes (3 lines, 2 paras, 2 sents, 6 logical words, ~10 tok)"
     )
     assert top.size_summary() == (
-        "94 bytes (11 lines, 6 paras, 6 sents, 21 logical words, ~25 tok)"
+        "94 bytes (11 lines, 6 paras, 6 sents, 21 logical words, ~34 tok)"
     )
 
 

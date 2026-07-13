@@ -1,7 +1,14 @@
+from math import ceil
+
 from flexdoc import FlexDoc
 from flexdoc.docs import SentIndex
 from flexdoc.docs.sizes import TextUnit, size
-from flexdoc.util import logical_word_count, raw_word_count
+from flexdoc.util import (
+    TOKENS_PER_LOGICAL_WORD,
+    estimate_tokens,
+    logical_word_count,
+    raw_word_count,
+)
 
 
 def test_logical_word_count_matches_raw_count_for_ordinary_prose():
@@ -79,3 +86,24 @@ def test_seek_to_sent_supports_both_word_units():
     doc = FlexDoc.from_text("This is the first sentence. This is the second sentence.")
     for unit in (TextUnit.raw_words, TextUnit.logical_words):
         assert doc.seek_to_sent(5, unit) == (SentIndex(0, 1), 5)
+
+
+def test_estimate_tokens_scales_logical_words_across_text_forms():
+    for text in (
+        "This is ordinary English prose with common words.",
+        "你好世界你好世界",
+        "a+b*clamp(x,lo,hi)",
+    ):
+        assert estimate_tokens(text) == ceil(logical_word_count(text) * TOKENS_PER_LOGICAL_WORD)
+
+
+def test_estimate_tokens_validates_custom_multiplier():
+    assert estimate_tokens("", tokens_per_logical_word=2.0) == 0
+    assert estimate_tokens("你好", tokens_per_logical_word=2.0) == 2
+    for invalid_multiplier in (0.0, -1.0, float("inf"), float("nan")):
+        try:
+            estimate_tokens("text", tokens_per_logical_word=invalid_multiplier)
+        except ValueError as error:
+            assert "tokens_per_logical_word" in str(error)
+        else:
+            raise AssertionError(f"Expected invalid multiplier {invalid_multiplier} to raise")
