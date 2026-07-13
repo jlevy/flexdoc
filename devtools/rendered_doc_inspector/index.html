@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Rendered-first FlexDoc structure inspector spike.">
+  <title>Rendered FlexDoc Inspector</title>
+  <link rel="stylesheet" href="./src/rendered-inspector.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">FlexDoc developer spike</p>
+        <h1>Rendered FlexDoc inspector</h1>
+        <p class="filename" id="document-filename"></p>
+      </div>
+      <div class="topbar-actions" aria-label="Document controls">
+        <button class="quiet-button" id="copy-rendered" type="button">Copy rendered text</button>
+        <button class="source-toggle" id="toggle-source" type="button" aria-pressed="false">
+          Show Markdown
+        </button>
+      </div>
+    </header>
+
+    <section class="structure-lens" id="structure-lens" aria-live="polite">
+      <p class="hover-hint" id="hover-hint">Hover or focus rendered content to reveal its nested FlexDoc structure.</p>
+      <div class="structure-trail" id="structure-trail" hidden></div>
+      <code class="active-span" id="active-span" hidden></code>
+    </section>
+
+    <main class="workspace" id="workspace">
+      <section class="rendered-pane" aria-labelledby="rendered-pane-title">
+        <h2 class="visually-hidden" id="rendered-pane-title">Rendered document</h2>
+        <article class="rendered-document" id="rendered-document"></article>
+      </section>
+
+      <aside class="source-pane" id="source-pane" aria-labelledby="source-pane-title" hidden>
+        <header class="source-header">
+          <div>
+            <p class="source-kicker">Original source</p>
+            <h2 id="source-pane-title">Markdown</h2>
+          </div>
+          <button class="quiet-button" id="copy-source" type="button">Copy Markdown</button>
+        </header>
+        <pre class="source-code" id="source-code" tabindex="0"><code><span id="source-before"></span><mark id="source-active"></mark><span id="source-after"></span></code></pre>
+      </aside>
+    </main>
+
+    <p class="copy-status" id="copy-status" role="status" aria-live="polite"></p>
+  </div>
+  <script type="module" src="./src/rendered-inspector.ts"></script>
+</body>
+</html>

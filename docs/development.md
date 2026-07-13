@@ -69,6 +69,12 @@ source .venv/bin/activate
 
 See [uv docs](https://docs.astral.sh/uv/) for details.
 
+## Rendered Document Inspector Spike
+
+The developer-only [rendered document inspector](../devtools/rendered_doc_inspector/README.md)
+tests hover-driven parse inspection over clean rendered Markdown. Its optional source
+pane follows the active FlexDoc span. The spike has no JavaScript package dependencies.
+
 ## Continuous Integration
 
 CI runs lint and the complete test suite on Ubuntu for every supported Python version

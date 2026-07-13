@@ -1,0 +1,740 @@
+{
+  "source": {
+    "filename": "example.md",
+    "offsetUnit": "unicode_code_points",
+    "text": "---\ntitle: A rendered document\ndescription: Hover-driven structure inspection\n---\n\n# Notes on resilient documents\n\nA clean document should read like a document, not a parse tree. Its structure can stay\nquiet until the reader needs it. Then a **paragraph**, a [source-anchored\nlink](https://example.com), or a `code span` can explain where it came from.\n\n## What the parser sees\n\nThe same passage belongs to several useful layers:\n\n- A section gives the passage a place in the document.\n  - A nested item proves that structure can deepen without cluttering the page.\n- A Markdown block describes how it renders.\n- A sentence and its words make the prose addressable.\n\n> Good inspection should preserve the reading experience. The source is supporting\n> evidence, not the main event.\n\n| Surface | Purpose |\n| --- | --- |\n| Rendered text | Read and select naturally |\n| Markdown source | Verify exact syntax and offsets |\n\n```python\ndoc = FlexDoc.from_text(markdown)\n```\n\nThe result should feel calm before hover and precise during inspection.\n"
+  },
+  "nodes": [
+    {
+      "id": "n0001",
+      "kind": "heading",
+      "layer": "markdown",
+      "parent": null,
+      "children": [],
+      "sourceSpan": {
+        "start": 83,
+        "end": 113
+      },
+      "attrs": {
+        "level": 1
+      },
+      "text": "# Notes on resilient documents"
+    },
+    {
+      "id": "n0002",
+      "kind": "paragraph",
+      "layer": "markdown",
+      "parent": null,
+      "children": [
+        "n0046",
+        "n0047"
+      ],
+      "sourceSpan": {
+        "start": 115,
+        "end": 352
+      },
+      "attrs": {},
+      "text": "A clean document should read like a document, not a parse tree. Its structure can stay\nquiet until the reader needs it. Then a **paragraph**, a [source-anchored\nlink](https://example.com), or a `code span` can explain where it came from."
+    },
+    {
+      "id": "n0003",
+      "kind": "heading",
+      "layer": "markdown",
+      "parent": null,
+      "children": [],
+      "sourceSpan": {
+        "start": 354,
+        "end": 377
+      },
+      "attrs": {
+        "level": 2
+      },
+      "text": "## What the parser sees"
+    },
+    {
+      "id": "n0004",
+      "kind": "paragraph",
+      "layer": "markdown",
+      "parent": null,
+      "children": [],
+      "sourceSpan": {
+        "start": 379,
+        "end": 429
+      },
+      "attrs": {},
+      "text": "The same passage belongs to several useful layers:"
+    },
+    {
+      "id": "n0005",
+      "kind": "list",
+      "layer": "markdown",
+      "parent": null,
+      "children": [
+        "n0006",
+        "n0011",
+        "n0013"
+      ],
+      "sourceSpan": {
+        "start": 431,
+        "end": 665
+      },
+      "attrs": {
+        "tight": true,
+        "ordered": false,
+        "start": null,
+        "max_depth": 2,
+        "item_count": 3
+      },
+      "text": "- A section gives the passage a place in the document.\n  - A nested item proves that structure can deepen without cluttering the page.\n- A Markdown block describes how it renders.\n- A sentence and its words make the prose addressable."
+    },
+    {
+      "id": "n0006",
+      "kind": "list_item",
+      "layer": "markdown",
+      "parent": "n0005",
+      "children": [
+        "n0007",
+        "n0008"
+      ],
+      "sourceSpan": {
+        "start": 431,
+        "end": 565
+      },
+      "attrs": {},
+      "text": "- A section gives the passage a place in the document.\n  - A nested item proves that structure can deepen without cluttering the page."
+    },
+    {
+      "id": "n0007",
+      "kind": "paragraph",
+      "layer": "markdown",
+      "parent": "n0006",
+      "children": [],
+      "sourceSpan": {
+        "start": 431,
+        "end": 485
+      },
+      "attrs": {},
+      "text": "- A section gives the passage a place in the document."
+    },
+    {
+      "id": "n0008",
+      "kind": "list",
+      "layer": "markdown",
+      "parent": "n0006",
+      "children": [
+        "n0009"
+      ],
+      "sourceSpan": {
+        "start": 488,
+        "end": 565
+      },
+      "attrs": {
+        "tight": true,
+        "ordered": false,
+        "start": null,
+        "max_depth": 1,
+        "item_count": 1
+      },
+      "text": "- A nested item proves that structure can deepen without cluttering the page."
+    },
+    {
+      "id": "n0009",
+      "kind": "list_item",
+      "layer": "markdown",
+      "parent": "n0008",
+      "children": [
+        "n0010"
+      ],
+      "sourceSpan": {
+        "start": 488,
+        "end": 565
+      },
+      "attrs": {},
+      "text": "- A nested item proves that structure can deepen without cluttering the page."
+    },
+    {
+      "id": "n0010",
+      "kind": "paragraph",
+      "layer": "markdown",
+      "parent": "n0009",
+      "children": [],
+      "sourceSpan": {
+        "start": 488,
+        "end": 565
+      },
+      "attrs": {},
+      "text": "- A nested item proves that structure can deepen without cluttering the page."
+    },
+    {
+      "id": "n0011",
+      "kind": "list_item",
+      "layer": "markdown",
+      "parent": "n0005",
+      "children": [
+        "n0012"
+      ],
+      "sourceSpan": {
+        "start": 566,
+        "end": 610
+      },
+      "attrs": {},
+      "text": "- A Markdown block describes how it renders."
+    },
+    {
+      "id": "n0012",
+      "kind": "paragraph",
+      "layer": "markdown",
+      "parent": "n0011",
+      "children": [],
+      "sourceSpan": {
+        "start": 566,
+        "end": 610
+      },
+      "attrs": {},
+      "text": "- A Markdown block describes how it renders."
+    },
+    {
+      "id": "n0013",
+      "kind": "list_item",
+      "layer": "markdown",
+      "parent": "n0005",
+      "children": [
+        "n0014"
+      ],
+      "sourceSpan": {
+        "start": 611,
+        "end": 665
+      },
+      "attrs": {},
+      "text": "- A sentence and its words make the prose addressable."
+    },
+    {
+      "id": "n0014",
+      "kind": "paragraph",
+      "layer": "markdown",
+      "parent": "n0013",
+      "children": [],
+      "sourceSpan": {
+        "start": 611,
+        "end": 665
+      },
+      "attrs": {},
+      "text": "- A sentence and its words make the prose addressable."
+    },
+    {
+      "id": "n0015",
+      "kind": "blockquote",
+      "layer": "markdown",
+      "parent": null,
+      "children": [
+        "n0016"
+      ],
+      "sourceSpan": {
+        "start": 667,
+        "end": 781
+      },
+      "attrs": {},
+      "text": "> Good inspection should preserve the reading experience. The source is supporting\n> evidence, not the main event."
+    },
+    {
+      "id": "n0016",
+      "kind": "paragraph",
+      "layer": "markdown",
+      "parent": "n0015",
+      "children": [],
+      "sourceSpan": {
+        "start": 667,
+        "end": 781
+      },
+      "attrs": {},
+      "text": "> Good inspection should preserve the reading experience. The source is supporting\n> evidence, not the main event."
+    },
+    {
+      "id": "n0017",
+      "kind": "table",
+      "layer": "markdown",
+      "parent": null,
+      "children": [],
+      "sourceSpan": {
+        "start": 783,
+        "end": 918
+      },
+      "attrs": {
+        "rows": 3,
+        "cols": 2,
+        "cells": 6,
+        "alignments": [
+          "default",
+          "default"
+        ]
+      },
+      "text": "| Surface | Purpose |\n| --- | --- |\n| Rendered text | Read and select naturally |\n| Markdown source | Verify exact syntax and offsets |"
+    },
+    {
+      "id": "n0018",
+      "kind": "code",
+      "layer": "markdown",
+      "parent": null,
+      "children": [],
+      "sourceSpan": {
+        "start": 920,
+        "end": 967
+      },
+      "attrs": {
+        "language": "python",
+        "line_count": 1
+      },
+      "text": "```python\ndoc = FlexDoc.from_text(markdown)\n```"
+    },
+    {
+      "id": "n0019",
+      "kind": "paragraph",
+      "layer": "markdown",
+      "parent": null,
+      "children": [],
+      "sourceSpan": {
+        "start": 969,
+        "end": 1040
+      },
+      "attrs": {},
+      "text": "The result should feel calm before hover and precise during inspection."
+    },
+    {
+      "id": "n0020",
+      "kind": "section",
+      "layer": "document",
+      "parent": null,
+      "children": [
+        "n0021"
+      ],
+      "sourceSpan": {
+        "start": 83,
+        "end": 1040
+      },
+      "attrs": {
+        "level": 1,
+        "title": "Notes on resilient documents"
+      },
+      "text": "# Notes on resilient documents\n\nA clean document should read like a document, not a parse tree. Its structure can stay\nquiet until the reader needs it. Then a **paragraph**, a [source-anchored\nlink](https://example.com), or a `code span` can explain where it came from.\n\n## What the parser sees\n\nThe same passage belongs to several useful layers:\n\n- A section gives the passage a place in the document.\n  - A nested item proves that structure can deepen without cluttering the page.\n- A Markdown block describes how it renders.\n- A sentence and its words make the prose addressable.\n\n> Good inspection should preserve the reading experience. The source is supporting\n> evidence, not the main event.\n\n| Surface | Purpose |\n| --- | --- |\n| Rendered text | Read and select naturally |\n| Markdown source | Verify exact syntax and offsets |\n\n```python\ndoc = FlexDoc.from_text(markdown)\n```\n\nThe result should feel calm before hover and precise during inspection."
+    },
+    {
+      "id": "n0021",
+      "kind": "section",
+      "layer": "document",
+      "parent": "n0020",
+      "children": [],
+      "sourceSpan": {
+        "start": 354,
+        "end": 1040
+      },
+      "attrs": {
+        "level": 2,
+        "title": "What the parser sees"
+      },
+      "text": "## What the parser sees\n\nThe same passage belongs to several useful layers:\n\n- A section gives the passage a place in the document.\n  - A nested item proves that structure can deepen without cluttering the page.\n- A Markdown block describes how it renders.\n- A sentence and its words make the prose addressable.\n\n> Good inspection should preserve the reading experience. The source is supporting\n> evidence, not the main event.\n\n| Surface | Purpose |\n| --- | --- |\n| Rendered text | Read and select naturally |\n| Markdown source | Verify exact syntax and offsets |\n\n```python\ndoc = FlexDoc.from_text(markdown)\n```\n\nThe result should feel calm before hover and precise during inspection."
+    },
+    {
+      "id": "n0022",
+      "kind": "paragraph",
+      "layer": "textual",
+      "parent": null,
+      "children": [
+        "n0023"
+      ],
+      "sourceSpan": {
+        "start": 83,
+        "end": 113
+      },
+      "attrs": {},
+      "text": "# Notes on resilient documents"
+    },
+    {
+      "id": "n0023",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0022",
+      "children": [],
+      "sourceSpan": {
+        "start": 83,
+        "end": 113
+      },
+      "attrs": {
+        "text": "# Notes on resilient documents"
+      },
+      "text": "# Notes on resilient documents"
+    },
+    {
+      "id": "n0024",
+      "kind": "paragraph",
+      "layer": "textual",
+      "parent": null,
+      "children": [
+        "n0025",
+        "n0026",
+        "n0027"
+      ],
+      "sourceSpan": {
+        "start": 115,
+        "end": 352
+      },
+      "attrs": {},
+      "text": "A clean document should read like a document, not a parse tree. Its structure can stay\nquiet until the reader needs it. Then a **paragraph**, a [source-anchored\nlink](https://example.com), or a `code span` can explain where it came from."
+    },
+    {
+      "id": "n0025",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0024",
+      "children": [],
+      "sourceSpan": {
+        "start": 115,
+        "end": 178
+      },
+      "attrs": {
+        "text": "A clean document should read like a document, not a parse tree."
+      },
+      "text": "A clean document should read like a document, not a parse tree."
+    },
+    {
+      "id": "n0026",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0024",
+      "children": [],
+      "sourceSpan": {
+        "start": 179,
+        "end": 234
+      },
+      "attrs": {
+        "text": "Its structure can stay quiet until the reader needs it."
+      },
+      "text": "Its structure can stay\nquiet until the reader needs it."
+    },
+    {
+      "id": "n0027",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0024",
+      "children": [],
+      "sourceSpan": {
+        "start": 235,
+        "end": 352
+      },
+      "attrs": {
+        "text": "Then a **paragraph**, a [source-anchored link](https://example.com), or a `code span` can explain where it came from."
+      },
+      "text": "Then a **paragraph**, a [source-anchored\nlink](https://example.com), or a `code span` can explain where it came from."
+    },
+    {
+      "id": "n0028",
+      "kind": "paragraph",
+      "layer": "textual",
+      "parent": null,
+      "children": [
+        "n0029"
+      ],
+      "sourceSpan": {
+        "start": 354,
+        "end": 377
+      },
+      "attrs": {},
+      "text": "## What the parser sees"
+    },
+    {
+      "id": "n0029",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0028",
+      "children": [],
+      "sourceSpan": {
+        "start": 354,
+        "end": 377
+      },
+      "attrs": {
+        "text": "## What the parser sees"
+      },
+      "text": "## What the parser sees"
+    },
+    {
+      "id": "n0030",
+      "kind": "paragraph",
+      "layer": "textual",
+      "parent": null,
+      "children": [
+        "n0031"
+      ],
+      "sourceSpan": {
+        "start": 379,
+        "end": 429
+      },
+      "attrs": {},
+      "text": "The same passage belongs to several useful layers:"
+    },
+    {
+      "id": "n0031",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0030",
+      "children": [],
+      "sourceSpan": {
+        "start": 379,
+        "end": 429
+      },
+      "attrs": {
+        "text": "The same passage belongs to several useful layers:"
+      },
+      "text": "The same passage belongs to several useful layers:"
+    },
+    {
+      "id": "n0032",
+      "kind": "paragraph",
+      "layer": "textual",
+      "parent": null,
+      "children": [
+        "n0033",
+        "n0034",
+        "n0035",
+        "n0036"
+      ],
+      "sourceSpan": {
+        "start": 431,
+        "end": 665
+      },
+      "attrs": {},
+      "text": "- A section gives the passage a place in the document.\n  - A nested item proves that structure can deepen without cluttering the page.\n- A Markdown block describes how it renders.\n- A sentence and its words make the prose addressable."
+    },
+    {
+      "id": "n0033",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0032",
+      "children": [],
+      "sourceSpan": {
+        "start": 431,
+        "end": 485
+      },
+      "attrs": {
+        "text": "- A section gives the passage a place in the document."
+      },
+      "text": "- A section gives the passage a place in the document."
+    },
+    {
+      "id": "n0034",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0032",
+      "children": [],
+      "sourceSpan": {
+        "start": 488,
+        "end": 565
+      },
+      "attrs": {
+        "text": "- A nested item proves that structure can deepen without cluttering the page."
+      },
+      "text": "- A nested item proves that structure can deepen without cluttering the page."
+    },
+    {
+      "id": "n0035",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0032",
+      "children": [],
+      "sourceSpan": {
+        "start": 566,
+        "end": 610
+      },
+      "attrs": {
+        "text": "- A Markdown block describes how it renders."
+      },
+      "text": "- A Markdown block describes how it renders."
+    },
+    {
+      "id": "n0036",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0032",
+      "children": [],
+      "sourceSpan": {
+        "start": 611,
+        "end": 665
+      },
+      "attrs": {
+        "text": "- A sentence and its words make the prose addressable."
+      },
+      "text": "- A sentence and its words make the prose addressable."
+    },
+    {
+      "id": "n0037",
+      "kind": "paragraph",
+      "layer": "textual",
+      "parent": null,
+      "children": [
+        "n0038",
+        "n0039"
+      ],
+      "sourceSpan": {
+        "start": 667,
+        "end": 781
+      },
+      "attrs": {},
+      "text": "> Good inspection should preserve the reading experience. The source is supporting\n> evidence, not the main event."
+    },
+    {
+      "id": "n0038",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0037",
+      "children": [],
+      "sourceSpan": {
+        "start": 667,
+        "end": 724
+      },
+      "attrs": {
+        "text": "> Good inspection should preserve the reading experience."
+      },
+      "text": "> Good inspection should preserve the reading experience."
+    },
+    {
+      "id": "n0039",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0037",
+      "children": [],
+      "sourceSpan": {
+        "start": 725,
+        "end": 781
+      },
+      "attrs": {
+        "text": "The source is supporting > evidence, not the main event."
+      },
+      "text": "The source is supporting\n> evidence, not the main event."
+    },
+    {
+      "id": "n0040",
+      "kind": "paragraph",
+      "layer": "textual",
+      "parent": null,
+      "children": [
+        "n0041"
+      ],
+      "sourceSpan": {
+        "start": 783,
+        "end": 918
+      },
+      "attrs": {},
+      "text": "| Surface | Purpose |\n| --- | --- |\n| Rendered text | Read and select naturally |\n| Markdown source | Verify exact syntax and offsets |"
+    },
+    {
+      "id": "n0041",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0040",
+      "children": [],
+      "sourceSpan": {
+        "start": 783,
+        "end": 918
+      },
+      "attrs": {
+        "text": "| Surface | Purpose | | --- | --- | | Rendered text | Read and select naturally | | Markdown source | Verify exact syntax and offsets |"
+      },
+      "text": "| Surface | Purpose |\n| --- | --- |\n| Rendered text | Read and select naturally |\n| Markdown source | Verify exact syntax and offsets |"
+    },
+    {
+      "id": "n0042",
+      "kind": "paragraph",
+      "layer": "textual",
+      "parent": null,
+      "children": [
+        "n0043"
+      ],
+      "sourceSpan": {
+        "start": 920,
+        "end": 967
+      },
+      "attrs": {},
+      "text": "```python\ndoc = FlexDoc.from_text(markdown)\n```"
+    },
+    {
+      "id": "n0043",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0042",
+      "children": [],
+      "sourceSpan": {
+        "start": 920,
+        "end": 967
+      },
+      "attrs": {
+        "text": "```python doc = FlexDoc.from_text(markdown) ```"
+      },
+      "text": "```python\ndoc = FlexDoc.from_text(markdown)\n```"
+    },
+    {
+      "id": "n0044",
+      "kind": "paragraph",
+      "layer": "textual",
+      "parent": null,
+      "children": [
+        "n0045"
+      ],
+      "sourceSpan": {
+        "start": 969,
+        "end": 1040
+      },
+      "attrs": {},
+      "text": "The result should feel calm before hover and precise during inspection."
+    },
+    {
+      "id": "n0045",
+      "kind": "sentence",
+      "layer": "textual",
+      "parent": "n0044",
+      "children": [],
+      "sourceSpan": {
+        "start": 969,
+        "end": 1040
+      },
+      "attrs": {
+        "text": "The result should feel calm before hover and precise during inspection."
+      },
+      "text": "The result should feel calm before hover and precise during inspection."
+    },
+    {
+      "id": "n0046",
+      "kind": "link",
+      "layer": "markdown",
+      "parent": "n0002",
+      "children": [],
+      "sourceSpan": {
+        "start": 259,
+        "end": 302
+      },
+      "attrs": {
+        "url": "https://example.com",
+        "text": "source-anchored\nlink",
+        "link_form": "inline",
+        "section": "n0020",
+        "sentence": "n0027"
+      },
+      "text": "[source-anchored\nlink](https://example.com)"
+    },
+    {
+      "id": "n0047",
+      "kind": "code_span",
+      "layer": "markdown",
+      "parent": "n0002",
+      "children": [],
+      "sourceSpan": {
+        "start": 309,
+        "end": 320
+      },
+      "attrs": {
+        "content": "code span",
+        "section": "n0020",
+        "sentence": "n0027"
+      },
+      "text": "`code span`"
+    }
+  ],
+  "rendered_html": "<h1 data-node-id=\"n0001\" data-node-kind=\"heading\" data-node-layer=\"markdown\" data-source-span=\"83:113\">Notes on resilient documents</h1>\n<p data-node-id=\"n0002\" data-node-kind=\"paragraph\" data-node-layer=\"markdown\" data-source-span=\"115:352\">A clean document should read like a document, not a parse tree. Its structure can stay\nquiet until the reader needs it. Then a <strong>paragraph</strong>, a <a href=\"https://example.com\" data-node-id=\"n0046\" data-node-kind=\"link\" data-node-layer=\"markdown\" data-source-span=\"259:302\">source-anchored\nlink</a>, or a <code data-node-id=\"n0047\" data-node-kind=\"code_span\" data-node-layer=\"markdown\" data-source-span=\"309:320\">code span</code> can explain where it came from.</p>\n<h2 data-node-id=\"n0003\" data-node-kind=\"heading\" data-node-layer=\"markdown\" data-source-span=\"354:377\">What the parser sees</h2>\n<p data-node-id=\"n0004\" data-node-kind=\"paragraph\" data-node-layer=\"markdown\" data-source-span=\"379:429\">The same passage belongs to several useful layers:</p>\n<ul data-node-id=\"n0005\" data-node-kind=\"list\" data-node-layer=\"markdown\" data-source-span=\"431:665\">\n<li data-node-id=\"n0006\" data-node-kind=\"list_item\" data-node-layer=\"markdown\" data-source-span=\"431:565\">\nA section gives the passage a place in the document.<ul data-node-id=\"n0008\" data-node-kind=\"list\" data-node-layer=\"markdown\" data-source-span=\"488:565\">\n<li data-node-id=\"n0009\" data-node-kind=\"list_item\" data-node-layer=\"markdown\" data-source-span=\"488:565\">A nested item proves that structure can deepen without cluttering the page.</li>\n</ul>\n</li>\n<li data-node-id=\"n0011\" data-node-kind=\"list_item\" data-node-layer=\"markdown\" data-source-span=\"566:610\">A Markdown block describes how it renders.</li>\n<li data-node-id=\"n0013\" data-node-kind=\"list_item\" data-node-layer=\"markdown\" data-source-span=\"611:665\">A sentence and its words make the prose addressable.</li>\n</ul>\n<blockquote data-node-id=\"n0015\" data-node-kind=\"blockquote\" data-node-layer=\"markdown\" data-source-span=\"667:781\">\n<p data-node-id=\"n0016\" data-node-kind=\"paragraph\" data-node-layer=\"markdown\" data-source-span=\"667:781\">Good inspection should preserve the reading experience. The source is supporting\nevidence, not the main event.</p>\n</blockquote>\n<table data-node-id=\"n0017\" data-node-kind=\"table\" data-node-layer=\"markdown\" data-source-span=\"783:918\">\n<thead>\n<tr>\n<th>Surface</th>\n<th>Purpose</th>\n</tr>\n</thead>\n<tbody>\n<tr>\n<td>Rendered text</td>\n<td>Read and select naturally</td>\n</tr>\n<tr>\n<td>Markdown source</td>\n<td>Verify exact syntax and offsets</td>\n</tr>\n</tbody></table><pre data-node-id=\"n0018\" data-node-kind=\"code\" data-node-layer=\"markdown\" data-source-span=\"920:967\"><code class=\"language-python\">doc = FlexDoc.from_text(markdown)\n</code></pre>\n<p data-node-id=\"n0019\" data-node-kind=\"paragraph\" data-node-layer=\"markdown\" data-source-span=\"969:1040\">The result should feel calm before hover and precise during inspection.</p>\n"
+}

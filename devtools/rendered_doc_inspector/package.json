@@ -1,0 +1,12 @@
+{
+  "name": "flexdoc-rendered-inspector-spike",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build ./index.html --target=browser --outdir=./dist --sourcemap=linked --reject-unresolved",
+    "generate": "uv run --frozen python export_inspector.py example.md",
+    "start": "bun run build && bun ./dist/index.html --host=127.0.0.1:4173",
+    "test": "bun test",
+    "check": "bun test && bun run build"
+  }
+}
