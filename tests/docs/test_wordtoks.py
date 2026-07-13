@@ -11,6 +11,7 @@ from flexdoc.docs.wordtoks import (
     parse_tag,
     visualize_wordtoks,
     wordtokenize,
+    wordtokenize_with_spans,
 )
 
 _test_doc = dedent(
@@ -96,3 +97,19 @@ def test_tag_functions():
 
     assert is_entity("&amp;")
     assert not is_entity("nbsp;")
+
+
+def test_wordtokenize_with_spans_preserves_exact_source():
+    text = 'café  \n<span data-note="a\nb">ok</span>'
+    spans = wordtokenize_with_spans(text, bof_eof=True)
+
+    assert [(item.value, item.exact, item.span) for item in spans] == [
+        ("<-BOF->", "", (0, 0)),
+        ("café", "café", (0, 4)),
+        (" ", "  \n", (4, 7)),
+        ('<span data-note="a b">', '<span data-note="a\nb">', (7, 29)),
+        ("ok", "ok", (29, 31)),
+        ("</span>", "</span>", (31, 38)),
+        ("<-EOF->", "", (38, 38)),
+    ]
+    assert all(text[item.span[0] : item.span[1]] == item.exact for item in spans)

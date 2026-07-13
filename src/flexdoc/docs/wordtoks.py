@@ -8,6 +8,8 @@ parsing, diffs, and transforms, while also preserving HTML tags and significant
 whitespace.
 """
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 import regex
@@ -85,24 +87,50 @@ def normalize_wordtok(wordtok: str) -> str:
     return normalized
 
 
+@dataclass(frozen=True)
+class WordtokSpan:
+    """
+    A normalized wordtok paired with its exact source slice and code-point span.
+
+    `value` preserves existing wordtok normalization while `exact` and `span` provide
+    the source-grounded form needed by visualizers and annotations.
+    """
+
+    value: str
+    exact: str
+    span: tuple[int, int]
+
+
+def wordtokenize_with_spans(text: str, bof_eof: bool = False) -> list[WordtokSpan]:
+    """
+    Tokenize `text` while preserving each token's exact source and `[start, end)` span.
+
+    When `bof_eof` is true, the boundary tokens have empty source slices at offsets zero
+    and `len(text)`.
+    """
+    spans = [
+        WordtokSpan(
+            value=normalize_wordtok(match.group()),
+            exact=match.group(),
+            span=match.span(),
+        )
+        for match in _wordtok_pattern.finditer(text)
+    ]
+    if bof_eof:
+        return [
+            WordtokSpan(value=BOF_TOK, exact="", span=(0, 0)),
+            *spans,
+            WordtokSpan(value=EOF_TOK, exact="", span=(len(text), len(text))),
+        ]
+    return spans
+
+
 def wordtokenize_with_offsets(text: str, bof_eof: bool = False) -> tuple[list[str], list[int]]:
     """
-    Same as `wordtokenize`, but returns a list of tuples `(wordtok, offset)`.
+    Same as `wordtokenize`, but returns parallel lists of wordtoks and start offsets.
     """
-    wordtoks = []
-    offsets = []
-    offset = 0
-    for match in _wordtok_pattern.finditer(text):
-        wordtok = normalize_wordtok(match.group())
-        wordtoks.append(wordtok)
-        offsets.append(offset)
-        offset = match.end()
-
-    if bof_eof:
-        wordtoks = [BOF_TOK] + wordtoks + [EOF_TOK]
-        offsets = [0] + offsets + [len(text)]
-
-    return wordtoks, offsets
+    spans = wordtokenize_with_spans(text, bof_eof)
+    return [item.value for item in spans], [item.span[0] for item in spans]
 
 
 def wordtokenize(text: str, bof_eof: bool = False) -> list[str]:

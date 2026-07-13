@@ -69,6 +69,20 @@ source .venv/bin/activate
 
 See [uv docs](https://docs.astral.sh/uv/) for details.
 
+## Parse Visualizer
+
+The developer-only [parse visualizer](../devtools/parse_visualizer/README.md) exports a
+FlexDoc parse into synchronized source, interval, hierarchy, flow, graph, line-layout,
+and token-level views. It is isolated from the Python package and uses its own exact Bun
+lockfile.
+
+```shell
+cd devtools/parse_visualizer
+bun install --frozen-lockfile --ignore-scripts
+bun run generate
+bun run start
+```
+
 ## Continuous Integration
 
 CI runs lint and the complete test suite on Ubuntu for every supported Python version

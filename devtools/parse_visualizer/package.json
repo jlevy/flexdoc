@@ -1,0 +1,20 @@
+{
+  "name": "flexdoc-parse-visualizer",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build ./index.html --target=browser --outdir=./dist --sourcemap=linked --reject-unresolved",
+    "check": "tsc --noEmit && bun test && bun run build",
+    "generate": "uv run --frozen python export_parse_data.py ../../tests/golden/documents/kitchen_sink.md",
+    "start": "bun run build && bun ./dist/index.html --host=127.0.0.1:4173"
+  },
+  "dependencies": {
+    "@chenglou/pretext": "0.0.8",
+    "cytoscape": "3.33.1",
+    "d3-hierarchy": "3.1.2"
+  },
+  "devDependencies": {
+    "@types/d3-hierarchy": "3.1.7",
+    "typescript": "6.0.2"
+  }
+}

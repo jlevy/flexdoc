@@ -196,7 +196,7 @@ reportPrivateUsage = false
 
 [tool.codespell]
 ignore-words-list = "Bitap,Numbe,LAF"
-# skip = "foo.py,bar.py"
+skip = "*/node_modules/*,*/dist/*"
 
 [tool.pytest.ini_options]
 python_files = ["*.py"]

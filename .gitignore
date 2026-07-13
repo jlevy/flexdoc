@@ -5,6 +5,7 @@ tmp/
 trash/
 attic/
 .kash/
+node_modules/
 
 # Python tool caches
 .ruff_cache/
