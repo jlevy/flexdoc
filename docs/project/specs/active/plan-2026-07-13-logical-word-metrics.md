@@ -9,7 +9,8 @@
 **Implementation status:** Word-count primitives, the `TextUnit` migration, aggregate
 sizing behavior, token estimates, reading-time guidance, golden reports, public
 documentation, migration guidance, branch review, and local package validation are
-complete. Pull request publication and CI remain.
+complete. Draft PR #18 is published with its GitHub Actions matrix passing and is ready
+for review.
 
 ## Overview
 
