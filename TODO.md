@@ -7,6 +7,10 @@ has the full detail; this file is the summary.
 
 ## Open Work
 
+- **Cross-language logical word metrics:** replace the ambiguous `TextUnit.words` with
+  explicit raw and logical measures, migrate default summaries and token estimates,
+  and document the pre-1.0 API break. Epic: `flexdoc-2u8z`; GitHub issue #16; spec:
+  [plan-2026-07-13-logical-word-metrics.md](docs/project/specs/active/plan-2026-07-13-logical-word-metrics.md).
 - **Synthetic layer: migrate `TextNode`/`parse_divs` from chopdiff into the node table**
   (`flexdoc-t5rh`). Concretely mapped in the extraction plan, Stage 4, including the
   open overlap-policy decision.

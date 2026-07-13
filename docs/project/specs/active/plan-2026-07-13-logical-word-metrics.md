@@ -4,11 +4,12 @@
 
 **Author:** Joshua Levy (with Codex assistance)
 
-**Status:** Approved
+**Status:** In Review
 
 **Implementation status:** Word-count primitives, the `TextUnit` migration, aggregate
-sizing behavior, token estimates, reading-time guidance, and golden reports are
-complete. Public documentation and final validation work remains.
+sizing behavior, token estimates, reading-time guidance, golden reports, public
+documentation, and migration guidance are complete. Final validation and pull request
+work remains.
 
 ## Overview
 
@@ -202,7 +203,7 @@ measure use `raw_words` explicitly.
   grain and ensure aggregate counts are computed before rounding.
 - [x] Switch summaries, section-tree defaults, debug reports, and reading-time guidance
   to logical words.
-- [ ] Update all callers, public examples, API/spec documentation, changelog, and work
+- [x] Update all callers, public examples, API/spec documentation, changelog, and work
   tracking references.
 - [x] Regenerate golden reports and review every changed field.
 

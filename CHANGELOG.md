@@ -4,6 +4,34 @@ All notable changes to flexdoc are documented here.
 This project uses [semantic versioning](https://semver.org/); while pre-1.0, breaking
 changes bump the **minor** version (see `docs/publishing.md`).
 
+## Unreleased
+
+This is an intentional pre-1.0 API break and requires a minor release (expected 0.4.0),
+not a 0.3.x patch.
+
+### Added
+
+- **Cross-language logical word metrics.** `TextUnit.logical_words` measures normalized
+  word-equivalent volume across natural language, CJK text, source code, URLs, and other
+  punctuation-dense content. `flexdoc.util.logical_word_count()` exposes the same
+  dependency-free primitive, while `raw_word_count()` preserves literal
+  whitespace-delimited counting.
+
+### Changed
+
+- **`TextUnit.words` is replaced by explicit raw and logical units.** Most callers
+  should migrate to `TextUnit.logical_words`; callers that require the exact previous
+  whitespace-split behavior should use `TextUnit.raw_words`. No deprecated alias is
+  retained. Size summaries, section-tree defaults, and debug reports now use logical
+  words, and aggregate counts are rounded only after the full text is measured.
+- **Approximate token estimates now scale logical words.** `estimate_tokens()` uses
+  `TOKENS_PER_LOGICAL_WORD` (default `1.6`) instead of the former
+  `CHARS_PER_TOKEN`/`chars_per_token` API. This is still a model-family heuristic; use
+  the target provider's tokenizer for exact counts or hard context limits.
+- **Reading-time guidance is language-robust.** Pass logical word counts to
+  `format_read_time()`; the default rate corresponds to roughly 450 CJK characters per
+  minute under the default wide-character weight.
+
 ## 0.3.0 (2026-07-11)
 
 Fixes from the 2026-07 pre-promotion design review
