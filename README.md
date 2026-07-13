@@ -69,7 +69,9 @@ print(doc.reassemble())
 `TextUnit.words` is a logical-word measure: it matches a whitespace count for ordinary
 non-wide prose averaging 3–6 characters per word, but normalizes wide/fullwidth scripts,
 long identifiers and URLs, short-token sequences, and punctuation-dense code or
-Markdown. Use `TextUnit.raw_words` for a literal whitespace-delimited count.
+Markdown. Use `TextUnit.raw_words` for a literal whitespace-delimited count. See the
+[logical-word definition and validation](https://gist.github.com/jlevy/0d6d87885f6d85f31440e58b8cfce663)
+for the rationale, reference algorithm, and multilingual examples.
 
 Every located source-backed unit carries an exact `[start, end)` span into normalized
 `source_text`; paragraphs and sentences also expose that slice as `original_text`. Some

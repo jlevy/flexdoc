@@ -414,8 +414,7 @@ def test_token_estimate():
     print("--Estimated tokens:")
     print(n)
 
-    # Logical-word heuristic; sanity-check the ballpark and that it matches the
-    # standalone estimator on the reassembled text.
+    # This lower bound catches implausible heuristic drift without pinning its calibration.
     assert n > 100
     assert n == estimate_tokens(doc.reassemble())
 

@@ -1072,6 +1072,9 @@ This spec stands alone; the following are background, not dependencies.
   cross-language microformat; it is a proposal, not part of the current contract.
 - Dated planning documents under `docs/project/specs/` (active and archived) track the
   incremental work toward this design and reference this spec.
+- The external
+  [Logical Word Count definition and validation](https://gist.github.com/jlevy/0d6d87885f6d85f31440e58b8cfce663)
+  gives the reference algorithm, rationale, and multilingual examples for `words`.
 - flowmark v0.7.1 API relied on for spans and splitting: `flowmark.atomic_spans`
   (`iter_atomic_spans`, `split_sentences_with_spans`, named `AtomicSpan`s) and
   `flowmark.markdown_ast` (`block_span`, `walk_elements`, `extract_links`, `Link`).

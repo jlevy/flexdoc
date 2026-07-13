@@ -44,7 +44,8 @@ def doc_report_data(doc: FlexDoc, *, item_partition_depth: int = 6) -> dict[str,
     """
     The multi-view report as a plain (ordered) dict, ready to serialize. Captures broad
     state rather than narrow slices, so any change to any view shows up in a diff. The
-    section `words` field uses the logical semantics of `TextUnit.words`.
+    section `words` field contains normalized logical-word counts, not whitespace-split
+    counts.
     """
     source_text = doc.source_text or doc.reassemble()
 

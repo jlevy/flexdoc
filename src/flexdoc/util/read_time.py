@@ -2,9 +2,7 @@
 Reading-time estimates from a logical word count.
 
 Nothing inside flexdoc uses this; it is kept as a small convenience for downstream
-consumers that already have flexdoc logical word counts (`TextUnit.words`) in
-hand. At the default rate, the wide-character weight implies about 450 CJK characters
-per minute.
+consumers that already have `TextUnit.words` counts in hand.
 """
 
 from __future__ import annotations
@@ -21,12 +19,10 @@ def format_read_time(
     minimum_time: float = 3.0,
 ) -> str:
     """
-    Human-readable reading-time estimate for `word_count` logical words (e.g. `"4m"`,
-    or `"4 minutes"` with `brief=False`).
+    Format a display-friendly reading-time estimate from logical words.
 
-    Returns `""` for empty/invalid input, and also when the estimate is below
-    `minimum_time` minutes (default 3.0; set `0` to always return an estimate) — the
-    convention for "too short to bother showing."
+    Invalid inputs and estimates below `minimum_time` return `""`, allowing callers to
+    suppress labels for content that is too short to warrant one.
     """
     if word_count <= 0 or words_per_minute <= 0:
         return ""

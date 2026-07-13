@@ -432,7 +432,6 @@ def _size_paragraphs(paragraphs: Sequence[Paragraph], unit: TextUnit) -> int:
 def _summarize_paragraphs(  # pyright: ignore[reportUnusedFunction]
     paragraphs: Sequence[Paragraph],
 ) -> str:
-    """Format the standard summary; its `words` field uses logical-word semantics."""
     nbytes = _size_paragraphs(paragraphs, TextUnit.bytes)
     if nbytes == 0:
         return f"{nbytes} bytes"

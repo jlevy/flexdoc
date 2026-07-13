@@ -28,7 +28,7 @@ from flexdoc.docs.collect import INLINE_KINDS
 from flexdoc.docs.node import Layer, Node, NodeKind, NodeTable
 
 _CLEAN_YAML_WIDTH = 4096
-"""Keep ordinary scalar values on one line; multiline content uses block scalars."""
+"""Prevent ordinary scalar wrapping from introducing trailing whitespace in snapshots."""
 
 
 def _is_empty(value: object) -> bool:

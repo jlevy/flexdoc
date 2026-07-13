@@ -213,6 +213,9 @@ measure use `raw_words` explicitly.
   to logical words.
 - [x] Update all callers, public examples, API/spec documentation, changelog, and work
   tracking references.
+- [x] Audit new comments and docstrings against tbd guidance, documenting only API
+  distinctions and non-obvious implementation rationale, and link the external
+  logical-word definition from source and public docs.
 - [x] Regenerate golden reports and review every changed field.
 
 ## Testing Strategy
