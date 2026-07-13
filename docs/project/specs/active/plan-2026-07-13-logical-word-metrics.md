@@ -8,8 +8,8 @@
 
 **Implementation status:** Word-count primitives, the `TextUnit` migration, aggregate
 sizing behavior, token estimates, reading-time guidance, golden reports, public
-documentation, and migration guidance are complete. Final validation and pull request
-work remains.
+documentation, migration guidance, branch review, and local package validation are
+complete. Pull request publication and CI remain.
 
 ## Overview
 
