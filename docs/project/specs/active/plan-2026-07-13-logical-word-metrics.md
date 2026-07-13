@@ -6,6 +6,9 @@
 
 **Status:** Approved
 
+**Implementation status:** Word-count primitives and focused tests are complete.
+`TextUnit`, token-estimator, documentation, golden-report, and validation work remains.
+
 ## Overview
 
 Add a language- and format-robust logical word measure based on GitHub issue #16.
