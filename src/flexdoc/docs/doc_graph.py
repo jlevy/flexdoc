@@ -27,6 +27,9 @@ from pydantic import BaseModel, ConfigDict, Field, JsonValue
 from flexdoc.docs.collect import INLINE_KINDS
 from flexdoc.docs.node import Layer, Node, NodeKind, NodeTable
 
+_CLEAN_YAML_WIDTH = 4096
+"""Prevent ordinary scalar wrapping from introducing trailing whitespace in snapshots."""
+
 
 def _is_empty(value: object) -> bool:
     return value is None or value == {} or value == []
@@ -40,7 +43,9 @@ def clean_yaml(value: object) -> str:
     have identical formatting.
     """
     stream = StringIO()
-    new_yaml(suppress_vals=_is_empty, typ="rt").dump(value, stream)
+    yaml = new_yaml(suppress_vals=_is_empty, typ="rt")
+    yaml.width = _CLEAN_YAML_WIDTH
+    yaml.dump(value, stream)
     return stream.getvalue()
 
 

@@ -1,7 +1,7 @@
 source:
   sha256: 22d5ebc9162e8b9cee554a273f14ef56afdb405ae5f6c08d01dbd17f4b1fb202
   length: 438
-  size_summary: 437 bytes (13 lines, 5 paras, 5 sents, 43 words, ~115 tok)
+  size_summary: 437 bytes (13 lines, 5 paras, 5 sents, 61 words, ~104 tok)
 base_blocks:
   cover_ok: true
   uncovered_nonspace: 0
@@ -13,13 +13,11 @@ base_blocks:
   - depth: 0
     type: paragraph
     span: 17:103
-    text: An [inline link](https://inline.example) and a [reference link][ref] 
-      and a [shortcut].
+    text: An [inline link](https://inline.example) and a [reference link][ref] and a [shortcut].
   - depth: 0
     type: paragraph
     span: 105:185
-    text: An autolink <https://auto.example> and a bare URL https://bare.example
-      in prose.
+    text: An autolink <https://auto.example> and a bare URL https://bare.example in prose.
   - depth: 0
     type: paragraph
     span: 187:282
@@ -46,7 +44,7 @@ sections:
 - level: 1
   title: Link taxonomy
   span: 0:437
-  words: 43
+  words: 61
 node_table:
 - id: n0001
   layer: markdown
@@ -110,8 +108,7 @@ node_table:
   span: 17:103
   parent: n0012
   attrs:
-    text: An [inline link](https://inline.example) and a [reference link][ref] 
-      and a [shortcut].
+    text: An [inline link](https://inline.example) and a [reference link][ref] and a [shortcut].
 - id: n0014
   layer: textual
   kind: paragraph
@@ -122,8 +119,7 @@ node_table:
   span: 105:185
   parent: n0014
   attrs:
-    text: An autolink <https://auto.example> and a bare URL https://bare.example
-      in prose.
+    text: An autolink <https://auto.example> and a bare URL https://bare.example in prose.
 - id: n0016
   layer: textual
   kind: paragraph
@@ -134,8 +130,7 @@ node_table:
   span: 187:282
   parent: n0016
   attrs:
-    text: An inline image ![inline alt](https://img.example/a.png) and a 
-      reference image ![ref alt][img].
+    text: An inline image ![inline alt](https://img.example/a.png) and a reference image ![ref alt][img].
 - id: n0018
   layer: textual
   kind: paragraph
@@ -146,8 +141,7 @@ node_table:
   span: 284:437
   parent: n0018
   attrs:
-    text: '[ref]: https://reference.example "Reference title" [shortcut]: https://shortcut.example
-      [img]: https://img.example/c.png [unused]: https://unused.example'
+    text: '[ref]: https://reference.example "Reference title" [shortcut]: https://shortcut.example [img]: https://img.example/c.png [unused]: https://unused.example'
 - id: n0020
   layer: markdown
   kind: link

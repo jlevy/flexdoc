@@ -66,19 +66,19 @@ def test_section_span_covers_heading_through_subtree():
 def test_rolled_up_size_sums_subtree():
     doc = FlexDoc.from_text(_DOC)
     top = doc.sections()[0]
-    own = top.size(TextUnit.words, subtree=False)
-    full = top.size(TextUnit.words, subtree=True)
+    own = top.size(TextUnit.raw_words, subtree=False)
+    full = top.size(TextUnit.raw_words, subtree=True)
     assert full > own
     # Words are additive across blocks, so subtree == own + each child's subtree.
-    assert full == own + sum(c.size(TextUnit.words, subtree=True) for c in top.children)
+    assert full == own + sum(c.size(TextUnit.raw_words, subtree=True) for c in top.children)
 
 
 def test_section_size_summary_distinguishes_own_content_and_subtree():
     top = FlexDoc.from_text(_DOC).sections()[0]
     assert top.size_summary(subtree=False) == (
-        "30 bytes (3 lines, 2 paras, 2 sents, 6 words, ~8 tok)"
+        "30 bytes (3 lines, 2 paras, 2 sents, 6 words, ~10 tok)"
     )
-    assert top.size_summary() == "94 bytes (11 lines, 6 paras, 6 sents, 21 words, ~25 tok)"
+    assert top.size_summary() == "94 bytes (11 lines, 6 paras, 6 sents, 21 words, ~34 tok)"
 
 
 def test_section_blocks_are_scoped_and_in_span():
@@ -123,7 +123,7 @@ def test_toc_is_flat_document_order():
 
 def test_section_size_tree_renders_titles_and_sizes():
     doc = FlexDoc.from_text(_DOC)
-    tree = doc.section_size_tree(units=(TextUnit.words,))
+    tree = doc.section_size_tree(units=(TextUnit.raw_words,))
     for title in ("Top", "Sub A", "Sub B", "Top Two"):
         assert title in tree
 
@@ -215,10 +215,10 @@ def test_tight_glued_sections_own_their_content():
     assert "intro" in a_own and "body" not in a_own
     assert "body" in b_own
     # The body now counts under B, so own sizes are symmetric and the subtree is additive.
-    assert a.size(TextUnit.words, subtree=False) == b.size(TextUnit.words, subtree=False)
-    assert a.size(TextUnit.words, subtree=True) == a.size(TextUnit.words, subtree=False) + b.size(
-        TextUnit.words, subtree=True
-    )
+    assert a.size(TextUnit.raw_words, subtree=False) == b.size(TextUnit.raw_words, subtree=False)
+    assert a.size(TextUnit.raw_words, subtree=True) == a.size(
+        TextUnit.raw_words, subtree=False
+    ) + b.size(TextUnit.raw_words, subtree=True)
 
 
 def test_marker_preceded_section_content_is_attributed():

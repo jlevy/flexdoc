@@ -277,13 +277,15 @@ class Paragraph:
 
         if unit == TextUnit.tokens:
             return estimate_tokens(self.reassemble())
+        if unit == TextUnit.words:
+            return size(self.reassemble(), unit)
 
         base_size = sum(sent.size(unit) for sent in self.sentences)
         if unit == TextUnit.bytes:
             return base_size + (len(self.sentences) - 1) * size_in_bytes(SENT_BR_STR)
         if unit == TextUnit.chars:
             return base_size + (len(self.sentences) - 1) * len(SENT_BR_STR)
-        if unit == TextUnit.words:
+        if unit == TextUnit.raw_words:
             return base_size
         if unit == TextUnit.wordtoks:
             return base_size + (len(self.sentences) - 1)
@@ -407,6 +409,9 @@ def _size_paragraphs(paragraphs: Sequence[Paragraph], unit: TextUnit) -> int:
     if unit == TextUnit.tokens:
         text = PARA_BR_STR.join(paragraph.reassemble() for paragraph in paragraphs)
         return estimate_tokens(text)
+    if unit == TextUnit.words:
+        text = PARA_BR_STR.join(paragraph.reassemble() for paragraph in paragraphs)
+        return size(text, unit)
 
     base_size = sum(paragraph.size(unit) for paragraph in paragraphs)
     paragraph_breaks = max(len(paragraphs) - 1, 0)
@@ -416,7 +421,7 @@ def _size_paragraphs(paragraphs: Sequence[Paragraph], unit: TextUnit) -> int:
         return base_size + paragraph_breaks * size_in_bytes(PARA_BR_STR)
     if unit == TextUnit.chars:
         return base_size + paragraph_breaks * len(PARA_BR_STR)
-    if unit == TextUnit.words:
+    if unit == TextUnit.raw_words:
         return base_size
     if unit == TextUnit.wordtoks:
         return base_size + paragraph_breaks
@@ -427,7 +432,6 @@ def _size_paragraphs(paragraphs: Sequence[Paragraph], unit: TextUnit) -> int:
 def _summarize_paragraphs(  # pyright: ignore[reportUnusedFunction]
     paragraphs: Sequence[Paragraph],
 ) -> str:
-    """Format the standard document/section size summary for `paragraphs`."""
     nbytes = _size_paragraphs(paragraphs, TextUnit.bytes)
     if nbytes == 0:
         return f"{nbytes} bytes"

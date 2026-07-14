@@ -190,7 +190,7 @@ def test_doc_sizes():
     size_summary = doc.size_summary()
     print(size_summary)
 
-    assert size_summary == "726 bytes (37 lines, 16 paras, 20 sents, 82 words, ~190 tok)"
+    assert size_summary == "726 bytes (37 lines, 16 paras, 20 sents, 82 words, ~165 tok)"
 
 
 def test_seek_doc():
@@ -414,8 +414,7 @@ def test_token_estimate():
     print("--Estimated tokens:")
     print(n)
 
-    # Heuristic estimate (~3.8 chars/token); sanity-check the ballpark and that it
-    # matches the standalone estimator on the reassembled text.
+    # This lower bound catches implausible heuristic drift without pinning its calibration.
     assert n > 100
     assert n == estimate_tokens(doc.reassemble())
 

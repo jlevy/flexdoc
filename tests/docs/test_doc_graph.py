@@ -16,6 +16,7 @@ from flexdoc.docs.doc_graph import (
     NodeModel,
     SourceInfo,
     Views,
+    clean_yaml,
 )
 from flexdoc.docs.node import Layer
 
@@ -52,6 +53,11 @@ SAMPLE_DOC = dedent("""
 
 def _make_doc() -> FlexDoc:
     return FlexDoc.from_text(SAMPLE_DOC)
+
+
+def test_clean_yaml_keeps_long_plain_scalars_on_one_line():
+    value = ("logical words " * 10).strip()
+    assert clean_yaml({"summary": value}) == f"summary: {value}\n"
 
 
 def test_doc_graph_model_validates():

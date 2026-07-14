@@ -4,6 +4,36 @@ All notable changes to flexdoc are documented here.
 This project uses [semantic versioning](https://semver.org/); while pre-1.0, breaking
 changes bump the **minor** version (see `docs/publishing.md`).
 
+## Unreleased
+
+This is an intentional pre-1.0 API break and requires a minor release (expected 0.4.0),
+not a 0.3.x patch.
+
+### Added
+
+- **Cross-language logical word metrics.** `TextUnit.words` now measures normalized
+  word-equivalent volume across natural language, CJK text, source code, URLs, and other
+  punctuation-dense content. `TextUnit.raw_words` and `raw_word_count()` preserve
+  literal whitespace-delimited counting, while `logical_word_count()` exposes the
+  dependency-free normalized primitive.
+
+### Changed
+
+- **`TextUnit.words` changes from raw to logical semantics.** It matches the raw count
+  for ordinary non-wide prose averaging 3–6 characters per word, but differs for
+  wide/fullwidth scripts, longer or shorter average word lengths, URLs, code, and other
+  symbolic content. Callers requiring the exact previous whitespace-split behavior
+  must use `TextUnit.raw_words`; there is no separate `TextUnit.logical_words` member.
+  Size summaries, section-tree defaults, and debug-report `words` fields use the logical
+  measure, and aggregate counts are rounded only after the full text is measured.
+- **Approximate token estimates now scale logical words.** `estimate_tokens()` uses
+  `TOKENS_PER_LOGICAL_WORD` (default `1.6`) instead of the former
+  `CHARS_PER_TOKEN`/`chars_per_token` API. This is still a model-family heuristic; use
+  the target provider's tokenizer for exact counts or hard context limits.
+- **Reading-time guidance is language-robust.** Pass logical word counts to
+  `format_read_time()`; the default rate corresponds to roughly 450 CJK characters per
+  minute under the default wide-character weight.
+
 ## 0.3.0 (2026-07-11)
 
 Fixes from the 2026-07 pre-promotion design review

@@ -51,11 +51,11 @@ doc = FlexDoc.from_text(markdown_text)
 
 # Section hierarchy with rolled-up sizes:
 print(doc.section_size_tree(units=(TextUnit.words, TextUnit.sentences)))
-# # Introduction  (4 words, 2 sentences)
+# # Introduction  (8 words, 2 sentences)
 
 # Sizes at every grain, including approximate LLM tokens:
 print(doc.size_summary())
-# 53 bytes (3 lines, 2 paras, 2 sents, 4 words, ~14 tok)
+# 53 bytes (3 lines, 2 paras, 2 sents, 8 words, ~13 tok)
 
 # One query primitive across all layers:
 link = doc.collect(kinds={NodeKind.link})[0]
@@ -65,6 +65,13 @@ print(link.attrs["url"], link.source_span)
 # Round-trips back to normalized Markdown:
 print(doc.reassemble())
 ```
+
+`TextUnit.words` is a logical-word measure: it matches a whitespace count for ordinary
+non-wide prose averaging 3–6 characters per word, but normalizes wide/fullwidth scripts,
+long identifiers and URLs, short-token sequences, and punctuation-dense code or
+Markdown. Use `TextUnit.raw_words` for a literal whitespace-delimited count. See the
+[logical-word definition and validation](https://gist.github.com/jlevy/0d6d87885f6d85f31440e58b8cfce663)
+for the rationale, reference algorithm, and multilingual examples.
 
 Every located source-backed unit carries an exact `[start, end)` span into normalized
 `source_text`; paragraphs and sentences also expose that slice as `original_text`. Some
@@ -89,7 +96,8 @@ The full public surfaces live in the submodules:
   search, diff, and mapping utilities that are not promoted by `flexdoc.docs`.
 - `flexdoc.html`: html-in-md, html/plaintext conversion, HTML tag helpers, the content
   extractor, and timestamp extraction.
-- `flexdoc.util`: read-time and token-count estimation.
+- `flexdoc.util`: raw and cross-language logical word counts, read-time estimation, and
+  approximate token-count estimation.
 
 See [usage.md](https://github.com/jlevy/flexdoc/blob/main/docs/usage.md) for the main
 workflows, and the worked examples (run with `uv run python examples/<name>.py` from a

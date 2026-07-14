@@ -83,9 +83,9 @@ def test_filtered_counts_paragraphs_only():
     assert paragraphs_only.size(TextUnit.sentences) == 5
     # Word count of only the paragraph blocks, excluding heading/list/table/etc.
     expected_words = sum(
-        p.size(TextUnit.words) for p in doc.paragraphs if p.block_type == BlockType.paragraph
+        p.size(TextUnit.raw_words) for p in doc.paragraphs if p.block_type == BlockType.paragraph
     )
-    assert paragraphs_only.size(TextUnit.words) == expected_words
+    assert paragraphs_only.size(TextUnit.raw_words) == expected_words
 
 
 def test_setext_heading_classified_as_heading():
@@ -120,7 +120,7 @@ def test_code_fence_not_a_heading():
 def test_empty_filter_returns_empty_doc():
     doc = FlexDoc.from_text(DOC)
     empty = doc.filtered(include=set())
-    assert empty.size(TextUnit.words) == 0
+    assert empty.size(TextUnit.raw_words) == 0
     assert empty.size(TextUnit.sentences) == 0
 
 

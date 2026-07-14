@@ -1,7 +1,7 @@
 source:
   sha256: 535461f080b822c93de10f15dcf2b2593b62d5267ab6c87453640a5ea653c249
   length: 181
-  size_summary: 180 bytes (11 lines, 6 paras, 6 sents, 20 words, ~48 tok)
+  size_summary: 180 bytes (11 lines, 6 paras, 6 sents, 20 words, ~40 tok)
 base_blocks:
   cover_ok: true
   uncovered_nonspace: 0

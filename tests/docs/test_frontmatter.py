@@ -50,7 +50,7 @@ def test_frontmatter_delimiters_tolerate_trailing_horizontal_whitespace():
 def test_frontmatter_excluded_from_size():
     with_fm = FlexDoc.from_text(_FM + _BODY)
     body_only = FlexDoc.from_text(_BODY)
-    for unit in (TextUnit.words, TextUnit.wordtoks):
+    for unit in (TextUnit.raw_words, TextUnit.words, TextUnit.wordtoks):
         assert with_fm.size(unit) == body_only.size(unit)
 
 

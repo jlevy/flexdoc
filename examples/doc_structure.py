@@ -63,7 +63,7 @@ def main() -> None:
     for level, title, span in doc.toc():
         print(f"  {'  ' * (level - 1)}{title}  @{span}")
 
-    print("\n--- Per-section rolled-up word counts ---")
+    print("\n--- Per-section rolled-up word counts (logical) ---")
     for section in doc.sections():
         own = section.size(TextUnit.words, subtree=False)
         whole = section.size(TextUnit.words, subtree=True)
@@ -79,10 +79,11 @@ def main() -> None:
     ref = SpanRef.from_span(doc.source_text, *para.span).to_persisted()
     print(f"  durable paragraph reference resolves to {ref.resolve(doc.source_text)}")
 
-    print("\n--- Total words across paragraph blocks only ---")
+    print("\n--- Total words across paragraph blocks only (logical) ---")
     paragraphs_only = doc.filtered(include={BlockType.paragraph})
     print(
-        f"  {paragraphs_only.size(TextUnit.words)} words in {len(paragraphs_only.paragraphs)} paragraphs"
+        f"  {paragraphs_only.size(TextUnit.words)} words in "
+        f"{len(paragraphs_only.paragraphs)} paragraphs"
     )
 
     print("\n--- Structural block tree (whole-document view) ---")
