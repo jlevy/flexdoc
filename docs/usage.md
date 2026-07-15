@@ -141,6 +141,35 @@ ref = SpanRef.from_node(link_nodes[0], doc.source_text)
 print(ref.to_persisted().resolve(doc.source_text))
 ```
 
+### Ground Results and Annotations With TextRefs
+
+Bind a document locator once, then derive portable references for parsed values. The
+same TextRef can become a canonical URI, retrieve source context, remain attached to an
+extracted value, or target a consumer-owned annotation.
+
+```python
+from flexdoc import AnnotationSet, TextAnnotation, TextBody
+
+refs = doc.references(document="docs/guide.md")
+target = refs.for_target(doc.paragraphs[0])
+
+print(target.to_uri())
+print(refs.context(target).selected_source)
+
+annotation = TextAnnotation(
+    id="review-1",
+    target=target,
+    motivations=["commenting"],
+    body=TextBody(type="text", value="Clarify this paragraph."),
+)
+sidecar = AnnotationSet.from_annotations([annotation])
+print(refs.render_annotations(sidecar))
+```
+
+Store one `TextRef` or `tuple[TextRef, ...]` in a consumer-owned `source_refs` field.
+`doc.graph()` remains `DocGraph/v0.1`; `doc.graph(annotations=sidecar)` explicitly
+selects `DocGraph/v0.2` with source-relative annotation selectors.
+
 ### Transform Text
 
 Editing methods build transformed output through `reassemble()`. Source offsets still
@@ -175,6 +204,7 @@ Run the worked examples from a repository checkout:
 uv run python examples/doc_structure.py
 uv run python examples/normalized_form.py
 uv run python examples/backfill_timestamps.py
+uv run python examples/textref_workflows.py
 ```
 
 <!-- This document follows common-doc-guidelines.md.

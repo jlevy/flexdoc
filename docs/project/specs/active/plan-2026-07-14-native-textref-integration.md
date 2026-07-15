@@ -4,7 +4,7 @@
 
 **Author:** Joshua Levy and Codex
 
-**Status:** Approved; implementation not started
+**Status:** Implemented
 
 ## Overview
 
@@ -270,7 +270,7 @@ classifications, redactions, review comments, and suggested-edit envelopes.
   and explicit `DocGraph/v0.2` path while preserving v0.1
 - [x] `flexdoc-ktl3`: add deterministic single-reference and batch annotation context
   rendering with explicit elision and unresolved groups
-- [ ] `flexdoc-1nex`: add cross-format goldens and runnable extraction, retrieval,
+- [x] `flexdoc-1nex`: add cross-format goldens and runnable extraction, retrieval,
   annotation, citation, and edit-target workflows
 
 ## Testing Strategy
@@ -294,12 +294,12 @@ classifications, redactions, review comments, and suggested-edit envelopes.
 4. Extract a standalone package only when a TypeScript or other second-language
    consumer requires the persisted format.
 
-## Open Questions
+## Chosen Presentation Limits
 
-The main architecture is settled. Implementation must still choose bounded defaults
-for quote/context sizes, URI limits, and contextual-rendering budgets. Those values
-require fixtures and should remain named policy constants rather than wire-format
-semantics.
+The implemented defaults capture 24 code points of immediate selector context, render
+two surrounding source lines, bound displayed quotes to 320 source characters and
+windows to 80 lines, and cap canonical URIs at 8,192 characters. Rendering limits are
+named API parameters or module policy constants, not wire-format semantics.
 
 ## References
 

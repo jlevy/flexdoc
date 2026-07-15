@@ -587,7 +587,8 @@ def _render_source_lines(
             hidden = len(lines) - max_source_lines
             result.append(f"    ... {hidden} lines elided ...")
         else:
-            result.append(f"    {line.number:>{width}} | {line.text}")
+            suffix = f" {line.text}" if line.text else ""
+            result.append(f"    {line.number:>{width}} |{suffix}")
     if omitted_after:
         result.append("    ... later lines omitted ...")
     return result

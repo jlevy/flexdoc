@@ -6,11 +6,11 @@ Annotations: 5
 ## Lines 2-6
 
     ... earlier lines omitted ...
-    2 | 
+    2 |
     3 | First target.
-    4 | 
+    4 |
     5 | Second target.
-    6 | 
+    6 |
     ... later lines omitted ...
 
 Annotations:

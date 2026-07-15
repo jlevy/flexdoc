@@ -7,11 +7,6 @@ has the full detail; this file is the summary.
 
 ## Open Work
 
-- **Native TextRef integration:** add portable whole-document, span, point, and section
-  references; document-bound mapping from every locatable FlexDoc value; typed
-  resolution; contextual annotation rendering; and `DocGraph/v0.2`.
-  Feature: `flexdoc-4imy`; spec:
-  [plan-2026-07-14-native-textref-integration.md](docs/project/specs/active/plan-2026-07-14-native-textref-integration.md).
 - **Cross-language logical word metrics:** define `TextUnit.words` as the normalized
   logical measure, add `raw_words` for literal whitespace counting, migrate token
   estimates, and document the pre-1.0 semantic break. Epic: `flexdoc-2u8z`; GitHub

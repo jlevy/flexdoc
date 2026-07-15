@@ -11,6 +11,15 @@ not a 0.3.x patch.
 
 ### Added
 
+- **Native TextRef integration.** Strict `DocRef`/`TextRef` values now identify whole
+  documents, spans, points, and semantic sections with canonical JSON and reversible
+  `textref:0.1` URIs. `FlexDoc.references()` maps every locatable public document value,
+  resolves references with typed outcomes, retrieves structured source context, and
+  renders deterministic human/LLM-readable annotation views.
+- **Consumer-owned TextRef annotations.** `TextAnnotation` and the one-document
+  `AnnotationSet` sidecar round-trip strict JSON and safe YAML. Supplying an annotation
+  set to `FlexDoc.graph()` explicitly selects schema-validated `DocGraph/v0.2`; omitting
+  it preserves `DocGraph/v0.1` exactly. The protocol and renderer add no dependencies.
 - **Cross-language logical word metrics.** `TextUnit.words` now measures normalized
   word-equivalent volume across natural language, CJK text, source code, URLs, and other
   punctuation-dense content. `TextUnit.raw_words` and `raw_word_count()` preserve

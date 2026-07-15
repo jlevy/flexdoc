@@ -131,3 +131,19 @@ def test_docgraph_v2_json_schema_matches_committed_file():
         json.dumps(DocGraphV2.model_json_schema(by_alias=True), indent=2, sort_keys=True) + "\n"
     )
     assert SCHEMA_PATH.read_text() == current
+
+
+def test_textref_annotation_and_graph_formats_compose_without_loss():
+    doc = FlexDoc.from_text("# Alpha\n\nBody.")
+    annotation = _annotation(doc)
+    text_ref = annotation.target
+    assert TextRef.from_uri(text_ref.to_uri()) == text_ref
+    assert TextRef.model_validate_json(text_ref.model_dump_json()) == text_ref
+
+    sidecar = AnnotationSet.from_annotations([annotation])
+    assert AnnotationSet.from_yaml(sidecar.to_yaml()) == sidecar
+    assert AnnotationSet.model_validate_json(sidecar.model_dump_json()) == sidecar
+
+    graph = doc.graph(annotations=sidecar)
+    assert isinstance(graph, DocGraphV2)
+    assert DocGraphV2.model_validate_json(graph.model_dump_json(by_alias=True)) == graph
