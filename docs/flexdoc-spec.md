@@ -957,9 +957,11 @@ more motivations, an optional typed plain-text body, and optional style, tags,
 consumers needing multiple targets retain multiple TextRefs.
 
 Annotations are supplied to FlexDoc for rendering or serialization rather than stored
-as mutable `FlexDoc` state. A one-document sidecar may hoist `document` and
-`source_hash` and store bare selectors, which expand to complete TextRefs before
-validation or resolution.
+as mutable `FlexDoc` state. `TextAnnotation` carries the complete target;
+`AnnotationSet` is the strict JSON/YAML one-document sidecar that hoists `document` and
+`source_hash`, stores bare selectors, and expands them to complete TextRefs before
+resolution. Annotation IDs are unique within a set. `doc.graph(annotations=sidecar)`
+selects `DocGraph/v0.2`; omitting `annotations` preserves v0.1 exactly.
 
 `TextRefContext.context()` returns structured selected source, surrounding lines,
 one-based line and code-point-column labels, and resolution evidence. Deterministic

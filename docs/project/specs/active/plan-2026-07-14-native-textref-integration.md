@@ -266,7 +266,7 @@ classifications, redactions, review comments, and suggested-edit envelopes.
 
 - [x] `flexdoc-qw7n`: add bounded structured source context and derived line/column
   labels for every resolution outcome
-- [ ] `flexdoc-jl5b`: add the consumer-owned annotation profile, one-document sidecar,
+- [x] `flexdoc-jl5b`: add the consumer-owned annotation profile, one-document sidecar,
   and explicit `DocGraph/v0.2` path while preserving v0.1
 - [ ] `flexdoc-ktl3`: add deterministic single-reference and batch annotation context
   rendering with explicit elision and unresolved groups

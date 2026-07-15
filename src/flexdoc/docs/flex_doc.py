@@ -52,6 +52,7 @@ from flexdoc.docs.wordtoks import (
 )
 
 if TYPE_CHECKING:
+    from flexdoc.docs.text_annotations import AnnotationSet, DocGraphV2
     from flexdoc.docs.text_ref import DocRef
     from flexdoc.docs.text_ref_context import TextRefContext
 
@@ -987,15 +988,24 @@ class FlexDoc:
         *,
         include: AbstractSet[Layer] | None = None,
         detail: AbstractSet[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
-    ) -> DocGraph:
+        annotations: AnnotationSet | None = None,
+    ) -> DocGraph | DocGraphV2:
         """
         Build a `DocGraph` projection of this document. `include` selects which
         layers to serialize (default: markdown + document); `detail` controls
-        payload richness (see `Detail`). Both accept any set (plain `set` literals
-        work; they are never mutated). See `flexdoc.docs.doc_graph` for the full
-        contract.
+        payload richness (see `Detail`). Supplying an annotation set explicitly
+        selects `DocGraph/v0.2`; omission preserves `DocGraph/v0.1` exactly.
         """
         effective_include = include if include is not None else DEFAULT_INCLUDE
+        if annotations is not None:
+            from flexdoc.docs.text_annotations import build_doc_graph_v2
+
+            return build_doc_graph_v2(
+                self.node_table(),
+                annotations,
+                include=set(effective_include),
+                detail=set(detail),
+            )
         return build_doc_graph(self.node_table(), include=effective_include, detail=detail)
 
     @override

@@ -29,6 +29,15 @@ from flexdoc.docs.render import parse_source_span_attr, render_node_attrs, wrap_
 from flexdoc.docs.sections import Section
 from flexdoc.docs.sizes import TextUnit
 from flexdoc.docs.span_ref import SpanRef, resolve_batch
+from flexdoc.docs.text_annotations import (
+    AnnotationSet,
+    AnnotationSetEntry,
+    DocGraphV2,
+    SourceInfoV2,
+    TextAnnotation,
+    TextBody,
+    build_doc_graph_v2,
+)
 from flexdoc.docs.text_ref import (
     DocRef,
     DocumentStatus,
@@ -57,13 +66,18 @@ from flexdoc.docs.text_ref_context import (
 )
 
 __all__ = [
+    "AnnotationSet",
+    "AnnotationSetEntry",
     "DEFAULT_INCLUDE",
     "Detail",
     "DocGraph",
+    "DocGraphV2",
     "NodeModel",
     "SourceInfo",
+    "SourceInfoV2",
     "Views",
     "build_doc_graph",
+    "build_doc_graph_v2",
     "TextUnit",
     "Block",
     "BlockType",
@@ -112,6 +126,8 @@ __all__ = [
     "SourceValidation",
     "SpanSelector",
     "TextRef",
+    "TextAnnotation",
+    "TextBody",
     "TextRefResolution",
     "TextRefTargetKind",
     "TextRefContext",

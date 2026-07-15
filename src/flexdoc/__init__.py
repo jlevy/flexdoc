@@ -35,14 +35,18 @@ are deliberate; `tests/test_root_api.py` pins the exact surface.
 """
 
 from flexdoc.docs import (
+    AnnotationSet,
     BlockType,
     Detail,
     DocGraph,
+    DocGraphV2,
     DocRef,
     FlexDoc,
     Layer,
     NodeKind,
     SpanRef,
+    TextAnnotation,
+    TextBody,
     TextRef,
     TextRefContext,
     TextRefResolution,
@@ -51,14 +55,18 @@ from flexdoc.docs import (
 )
 
 __all__ = [
+    "AnnotationSet",
     "BlockType",
     "Detail",
     "DocRef",
     "DocGraph",
+    "DocGraphV2",
     "FlexDoc",
     "Layer",
     "NodeKind",
     "SpanRef",
+    "TextAnnotation",
+    "TextBody",
     "TextRef",
     "TextRefContext",
     "TextRefResolution",
