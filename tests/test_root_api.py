@@ -25,6 +25,7 @@ def test_root_exports_are_the_canonical_objects():
     assert flexdoc.TextUnit is flexdoc.docs.TextUnit
     assert flexdoc.DocRef is flexdoc.docs.DocRef
     assert flexdoc.TextRef is flexdoc.docs.TextRef
+    assert flexdoc.TextRefResolution is flexdoc.docs.TextRefResolution
 
 
 def test_root_surface_is_deliberate():
@@ -38,6 +39,7 @@ def test_root_surface_is_deliberate():
         "NodeKind",
         "SpanRef",
         "TextRef",
+        "TextRefResolution",
         "TextRefTargetKind",
         "TextUnit",
     ]
@@ -57,6 +59,7 @@ def test_docs_surface_promotes_the_document_model_only():
         "Detail",
         "DocGraph",
         "DocRef",
+        "DocumentStatus",
         "FlexDoc",
         "HeadingAnchor",
         "HeadingInfo",
@@ -75,15 +78,20 @@ def test_docs_surface_promotes_the_document_model_only():
         "Paragraph",
         "PointAffinity",
         "PointSelector",
+        "ResolutionMethod",
         "Section",
         "SectionSelector",
+        "SelectorStatus",
         "SentIndex",
         "Sentence",
         "SourceInfo",
+        "SourceRange",
+        "SourceValidation",
         "SpanRef",
         "SpanSelector",
         "TableInfo",
         "TextRef",
+        "TextRefResolution",
         "TextRefTargetKind",
         "TextUnit",
         "Views",
@@ -100,6 +108,8 @@ def test_docs_surface_promotes_the_document_model_only():
         "parse_blocks",
         "parse_source_span_attr",
         "render_node_attrs",
+        "resolve_batch",
+        "resolve_text_ref",
         "source_hash",
         "walk_blocks",
         "wrap_with_node_attrs",

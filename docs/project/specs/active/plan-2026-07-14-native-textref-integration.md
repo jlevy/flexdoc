@@ -257,7 +257,7 @@ classifications, redactions, review comments, and suggested-edit envelopes.
 
 - [x] `flexdoc-7yos`: implement strict DocRef, source-hash, selector, TextRef, JSON,
   schema, and URI values with conformance fixtures
-- [ ] `flexdoc-rbvu`: implement typed exact resolution for span, point, and section
+- [x] `flexdoc-rbvu`: implement typed exact resolution for span, point, and section
   selectors while preserving `SpanRef.resolve()`
 - [ ] `flexdoc-gupc`: add `FlexDoc.references()` and adapters for every locatable public
   value, including visible unlocatable and cross-document failures

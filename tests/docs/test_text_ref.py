@@ -9,17 +9,23 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from flexdoc.docs.span_ref import SpanRef, resolve_batch
 from flexdoc.docs.text_ref import (
     TEXTREF_FORMAT,
     DocRef,
     HeadingAnchor,
     PointAffinity,
     PointSelector,
+    ResolutionMethod,
+    SectionRange,
     SectionSelector,
+    SelectorStatus,
+    SourceValidation,
     SpanSelector,
     TextRef,
     TextRefTargetKind,
     normalize_source,
+    resolve_text_ref,
     source_hash,
 )
 
@@ -152,3 +158,120 @@ def test_canonical_source_normalization_and_hashing():
 def test_textref_json_schema_matches_committed_file():
     current = json.dumps(TextRef.model_json_schema(), indent=2, sort_keys=True) + "\n"
     assert SCHEMA_PATH.read_text() == current
+
+
+def test_typed_span_resolution_distinguishes_exact_outcomes():
+    source = "first target, second target"
+    second = source.rfind("target")
+    bound = TextRef(
+        format=TEXTREF_FORMAT,
+        document=DocRef("doc.md"),
+        source_hash=source_hash(source),
+        selector=SpanSelector(type="span", exact="target", start=second),
+    )
+    result = resolve_text_ref(bound, source, document=DocRef("doc.md"))
+    assert result.selector == SelectorStatus.resolved
+    assert result.source_validation == SourceValidation.matched
+    assert result.method == ResolutionMethod.source_position
+    assert result.span is not None
+    assert (result.span.start, result.span.end) == (second, second + len("target"))
+
+    wrong_document = resolve_text_ref(bound, source, document=DocRef("other.md"))
+    assert wrong_document.document == "invalid"
+    assert wrong_document.selector == SelectorStatus.unsupported
+
+    assert bound.selector is not None
+    ambiguous = bound.model_copy(
+        update={
+            "source_hash": None,
+            "selector": bound.selector.model_copy(update={"start": None}),
+        }
+    )
+    result = resolve_text_ref(ambiguous, source)
+    assert result.selector == SelectorStatus.ambiguous
+    assert len(result.candidates) == 2
+
+    missing = ambiguous.model_copy(update={"selector": SpanSelector(type="span", exact="absent")})
+    assert resolve_text_ref(missing, source).selector == SelectorStatus.missing
+
+
+def test_typed_point_resolution_uses_context_and_affinity_conservatively():
+    source = "alpha boundary omega"
+    position = source.index(" omega")
+    ref = TextRef(
+        format=TEXTREF_FORMAT,
+        document=DocRef("doc.md"),
+        selector=PointSelector(
+            type="point",
+            position=position,
+            affinity=PointAffinity.before,
+            prefix="boundary",
+            suffix=" omega",
+        ),
+    )
+    moved = "intro " + source
+    result = resolve_text_ref(ref, moved)
+    assert result.selector == SelectorStatus.resolved
+    assert result.method == ResolutionMethod.point_context
+    assert result.span is not None
+    assert result.span.start == position + len("intro ")
+    assert result.span.start == result.span.end
+
+    inserted = moved.replace(" omega", " inserted omega")
+    affinity = resolve_text_ref(ref, inserted)
+    assert affinity.selector == SelectorStatus.resolved
+    assert affinity.method == ResolutionMethod.point_affinity
+
+
+def test_section_resolution_requires_structure_and_reports_boundary_mismatch():
+    source = "## Design\n\nBody.\n\n## Later\n\nEnd."
+    design_start = source.index("## Design")
+    design_heading_end = design_start + len("## Design")
+    later_start = source.index("## Later")
+    later_heading_end = later_start + len("## Later")
+    selector = SectionSelector(
+        type="section",
+        syntax="commonmark",
+        start_anchor=HeadingAnchor(exact="## Design", start=design_start),
+        end_anchor=HeadingAnchor(exact="## Later", start=later_start),
+    )
+    ref = TextRef(format=TEXTREF_FORMAT, document=DocRef("doc.md"), selector=selector)
+    structure = (
+        SectionRange(
+            heading_start=design_start,
+            heading_end=design_heading_end,
+            section_end=later_start,
+        ),
+        SectionRange(
+            heading_start=later_start,
+            heading_end=later_heading_end,
+            section_end=len(source),
+        ),
+    )
+
+    unsupported = resolve_text_ref(ref, source)
+    assert unsupported.selector == SelectorStatus.unsupported
+
+    resolved = resolve_text_ref(ref, source, sections=structure)
+    assert resolved.selector == SelectorStatus.resolved
+    assert resolved.method == ResolutionMethod.section_anchors
+    assert resolved.span is not None
+    assert (resolved.span.start, resolved.span.end) == (design_start, later_start)
+
+    stale_end = selector.model_copy(update={"end_anchor": HeadingAnchor(exact="## Missing")})
+    mismatch = resolve_text_ref(
+        ref.model_copy(update={"selector": stale_end}), source, sections=structure
+    )
+    assert mismatch.selector == SelectorStatus.boundary_mismatched
+    assert mismatch.span is not None
+
+
+def test_spanref_quote_construction_and_batch_resolution():
+    source = "alpha target omega"
+    ref = SpanRef.from_quote("target", source)
+    assert ref.resolve(source) == (6, 12)
+    assert ref.prefix is not None
+    assert ref.suffix is not None
+
+    refs = [ref, SpanRef(exact="absent"), SpanRef(exact="target")]
+    assert resolve_batch(refs, source) == [(6, 12), None, (6, 12)]

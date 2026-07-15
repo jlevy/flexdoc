@@ -44,6 +44,7 @@ from flexdoc.docs import (
     NodeKind,
     SpanRef,
     TextRef,
+    TextRefResolution,
     TextRefTargetKind,
     TextUnit,
 )
@@ -58,6 +59,7 @@ __all__ = [
     "NodeKind",
     "SpanRef",
     "TextRef",
+    "TextRefResolution",
     "TextRefTargetKind",
     "TextUnit",
 ]

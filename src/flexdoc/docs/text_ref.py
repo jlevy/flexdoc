@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Sequence
+from dataclasses import dataclass
 from enum import StrEnum
 from typing import Annotated, Literal, Self
 from urllib.parse import quote, unquote_to_bytes
@@ -19,6 +21,8 @@ from pydantic import (
 )
 from typing_extensions import override
 
+from flexdoc.docs.span_ref import resolve_quote_exact
+
 TEXTREF_FORMAT = "textref/0.1"
 """Current normative JSON format identifier."""
 
@@ -30,6 +34,9 @@ _MAX_JSON_SAFE_INTEGER = 9_007_199_254_740_991
 
 _MAX_TEXTREF_URI_LENGTH = 8_192
 """Conservative export and parser limit for portable TextRef URIs."""
+
+_MIN_POINT_AFFINITY_CONTEXT = 8
+"""Minimum owning context needed to recover a point after its other side changes."""
 
 _SOURCE_HASH_PATTERN = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _PERCENT_ESCAPE_PATTERN = re.compile(r"%(?![0-9A-Fa-f]{2})")
@@ -91,6 +98,97 @@ class PointAffinity(StrEnum):
 
     before = "before"
     after = "after"
+
+
+class DocumentStatus(StrEnum):
+    """Whether the supplied document context can resolve the requested DocRef."""
+
+    resolved = "resolved"
+    unavailable = "unavailable"
+    invalid = "invalid"
+
+
+class SourceValidation(StrEnum):
+    """Comparison of the optional expected source hash with supplied source."""
+
+    absent = "absent"
+    matched = "matched"
+    mismatched = "mismatched"
+
+
+class SelectorStatus(StrEnum):
+    """Exact selector outcome, independent from document and source validation."""
+
+    whole_document = "whole_document"
+    resolved = "resolved"
+    missing = "missing"
+    ambiguous = "ambiguous"
+    boundary_mismatched = "boundary_mismatched"
+    unsupported = "unsupported"
+
+
+class ResolutionMethod(StrEnum):
+    """The exact evidence tier that produced a resolution."""
+
+    source_position = "source_position"
+    context_position = "context_position"
+    exact_quote = "exact_quote"
+    context_quote = "context_quote"
+    point_context = "point_context"
+    point_affinity = "point_affinity"
+    section_structure = "section_structure"
+    section_anchors = "section_anchors"
+    none = "none"
+
+
+class SourceRange(_StrictModel):
+    """A resolved half-open range in canonical Unicode source."""
+
+    start: Position
+    end: Position
+
+    @model_validator(mode="after")
+    def _ordered(self) -> Self:
+        if self.end < self.start:
+            raise ValueError("source range end must not precede start")
+        return self
+
+
+class SectionRange(_StrictModel):
+    """Structure-adapter evidence for one heading and its owned section."""
+
+    heading_start: Position
+    heading_end: Position
+    section_end: Position
+
+    @model_validator(mode="after")
+    def _ordered(self) -> Self:
+        if not self.heading_start < self.heading_end <= self.section_end:
+            raise ValueError("section range must contain a non-empty heading")
+        return self
+
+
+class TextRefResolution(_StrictModel):
+    """Typed exact-resolution result whose failure axes remain independent."""
+
+    document: DocumentStatus
+    source_validation: SourceValidation
+    selector: SelectorStatus
+    method: ResolutionMethod = ResolutionMethod.none
+    span: SourceRange | None = None
+    candidates: tuple[SourceRange, ...] = ()
+
+    @property
+    def resolved(self) -> bool:
+        return self.selector in {SelectorStatus.whole_document, SelectorStatus.resolved}
+
+
+@dataclass(frozen=True)
+class _Selection:
+    status: SelectorStatus
+    method: ResolutionMethod = ResolutionMethod.none
+    span: tuple[int, int] | None = None
+    candidates: tuple[tuple[int, int], ...] = ()
 
 
 class HeadingAnchor(_StrictModel):
@@ -251,6 +349,275 @@ def source_hash(source: str) -> str:
     """Hash canonical UTF-8 source with an algorithm-qualified digest."""
     normalized = normalize_source(source)
     return "sha256:" + hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
+def resolve_text_ref(
+    text_ref: TextRef,
+    source: str,
+    *,
+    document: DocRef | None = None,
+    sections: Sequence[SectionRange] | None = None,
+) -> TextRefResolution:
+    """
+    Resolve one TextRef against supplied source and optional CommonMark structure.
+    Document acquisition remains consumer-owned; `document` only verifies that the
+    supplied snapshot belongs to the requested DocRef.
+    """
+    canonical_source = normalize_source(source)
+    validation = _source_validation(text_ref, canonical_source)
+    if document is not None and document != text_ref.document:
+        return TextRefResolution(
+            document=DocumentStatus.invalid,
+            source_validation=validation,
+            selector=SelectorStatus.unsupported,
+        )
+
+    selector = text_ref.selector
+    if selector is None:
+        return TextRefResolution(
+            document=DocumentStatus.resolved,
+            source_validation=validation,
+            selector=SelectorStatus.whole_document,
+            span=SourceRange(start=0, end=len(canonical_source)),
+        )
+
+    hash_matched = validation == SourceValidation.matched
+    if isinstance(selector, SpanSelector):
+        selected = _resolve_quote(
+            selector.exact,
+            selector.prefix,
+            selector.suffix,
+            selector.start,
+            canonical_source,
+            hash_matched,
+        )
+    elif isinstance(selector, PointSelector):
+        selected = _resolve_point(selector, canonical_source, hash_matched)
+    else:
+        selected = _resolve_section(selector, canonical_source, hash_matched, sections)
+    return _resolution_from_selection(selected, validation)
+
+
+def _source_validation(text_ref: TextRef, source: str) -> SourceValidation:
+    if text_ref.source_hash is None:
+        return SourceValidation.absent
+    if text_ref.source_hash == source_hash(source):
+        return SourceValidation.matched
+    return SourceValidation.mismatched
+
+
+def _resolution_from_selection(
+    selection: _Selection, validation: SourceValidation
+) -> TextRefResolution:
+    span = SourceRange(start=selection.span[0], end=selection.span[1]) if selection.span else None
+    candidates = tuple(SourceRange(start=start, end=end) for start, end in selection.candidates)
+    return TextRefResolution(
+        document=DocumentStatus.resolved,
+        source_validation=validation,
+        selector=selection.status,
+        method=selection.method,
+        span=span,
+        candidates=candidates,
+    )
+
+
+def _resolve_quote(
+    exact: str,
+    prefix: str | None,
+    suffix: str | None,
+    start: int | None,
+    source: str,
+    hash_matched: bool,
+) -> _Selection:
+    result = resolve_quote_exact(
+        exact,
+        source,
+        prefix=prefix,
+        suffix=suffix,
+        start=start,
+        trust_position=hash_matched,
+    )
+    return _Selection(
+        status=SelectorStatus(result.status),
+        method=ResolutionMethod(result.method),
+        span=result.span,
+        candidates=result.candidates,
+    )
+
+
+def _context_matches(
+    source: str,
+    start: int,
+    end: int,
+    prefix: str | None,
+    suffix: str | None,
+) -> bool:
+    if prefix is not None and source[max(0, start - len(prefix)) : start] != prefix:
+        return False
+    if suffix is not None and source[end : end + len(suffix)] != suffix:
+        return False
+    return True
+
+
+def _find_occurrences(source: str, exact: str) -> list[int]:
+    occurrences: list[int] = []
+    search_start = 0
+    while True:
+        position = source.find(exact, search_start)
+        if position < 0:
+            return occurrences
+        occurrences.append(position)
+        search_start = position + 1
+
+
+def _resolve_point(selector: PointSelector, source: str, hash_matched: bool) -> _Selection:
+    position = selector.position
+    if position is not None and 0 <= position <= len(source):
+        if hash_matched:
+            return _Selection(
+                SelectorStatus.resolved,
+                ResolutionMethod.source_position,
+                (position, position),
+            )
+        if _point_context_matches(selector, source, position):
+            return _Selection(
+                SelectorStatus.resolved,
+                ResolutionMethod.context_position,
+                (position, position),
+            )
+
+    if selector.prefix is not None and selector.suffix is not None:
+        boundaries = tuple(
+            candidate
+            for candidate in range(len(source) + 1)
+            if _point_context_matches(selector, source, candidate)
+        )
+        if len(boundaries) == 1:
+            boundary = boundaries[0]
+            return _Selection(
+                SelectorStatus.resolved,
+                ResolutionMethod.point_context,
+                (boundary, boundary),
+            )
+        if len(boundaries) > 1:
+            return _Selection(
+                SelectorStatus.ambiguous,
+                candidates=tuple((boundary, boundary) for boundary in boundaries),
+            )
+
+    owned_boundaries = _affinity_boundaries(selector, source)
+    if len(owned_boundaries) == 1:
+        boundary = owned_boundaries[0]
+        return _Selection(
+            SelectorStatus.resolved,
+            ResolutionMethod.point_affinity,
+            (boundary, boundary),
+        )
+    if len(owned_boundaries) > 1:
+        return _Selection(
+            SelectorStatus.ambiguous,
+            candidates=tuple((boundary, boundary) for boundary in owned_boundaries),
+        )
+    return _Selection(SelectorStatus.missing)
+
+
+def _point_context_matches(selector: PointSelector, source: str, position: int) -> bool:
+    return _context_matches(
+        source,
+        position,
+        position,
+        selector.prefix,
+        selector.suffix,
+    )
+
+
+def _affinity_boundaries(selector: PointSelector, source: str) -> tuple[int, ...]:
+    if selector.affinity == PointAffinity.before:
+        owned = selector.prefix
+        if owned is None or len(owned) < _MIN_POINT_AFFINITY_CONTEXT:
+            return ()
+        return tuple(position + len(owned) for position in _find_occurrences(source, owned))
+    owned = selector.suffix
+    if owned is None or len(owned) < _MIN_POINT_AFFINITY_CONTEXT:
+        return ()
+    return tuple(_find_occurrences(source, owned))
+
+
+def _resolve_section(
+    selector: SectionSelector,
+    source: str,
+    hash_matched: bool,
+    sections: Sequence[SectionRange] | None,
+) -> _Selection:
+    if sections is None:
+        return _Selection(SelectorStatus.unsupported)
+    start = selector.start_anchor
+    start_result = _resolve_quote(
+        start.exact,
+        start.prefix,
+        start.suffix,
+        start.start,
+        source,
+        hash_matched,
+    )
+    if start_result.status == SelectorStatus.missing:
+        return start_result
+    heading_candidates = (
+        (start_result.span,) if start_result.span is not None else start_result.candidates
+    )
+    structural = [
+        section
+        for section in sections
+        if (section.heading_start, section.heading_end) in heading_candidates
+    ]
+    if not structural:
+        return _Selection(SelectorStatus.missing)
+
+    end_result: _Selection | None = None
+    if selector.end_anchor is not None:
+        end = selector.end_anchor
+        end_result = _resolve_quote(
+            end.exact,
+            end.prefix,
+            end.suffix,
+            end.start,
+            source,
+            hash_matched,
+        )
+        if end_result.span is not None and len(structural) > 1:
+            structural = [
+                section for section in structural if section.section_end == end_result.span[0]
+            ]
+
+    if len(structural) > 1:
+        return _Selection(
+            SelectorStatus.ambiguous,
+            candidates=tuple(
+                (section.heading_start, section.section_end) for section in structural
+            ),
+        )
+    if not structural:
+        return _Selection(SelectorStatus.boundary_mismatched)
+
+    section = structural[0]
+    span = (section.heading_start, section.section_end)
+    if end_result is None:
+        return _Selection(
+            SelectorStatus.resolved,
+            ResolutionMethod.section_structure,
+            span,
+        )
+    if end_result.span is None or end_result.span[0] != section.section_end:
+        return _Selection(
+            SelectorStatus.boundary_mismatched,
+            ResolutionMethod.section_structure,
+            span,
+        )
+    return _Selection(
+        SelectorStatus.resolved,
+        ResolutionMethod.section_anchors,
+        span,
+    )
 
 
 def _uri_encode(value: str) -> str:

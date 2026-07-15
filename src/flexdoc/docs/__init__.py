@@ -28,17 +28,24 @@ from flexdoc.docs.paragraphs import Offsets, Paragraph, Sentence, SentIndex
 from flexdoc.docs.render import parse_source_span_attr, render_node_attrs, wrap_with_node_attrs
 from flexdoc.docs.sections import Section
 from flexdoc.docs.sizes import TextUnit
-from flexdoc.docs.span_ref import SpanRef
+from flexdoc.docs.span_ref import SpanRef, resolve_batch
 from flexdoc.docs.text_ref import (
     DocRef,
+    DocumentStatus,
     HeadingAnchor,
     PointAffinity,
     PointSelector,
+    ResolutionMethod,
     SectionSelector,
+    SelectorStatus,
+    SourceRange,
+    SourceValidation,
     SpanSelector,
     TextRef,
+    TextRefResolution,
     TextRefTargetKind,
     normalize_source,
+    resolve_text_ref,
     source_hash,
 )
 
@@ -85,14 +92,22 @@ __all__ = [
     "build_node_table",
     "SpanRef",
     "DocRef",
+    "DocumentStatus",
     "HeadingAnchor",
     "PointAffinity",
     "PointSelector",
+    "ResolutionMethod",
     "SectionSelector",
+    "SelectorStatus",
+    "SourceRange",
+    "SourceValidation",
     "SpanSelector",
     "TextRef",
+    "TextRefResolution",
     "TextRefTargetKind",
     "normalize_source",
+    "resolve_batch",
+    "resolve_text_ref",
     "source_hash",
     "render_node_attrs",
     "wrap_with_node_attrs",
