@@ -85,9 +85,12 @@
       </div>
       <div class="topbar-actions" aria-label="Document controls">
         <button class="quiet-button" id="copy-rendered" type="button">Copy rendered text</button>
-        <button class="source-toggle" id="toggle-source" type="button" aria-pressed="false">
-          Show Markdown
-        </button>
+        <div class="inspector-view-switch" role="group" aria-label="Inspector view">
+          <button class="inspector-toggle" id="toggle-source" type="button"
+            aria-pressed="false">Markdown</button>
+          <button class="inspector-toggle" id="toggle-tree" type="button"
+            aria-pressed="false">DocGraph</button>
+        </div>
       </div>
     </header>
 
@@ -97,15 +100,34 @@
         <article class="rendered-document" id="rendered-document"></article>
       </section>
 
-      <aside class="source-pane" id="source-pane" aria-labelledby="source-pane-title" hidden>
-        <header class="source-header">
-          <div>
-            <p class="source-kicker">Original source</p>
-            <h2 id="source-pane-title">Markdown</h2>
+      <aside class="inspector-pane" id="inspector-pane" aria-label="Document inspector" hidden>
+        <section id="source-view" aria-labelledby="source-pane-title">
+          <header class="inspector-header">
+            <div>
+              <p class="source-kicker">Original source</p>
+              <h2 id="source-pane-title">Markdown</h2>
+            </div>
+            <button class="quiet-button" id="copy-source" type="button">Copy Markdown</button>
+          </header>
+          <pre class="source-code" id="source-code" tabindex="0"><code><span id="source-before"></span><mark id="source-active"></mark><span id="source-after"></span></code></pre>
+        </section>
+
+        <section id="tree-view" aria-labelledby="tree-pane-title" hidden>
+          <header class="inspector-header">
+            <div>
+              <p class="source-kicker">Layered structure</p>
+              <h2 id="tree-pane-title">DocGraph</h2>
+            </div>
+            <code class="graph-schema" id="graph-schema"></code>
+          </header>
+          <div class="tree-scroll" id="tree-scroll" tabindex="0">
+            <p class="tree-explanation">
+              Source text and code-point offsets are canonical. Document and Markdown
+              are trees; textual nodes form an ordered paragraph/sentence hierarchy.
+            </p>
+            <div class="tree-root" id="tree-root"></div>
           </div>
-          <button class="quiet-button" id="copy-source" type="button">Copy Markdown</button>
-        </header>
-        <pre class="source-code" id="source-code" tabindex="0"><code><span id="source-before"></span><mark id="source-active"></mark><span id="source-after"></span></code></pre>
+        </section>
       </aside>
     </main>
 

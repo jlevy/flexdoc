@@ -1,4 +1,10 @@
 {
+  "schema": "DocGraph/v0.1",
+  "layerNesting": {
+    "document": "tree",
+    "markdown": "tree",
+    "textual": "ordered_list"
+  },
   "source": {
     "filename": "example.md",
     "offsetUnit": "unicode_code_points",

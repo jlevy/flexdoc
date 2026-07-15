@@ -10,8 +10,16 @@ export interface InspectorNode {
   kind: string
   layer: string
   parent: string | null
+  children: string[]
   sourceSpan: SourceSpan | null
   attrs: Record<string, unknown>
+  text: string | null
+}
+
+/** One node in a layer-specific DocGraph containment tree. */
+export interface InspectorTreeNode {
+  node: InspectorNode
+  children: InspectorTreeNode[]
 }
 
 export interface SourceSplit {
@@ -46,6 +54,53 @@ const TEXTUAL_KIND_RANK: Readonly<Record<string, number>> = {
 }
 
 const THEME_MODES = new Set<ThemeMode>(['system', 'light', 'dark'])
+
+/** Build one layer's ordered containment forest from DocGraph parent/child links. */
+export function buildLayerForest(
+  nodes: readonly InspectorNode[],
+  layer: string,
+): InspectorTreeNode[] {
+  const layerNodes = nodes.filter(node => node.layer === layer)
+  const nodesById = new Map(layerNodes.map(node => [node.id, node]))
+  const visiting = new Set<string>()
+  const visited = new Set<string>()
+
+  const buildTree = (nodeId: string): InspectorTreeNode => {
+    const node = nodesById.get(nodeId)
+    if (node === undefined) {
+      throw new Error(`DocGraph ${layer} layer references missing child ${nodeId}.`)
+    }
+    if (visiting.has(nodeId)) {
+      throw new Error(`DocGraph ${layer} layer contains a cycle at ${nodeId}.`)
+    }
+    if (visited.has(nodeId)) {
+      throw new Error(`DocGraph ${layer} layer contains ${nodeId} more than once.`)
+    }
+
+    visiting.add(nodeId)
+    const children = node.children.map(childId => {
+      const child = nodesById.get(childId)
+      if (child !== undefined && child.parent !== nodeId) {
+        throw new Error(`DocGraph child ${childId} does not point back to ${nodeId}.`)
+      }
+      return buildTree(childId)
+    })
+    visiting.delete(nodeId)
+    visited.add(nodeId)
+    return { node, children }
+  }
+
+  const forest = layerNodes
+    .filter(node => node.parent === null)
+    .map(node => buildTree(node.id))
+  if (visited.size !== layerNodes.length) {
+    const disconnected = layerNodes.find(node => !visited.has(node.id))
+    throw new Error(
+      `DocGraph ${layer} layer contains disconnected node ${disconnected?.id ?? 'unknown'}.`,
+    )
+  }
+  return forest
+}
 
 /** Normalize persisted or DOM-provided theme state. */
 export function normalizeThemeMode(value: string | null | undefined): ThemeMode {

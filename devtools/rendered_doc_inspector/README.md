@@ -2,7 +2,7 @@
 
 This developer-only spike tests one interaction model: present a clean rendered
 document first, then reveal its FlexDoc structure only when the reader points at or
-focuses content. An optional Markdown pane follows the active source span.
+focuses content. Optional Markdown and DocGraph panes follow the active source span.
 
 ## Scope
 
@@ -14,12 +14,14 @@ The minimum implementation answers these questions:
   native text selection and copy/paste?
 - Can block and inline mappings be exported from FlexDoc without adding another browser
   Markdown parser?
+- Can the same payload render FlexDoc's document and Markdown trees plus its textual
+  ordering without treating the renderer's parse tree as document data?
 - Does the interaction remain understandable with nested lists, blockquotes, tables,
   links, and code spans?
 
 The spike includes a source-to-HTML exporter, one rendered document surface, a compact
-hover path, an optional synchronized source pane, copy actions for both views, and a
-KPress-aligned system/light/dark theme chooser.
+hover path, mutually exclusive synchronized Markdown and DocGraph panes, copy actions
+for the rendered and source views, and a KPress-aligned system/light/dark theme chooser.
 
 It does not implement editing, annotations, URL-addressable selections, virtualization,
 arbitrary synthetic layers, or a public FlexDoc API. Compatibility is not applicable:
@@ -49,10 +51,19 @@ the rendered-first interaction model:
 - The optional Markdown pane follows the exact source span and scrolls only its own
   source viewport when necessary, without moving the page or changing native selection
   behavior.
+- The optional DocGraph pane renders the document and Markdown trees plus the ordered
+  textual paragraph/sentence hierarchy. It follows the active node without moving the
+  page.
 - The settings gear applies and persists system, light, or dark theme preferences.
 - Unicode code-point spans are converted explicitly before slicing browser strings.
 - Copy actions use the Clipboard API and fall back to selecting the complete surface
   when clipboard permission is unavailable.
+
+FlexDoc's source string and Unicode code-point offsets are canonical. The tree pane
+renders the `DocGraph/v0.1` serialization projection. The document and Markdown layers
+declare tree nesting; the textual layer declares ordered-list nesting and uses
+paragraph/sentence parent-child links. Source-span containment relates nodes across
+layers. The pane does not expose Marko's rendering parse as FlexDoc structure.
 
 The main technical risk is rendered-node mapping. The spike renders with Marko and then
 correlates safe HTML elements with FlexDoc Markdown nodes in source order. This works for

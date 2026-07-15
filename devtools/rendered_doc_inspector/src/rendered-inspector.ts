@@ -1,6 +1,7 @@
 import inspectorData from '../generated/inspector-data.json'
 
 import {
+  buildLayerForest,
   normalizeThemeMode,
   resolveHoverTrail,
   resolveThemeMode,
@@ -8,11 +9,14 @@ import {
   spansContain,
   splitSourceForSpan,
   type InspectorNode,
+  type InspectorTreeNode,
   type SourceSpan,
   type ThemeMode,
 } from './inspector-model'
 
 interface InspectorPayload {
+  schema: string
+  layerNesting: Record<string, 'ordered_list' | 'tree'>
   source: {
     filename: string
     offsetUnit: string
@@ -21,6 +25,8 @@ interface InspectorPayload {
   nodes: InspectorNode[]
   rendered_html: string
 }
+
+type InspectorView = 'markdown' | 'tree' | null
 
 /** Duration of visible confirmation after a copy action. */
 const COPY_FEEDBACK_DURATION_MS = 1600
@@ -36,6 +42,7 @@ const MAX_CONTAINER_OUTLINE_LEVEL = 4
 
 const SYSTEM_THEME_QUERY = '(prefers-color-scheme: dark)'
 const THEME_STORAGE_KEY = 'flexdoc.inspector.theme'
+const TREE_LAYERS = ['document', 'markdown', 'textual'] as const
 
 const data = inspectorData as InspectorPayload
 
@@ -44,17 +51,23 @@ const copyRenderedButton = requiredElement<HTMLButtonElement>('copy-rendered')
 const copySourceButton = requiredElement<HTMLButtonElement>('copy-source')
 const copyStatus = requiredElement<HTMLElement>('copy-status')
 const documentFilename = requiredElement<HTMLElement>('document-filename')
+const graphSchema = requiredElement<HTMLElement>('graph-schema')
 const hoverHint = requiredElement<HTMLElement>('hover-hint')
+const inspectorPane = requiredElement<HTMLElement>('inspector-pane')
 const renderedDocument = requiredElement<HTMLElement>('rendered-document')
 const sourceActive = requiredElement<HTMLElement>('source-active')
 const sourceAfter = requiredElement<HTMLElement>('source-after')
 const sourceBefore = requiredElement<HTMLElement>('source-before')
 const sourceCode = requiredElement<HTMLElement>('source-code')
-const sourcePane = requiredElement<HTMLElement>('source-pane')
+const sourceView = requiredElement<HTMLElement>('source-view')
 const structureTrail = requiredElement<HTMLElement>('structure-trail')
 const themeSettings = requiredElement<HTMLElement>('theme-settings')
 const themeSettingsButton = requiredElement<HTMLButtonElement>('theme-settings-button')
 const toggleSourceButton = requiredElement<HTMLButtonElement>('toggle-source')
+const toggleTreeButton = requiredElement<HTMLButtonElement>('toggle-tree')
+const treeRoot = requiredElement<HTMLElement>('tree-root')
+const treeScroll = requiredElement<HTMLElement>('tree-scroll')
+const treeView = requiredElement<HTMLElement>('tree-view')
 const workspace = requiredElement<HTMLElement>('workspace')
 const themeChoiceButtons = [
   ...document.querySelectorAll<HTMLButtonElement>('[data-kpress-theme-choice]'),
@@ -62,11 +75,17 @@ const themeChoiceButtons = [
 const systemThemeQuery = window.matchMedia(SYSTEM_THEME_QUERY)
 
 let currentSpan: SourceSpan | null = null
+let currentDirectNodeId: string | null = null
+let currentInspectorView: InspectorView = null
+let currentTrail: InspectorNode[] = []
 let currentTheme: ThemeMode = normalizeThemeMode(document.documentElement.dataset['kpressTheme'])
+const treeRowsById = new Map<string, HTMLElement>()
 
 renderedDocument.innerHTML = data.rendered_html
 documentFilename.textContent = data.source.filename
+graphSchema.textContent = data.schema
 sourceBefore.textContent = data.source.text
+renderDocGraphTree()
 initializeTheme()
 
 const mappedElements = [...renderedDocument.querySelectorAll<HTMLElement>('[data-source-span]')]
@@ -85,12 +104,11 @@ renderedDocument.addEventListener('focusin', event => {
 })
 
 toggleSourceButton.addEventListener('click', () => {
-  const showSource = toggleSourceButton.getAttribute('aria-pressed') !== 'true'
-  toggleSourceButton.setAttribute('aria-pressed', String(showSource))
-  toggleSourceButton.textContent = showSource ? 'Hide Markdown' : 'Show Markdown'
-  sourcePane.hidden = !showSource
-  workspace.classList.toggle('source-visible', showSource)
-  if (showSource && currentSpan !== null) scrollSourceSelectionIntoView()
+  toggleInspectorView('markdown')
+})
+
+toggleTreeButton.addEventListener('click', () => {
+  toggleInspectorView('tree')
 })
 
 copyRenderedButton.addEventListener('click', () => {
@@ -137,12 +155,33 @@ systemThemeQuery.addEventListener('change', () => {
   if (currentTheme === 'system') applyTheme('system', false)
 })
 
+function toggleInspectorView(view: Exclude<InspectorView, null>): void {
+  setInspectorView(currentInspectorView === view ? null : view)
+}
+
+function setInspectorView(view: InspectorView): void {
+  currentInspectorView = view
+  const markdownVisible = view === 'markdown'
+  const treeVisible = view === 'tree'
+  inspectorPane.hidden = view === null
+  sourceView.hidden = !markdownVisible
+  treeView.hidden = !treeVisible
+  workspace.classList.toggle('inspector-visible', view !== null)
+  toggleSourceButton.setAttribute('aria-pressed', String(markdownVisible))
+  toggleTreeButton.setAttribute('aria-pressed', String(treeVisible))
+
+  if (markdownVisible && currentSpan !== null) {
+    scrollElementWithinContainer(sourceCode, sourceActive)
+  }
+  if (treeVisible) renderTreeSelection(currentTrail, currentDirectNodeId)
+}
+
 function activateElement(element: HTMLElement): void {
   const span = parseSpan(element.dataset['sourceSpan'])
   if (span === null) return
   currentSpan = span
-  const directNodeId = element.dataset['nodeId'] ?? null
-  const trail = resolveHoverTrail(data.nodes, span, directNodeId)
+  currentDirectNodeId = element.dataset['nodeId'] ?? null
+  currentTrail = resolveHoverTrail(data.nodes, span, currentDirectNodeId)
   const containers: HTMLElement[] = []
 
   for (const candidate of mappedElements) {
@@ -169,8 +208,9 @@ function activateElement(element: HTMLElement): void {
     )
   }
 
-  renderTrail(trail)
+  renderTrail(currentTrail)
   renderSourceSelection(span)
+  renderTreeSelection(currentTrail, currentDirectNodeId)
 }
 
 function renderTrail(trail: readonly InspectorNode[]): void {
@@ -201,38 +241,125 @@ function renderTrail(trail: readonly InspectorNode[]): void {
   activeSpan.textContent = currentSpan === null ? '' : `${currentSpan.start}:${currentSpan.end}`
 }
 
+function renderDocGraphTree(): void {
+  treeRoot.replaceChildren()
+  treeRowsById.clear()
+  for (const layer of TREE_LAYERS) {
+    const forest = buildLayerForest(data.nodes, layer)
+    const section = document.createElement('section')
+    section.className = 'tree-layer-section'
+    section.dataset['layer'] = layer
+
+    const heading = document.createElement('h3')
+    heading.className = 'tree-layer-heading'
+    const marker = document.createElement('span')
+    marker.className = 'tree-layer-marker'
+    marker.setAttribute('aria-hidden', 'true')
+    const name = document.createElement('span')
+    name.textContent = `${layer.charAt(0).toUpperCase()}${layer.slice(1)}`
+    const count = document.createElement('span')
+    count.className = 'tree-layer-count'
+    const nesting = data.layerNesting[layer]
+    if (nesting === undefined) {
+      throw new Error(`Inspector payload does not declare nesting for ${layer}.`)
+    }
+    const nestingLabel = nesting.replaceAll('_', ' ')
+    count.textContent = `${nestingLabel}, ${data.nodes.filter(node => node.layer === layer).length} nodes`
+    heading.append(marker, name, count)
+
+    const list = document.createElement('ul')
+    list.className = 'tree-list tree-list-root'
+    list.setAttribute('aria-label', `${name.textContent} layer`)
+    list.append(...forest.map(renderTreeBranch))
+    section.append(heading, list)
+    treeRoot.appendChild(section)
+  }
+}
+
+function renderTreeBranch(branch: InspectorTreeNode): HTMLLIElement {
+  const item = document.createElement('li')
+
+  const row = document.createElement('div')
+  row.className = 'tree-node-row'
+  row.dataset['nodeId'] = branch.node.id
+  row.dataset['layer'] = branch.node.layer
+  const label = document.createElement('span')
+  label.className = 'tree-node-label'
+  label.textContent = nodeLabel(branch.node)
+  const meta = document.createElement('code')
+  meta.className = 'tree-node-meta'
+  meta.textContent = branch.node.sourceSpan === null
+    ? `${branch.node.id} [unlocated]`
+    : `${branch.node.id} [${branch.node.sourceSpan.start}:${branch.node.sourceSpan.end}]`
+  row.append(label, meta)
+  treeRowsById.set(branch.node.id, row)
+  item.appendChild(row)
+
+  if (branch.children.length > 0) {
+    const children = document.createElement('ul')
+    children.className = 'tree-list'
+    children.append(...branch.children.map(renderTreeBranch))
+    item.appendChild(children)
+  }
+  return item
+}
+
+function renderTreeSelection(
+  trail: readonly InspectorNode[],
+  directNodeId: string | null,
+): void {
+  const trailIds = new Set(trail.map(node => node.id))
+  for (const [nodeId, row] of treeRowsById) {
+    row.classList.toggle('is-tree-path', trailIds.has(nodeId))
+    row.classList.toggle('is-tree-direct', nodeId === directNodeId)
+  }
+  if (currentInspectorView !== 'tree') return
+
+  let target = directNodeId === null ? undefined : treeRowsById.get(directNodeId)
+  for (let index = trail.length - 1; target === undefined && index >= 0; index -= 1) {
+    target = treeRowsById.get(trail[index]?.id ?? '')
+  }
+  if (target !== undefined) scrollElementWithinContainer(treeScroll, target)
+}
+
 function renderSourceSelection(span: SourceSpan): void {
   const split = splitSourceForSpan(data.source.text, span)
   sourceBefore.textContent = split.before
   sourceActive.textContent = split.active
   sourceAfter.textContent = split.after
-  if (!sourcePane.hidden) scrollSourceSelectionIntoView()
+  if (currentInspectorView === 'markdown') {
+    scrollElementWithinContainer(sourceCode, sourceActive)
+  }
 }
 
-function scrollSourceSelectionIntoView(): void {
+function scrollElementWithinContainer(scroller: HTMLElement, target: HTMLElement): void {
   requestAnimationFrame(() => {
-    const scrollerBounds = sourceCode.getBoundingClientRect()
-    const selectionBounds = sourceActive.getBoundingClientRect()
-    const currentScrollTop = sourceCode.scrollTop
+    const scrollerBounds = scroller.getBoundingClientRect()
+    const targetBounds = target.getBoundingClientRect()
+    const currentScrollTop = scroller.scrollTop
     const nextScrollTop = scrollTopToReveal({
-      contentHeight: sourceCode.scrollHeight,
+      contentHeight: scroller.scrollHeight,
       currentScrollTop,
-      targetHeight: selectionBounds.height,
-      targetTop: selectionBounds.top - scrollerBounds.top + currentScrollTop,
-      viewportHeight: sourceCode.clientHeight,
+      targetHeight: targetBounds.height,
+      targetTop: targetBounds.top - scrollerBounds.top + currentScrollTop,
+      viewportHeight: scroller.clientHeight,
     })
-    if (nextScrollTop !== currentScrollTop) sourceCode.scrollTop = nextScrollTop
+    if (nextScrollTop !== currentScrollTop) scroller.scrollTop = nextScrollTop
   })
 }
 
 function nodeLabel(node: InspectorNode): string {
-  const detail = node.attrs['title'] ?? node.attrs['text'] ?? node.attrs['content']
+  const detail = node.attrs['title']
+    ?? node.attrs['text']
+    ?? node.attrs['content']
+    ?? node.text
   const kind = node.kind.replaceAll('_', ' ')
   if (typeof detail !== 'string' || detail.length === 0) return kind
-  const codePoints = Array.from(detail)
+  const normalizedDetail = detail.replaceAll(/\s+/g, ' ').trim()
+  const codePoints = Array.from(normalizedDetail)
   const shortened = codePoints.length > MAX_TRAIL_LABEL_CODE_POINTS
     ? `${codePoints.slice(0, MAX_TRAIL_LABEL_CODE_POINTS).join('')}…`
-    : detail
+    : normalizedDetail
   return `${kind}: ${shortened}`
 }
 

@@ -16,7 +16,7 @@ from strif import atomic_output_file
 
 from flexdoc.docs import Detail, FlexDoc, Layer
 from flexdoc.docs.frontmatter import split_frontmatter
-from flexdoc.docs.node import Node, NodeKind, NodeTable
+from flexdoc.docs.node import LAYER_NESTING, Node, NodeKind, NodeTable
 
 _DANGEROUS_TAGS = frozenset({"embed", "iframe", "link", "meta", "object", "script", "style"})
 _ALLOWED_ATTRIBUTES = frozenset(
@@ -34,14 +34,17 @@ def build_inspector_payload(source: str, *, filename: str) -> dict[str, Any]:
     elements rendered from addressable Markdown nodes, while cross-layer containment
     remains derived from canonical source spans in the browser.
     """
+    layers = (Layer.document, Layer.markdown, Layer.textual)
     doc = FlexDoc.from_text(source)
     graph = doc.graph(
-        include={Layer.document, Layer.markdown, Layer.textual},
+        include=set(layers),
         detail={Detail.inline, Detail.text},
     )
     rendered_html = _render_annotated_html(source, doc.node_table())
     graph_data = graph.model_dump(by_alias=True)
     return {
+        "schema": graph_data["schema"],
+        "layerNesting": {layer.value: LAYER_NESTING[layer].value for layer in layers},
         "source": {
             "filename": filename,
             "offsetUnit": graph_data["source"]["offset_unit"],
