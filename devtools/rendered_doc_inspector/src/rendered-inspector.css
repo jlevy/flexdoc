@@ -65,6 +65,11 @@
   --inspector-document-layer: var(--kpress-doc-accent);
   --inspector-markdown-layer: var(--kpress-doc-link);
   --inspector-textual-layer: var(--kpress-doc-muted);
+  --inspector-border-gentle: color-mix(
+    in srgb,
+    var(--kpress-doc-link) 24%,
+    var(--kpress-doc-border)
+  );
   --inspector-footer-height: 5.5rem;
   --inspector-layout-width: 93.75rem;
 }
@@ -342,12 +347,12 @@ button {
   border-radius: var(--kpress-radius-sm);
   transition:
     background-color var(--kpress-transition-fast),
-    box-shadow var(--kpress-transition-fast),
     outline-color var(--kpress-transition-fast);
 }
 
 .rendered-document [data-source-span].is-container {
-  box-shadow: inset 3px 0 color-mix(in srgb, var(--inspector-markdown-layer) 45%, transparent);
+  outline: 1px solid var(--inspector-border-gentle);
+  outline-offset: 3px;
 }
 
 .rendered-document [data-source-span].is-hovered {
@@ -450,7 +455,6 @@ button {
   align-items: baseline;
   background: var(--kpress-doc-surface-bg);
   border: 1px solid var(--kpress-doc-border);
-  border-left: 2px solid var(--layer-color);
   border-radius: var(--kpress-radius-sm);
   display: inline-flex;
   flex: none;
@@ -472,7 +476,7 @@ button {
 }
 
 .trail-layer {
-  color: var(--kpress-doc-muted);
+  color: var(--layer-color);
   font-family: var(--kpress-font-sans);
   font-size: var(--kpress-font-size-tiny);
   font-weight: var(--kpress-font-weight-sans-medium);
