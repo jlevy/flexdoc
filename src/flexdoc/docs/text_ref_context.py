@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from bisect import bisect_right
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -16,6 +18,7 @@ from flexdoc.docs.span_ref import SpanRef
 from flexdoc.docs.text_ref import (
     TEXTREF_FORMAT,
     DocRef,
+    DocumentStatus,
     HeadingAnchor,
     PointAffinity,
     PointSelector,
@@ -30,6 +33,7 @@ from flexdoc.docs.text_ref import (
 
 if TYPE_CHECKING:
     from flexdoc.docs.flex_doc import FlexDoc
+    from flexdoc.docs.text_annotations import AnnotationSet, TextAnnotation
 
 _CONTEXT_CHARS = 24
 
@@ -70,6 +74,14 @@ class TextRefSourceContext:
     lines: tuple[SourceLine, ...] = ()
     omitted_before: bool = False
     omitted_after: bool = False
+
+
+@dataclass
+class _RenderWindow:
+    start_line: int
+    end_line: int
+    lines: dict[int, SourceLine]
+    annotations: list[tuple[TextAnnotation, TextRefSourceContext]]
 
 
 @dataclass(frozen=True)
@@ -239,6 +251,129 @@ class TextRefContext:
             omitted_after=window_end < len(source_lines) - 1,
         )
 
+    def render_context(
+        self,
+        text_ref: TextRef,
+        *,
+        before_lines: int = 2,
+        after_lines: int = 2,
+        max_quote_chars: int = 320,
+        max_source_lines: int = 80,
+    ) -> str:
+        """Render one TextRef as compact deterministic Markdown-compatible context."""
+        _validate_render_limits(max_quote_chars, max_source_lines)
+        context = self.context(
+            text_ref,
+            before_lines=before_lines,
+            after_lines=after_lines,
+        )
+        result = [
+            "# TextRef",
+            "",
+            f"Document: {_json(str(text_ref.document))}",
+            f"Target: {text_ref.target_kind.value}",
+            f"URI: {_render_uri(text_ref)}",
+            f"Resolution: {_resolution_label(context.resolution)}",
+            f"Source validation: {context.resolution.source_validation.value}",
+        ]
+        location = _location_label(context)
+        if location is not None:
+            result.append(f"Range: {location}")
+        if context.selected_source is not None:
+            result.extend(_target_evidence_lines(text_ref, context, max_quote_chars))
+        if context.lines:
+            result.extend(["", "## Source", ""])
+            result.extend(
+                _render_source_lines(
+                    context.lines,
+                    omitted_before=context.omitted_before,
+                    omitted_after=context.omitted_after,
+                    max_source_lines=max_source_lines,
+                )
+            )
+        return "\n".join(result) + "\n"
+
+    def render_annotations(
+        self,
+        annotations: AnnotationSet | Sequence[TextAnnotation],
+        *,
+        before_lines: int = 2,
+        after_lines: int = 2,
+        max_quote_chars: int = 320,
+        max_source_lines: int = 80,
+    ) -> str:
+        """
+        Render consumer-owned annotations beside merged source windows. Unresolved
+        and cross-document targets are grouped explicitly and retain their TextRefs.
+        """
+        from flexdoc.docs.text_annotations import AnnotationSet
+
+        _validate_render_limits(max_quote_chars, max_source_lines)
+        values = (
+            annotations.expand() if isinstance(annotations, AnnotationSet) else tuple(annotations)
+        )
+        records = [
+            (
+                annotation,
+                self.context(
+                    annotation.target,
+                    before_lines=before_lines,
+                    after_lines=after_lines,
+                ),
+            )
+            for annotation in values
+        ]
+        resolved = [record for record in records if record[1].resolution.resolved]
+        unresolved = [record for record in records if not record[1].resolution.resolved]
+        result = [
+            "# TextRef annotations",
+            "",
+            f"Document: {_json(str(self.document))}",
+            f"Annotations: {len(records)}",
+        ]
+        for window in _merge_windows(resolved):
+            heading = (
+                f"Line {window.start_line}"
+                if window.start_line == window.end_line
+                else f"Lines {window.start_line}-{window.end_line}"
+            )
+            result.extend(["", f"## {heading}", ""])
+            ordered_lines = tuple(window.lines[number] for number in sorted(window.lines))
+            total_lines = len(_source_lines(self._doc.source_text))
+            result.extend(
+                _render_source_lines(
+                    ordered_lines,
+                    omitted_before=window.start_line > 1,
+                    omitted_after=window.end_line < total_lines,
+                    max_source_lines=max_source_lines,
+                )
+            )
+            result.extend(["", "Annotations:"])
+            for annotation, context in sorted(
+                window.annotations,
+                key=lambda record: (
+                    record[1].resolved_span or (0, 0),
+                    record[0].id,
+                ),
+            ):
+                result.extend(_annotation_lines(annotation, context, max_quote_chars))
+
+        grouped = _group_unresolved(unresolved)
+        for heading in (
+            "Missing",
+            "Ambiguous",
+            "Boundary mismatched",
+            "Unsupported",
+            "Orphaned",
+        ):
+            group = grouped.get(heading, [])
+            if not group:
+                continue
+            result.extend(["", f"## {heading}"])
+            for annotation, context in sorted(group, key=lambda record: record[0].id):
+                result.extend(_annotation_lines(annotation, context, max_quote_chars))
+        return "\n".join(result) + "\n"
+
     def _text_ref(self, selector: SpanSelector | PointSelector | SectionSelector | None) -> TextRef:
         return TextRef(
             format=TEXTREF_FORMAT,
@@ -373,3 +508,179 @@ def _coordinate(lines: list[SourceLine], offset: int) -> SourceCoordinate:
         line=line.number,
         column=offset - line.start + 1,
     )
+
+
+def _validate_render_limits(max_quote_chars: int, max_source_lines: int) -> None:
+    if max_quote_chars < 32:
+        raise ValueError("max_quote_chars must be at least 32")
+    if max_source_lines < 3:
+        raise ValueError("max_source_lines must be at least 3")
+
+
+def _json(value: object) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def _render_uri(text_ref: TextRef) -> str:
+    try:
+        return text_ref.to_uri()
+    except ValueError:
+        return "unavailable (use structured TextRef)"
+
+
+def _resolution_label(resolution: TextRefResolution) -> str:
+    if resolution.method.value == "none":
+        return resolution.selector.value
+    return f"{resolution.selector.value} via {resolution.method.value}"
+
+
+def _location_label(context: TextRefSourceContext) -> str | None:
+    if context.start is None or context.end is None or context.resolved_span is None:
+        return None
+    start, end = context.resolved_span
+    return (
+        f"L{context.start.line}:C{context.start.column}-"
+        f"L{context.end.line}:C{context.end.column} [{start}:{end})"
+    )
+
+
+def _bounded_text(value: str, max_chars: int) -> str:
+    if len(value) <= max_chars:
+        return value
+    head_length = max_chars // 2
+    tail_length = max_chars - head_length
+    elided = len(value) - max_chars
+    return f"{value[:head_length]}... [{elided} chars elided] ...{value[-tail_length:]}"
+
+
+def _target_evidence_lines(
+    text_ref: TextRef,
+    context: TextRefSourceContext,
+    max_quote_chars: int,
+) -> list[str]:
+    if isinstance(text_ref.selector, PointSelector):
+        return [f"Point affinity: {text_ref.selector.affinity.value}"]
+    assert context.selected_source is not None
+    return [f"Quote: {_json(_bounded_text(context.selected_source, max_quote_chars))}"]
+
+
+def _render_source_lines(
+    lines: Sequence[SourceLine],
+    *,
+    omitted_before: bool,
+    omitted_after: bool,
+    max_source_lines: int,
+) -> list[str]:
+    visible: list[SourceLine | None]
+    if len(lines) <= max_source_lines:
+        visible = list(lines)
+    else:
+        head_length = max_source_lines // 2
+        tail_length = max_source_lines - head_length
+        visible = [*lines[:head_length], None, *lines[-tail_length:]]
+    width = len(str(lines[-1].number))
+    result: list[str] = []
+    if omitted_before:
+        result.append("    ... earlier lines omitted ...")
+    for line in visible:
+        if line is None:
+            hidden = len(lines) - max_source_lines
+            result.append(f"    ... {hidden} lines elided ...")
+        else:
+            result.append(f"    {line.number:>{width}} | {line.text}")
+    if omitted_after:
+        result.append("    ... later lines omitted ...")
+    return result
+
+
+def _merge_windows(
+    records: Sequence[tuple[TextAnnotation, TextRefSourceContext]],
+) -> list[_RenderWindow]:
+    windows: list[_RenderWindow] = []
+    ordered = sorted(
+        records,
+        key=lambda record: (
+            record[1].lines[0].number if record[1].lines else 0,
+            record[0].id,
+        ),
+    )
+    for annotation, context in ordered:
+        if not context.lines:
+            continue
+        start_line = context.lines[0].number
+        end_line = context.lines[-1].number
+        if windows and start_line <= windows[-1].end_line + 1:
+            window = windows[-1]
+            window.end_line = max(window.end_line, end_line)
+            window.lines.update({line.number: line for line in context.lines})
+            window.annotations.append((annotation, context))
+        else:
+            windows.append(
+                _RenderWindow(
+                    start_line=start_line,
+                    end_line=end_line,
+                    lines={line.number: line for line in context.lines},
+                    annotations=[(annotation, context)],
+                )
+            )
+    return windows
+
+
+def _group_unresolved(
+    records: Sequence[tuple[TextAnnotation, TextRefSourceContext]],
+) -> dict[str, list[tuple[TextAnnotation, TextRefSourceContext]]]:
+    groups: dict[str, list[tuple[TextAnnotation, TextRefSourceContext]]] = {}
+    labels = {
+        "missing": "Missing",
+        "ambiguous": "Ambiguous",
+        "boundary_mismatched": "Boundary mismatched",
+        "unsupported": "Unsupported",
+    }
+    for record in records:
+        resolution = record[1].resolution
+        if resolution.document != DocumentStatus.resolved:
+            heading = "Orphaned"
+        else:
+            heading = labels.get(resolution.selector.value, "Unsupported")
+        groups.setdefault(heading, []).append(record)
+    return groups
+
+
+def _annotation_lines(
+    annotation: TextAnnotation,
+    context: TextRefSourceContext,
+    max_quote_chars: int,
+) -> list[str]:
+    resolution = context.resolution
+    lines = [
+        f"- ID: {_json(annotation.id)}",
+        f"  Motivations: {_json(annotation.motivations)}",
+        f"  Target: {annotation.target.target_kind.value}",
+        f"  URI: {_render_uri(annotation.target)}",
+        f"  Resolution: {_resolution_label(resolution)}",
+        f"  Source validation: {resolution.source_validation.value}",
+    ]
+    location = _location_label(context)
+    if location is not None:
+        lines.append(f"  Range: {location}")
+    if context.selected_source is not None:
+        lines.extend(
+            f"  {line}"
+            for line in _target_evidence_lines(annotation.target, context, max_quote_chars)
+        )
+    if resolution.candidates:
+        candidates = ", ".join(
+            f"[{candidate.start}:{candidate.end})" for candidate in resolution.candidates
+        )
+        lines.append(f"  Candidates: {candidates}")
+    if annotation.body is not None:
+        lines.append(f"  Body: {_json(annotation.body.value)}")
+    if annotation.style is not None:
+        lines.append(f"  Style: {_json(annotation.style)}")
+    if annotation.tags:
+        lines.append(f"  Tags: {_json(annotation.tags)}")
+    if annotation.captured_text is not None:
+        lines.append(f"  Captured text: {_json(annotation.captured_text)}")
+    if annotation.provenance:
+        lines.append(f"  Provenance: {_json(annotation.provenance)}")
+    return lines

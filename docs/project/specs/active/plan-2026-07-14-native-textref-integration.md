@@ -268,7 +268,7 @@ classifications, redactions, review comments, and suggested-edit envelopes.
   labels for every resolution outcome
 - [x] `flexdoc-jl5b`: add the consumer-owned annotation profile, one-document sidecar,
   and explicit `DocGraph/v0.2` path while preserving v0.1
-- [ ] `flexdoc-ktl3`: add deterministic single-reference and batch annotation context
+- [x] `flexdoc-ktl3`: add deterministic single-reference and batch annotation context
   rendering with explicit elision and unresolved groups
 - [ ] `flexdoc-1nex`: add cross-format goldens and runnable extraction, retrieval,
   annotation, citation, and edit-target workflows

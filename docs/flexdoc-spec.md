@@ -965,9 +965,10 @@ selects `DocGraph/v0.2`; omitting `annotations` preserves v0.1 exactly.
 
 `TextRefContext.context()` returns structured selected source, surrounding lines,
 one-based line and code-point-column labels, and resolution evidence. Deterministic
-context rendering adds optional annotation bodies beside merged source windows and
-groups missing, ambiguous, unsupported, and orphaned targets separately. It is a
-human- and LLM-readable projection, not persisted state or an interchange format.
+`render_context()` and `render_annotations()` add bounded quotes and optional bodies
+beside merged line-numbered source windows, with explicit elision. Missing, ambiguous,
+unsupported, boundary-mismatched, and orphaned targets are grouped separately. This is
+a human- and LLM-readable projection, not persisted state or an interchange format.
 
 Rendered-text browser fragments remain an explicit adapter concern. Browsers match
 rendered page text rather than Markdown source, so source TextRefs are never silently
