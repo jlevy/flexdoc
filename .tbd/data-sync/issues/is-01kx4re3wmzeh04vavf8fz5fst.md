@@ -5,7 +5,7 @@ title: "Phase 2: Add source-grounded AI workflow APIs and release 0.4.0"
 kind: epic
 status: open
 priority: 2
-version: 11
+version: 12
 spec_path: docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md
 labels:
   - phase-2
@@ -21,7 +21,8 @@ child_order_hints:
   - is-01kx4v942qgm3dv729zbwzyxvc
   - is-01kx4v949qvnf289vy07ncj8a3
   - is-01kx4v94gvpmm30teypgt2xhm1
+  - is-01kxj2kx1q8dnmyevecnmtka1r
 created_at: 2026-07-10T00:56:55.955Z
-updated_at: 2026-07-10T01:48:00.980Z
+updated_at: 2026-07-15T05:04:58.934Z
 ---
 After the 0.3.0 contract is stable, add versioned annotation, anchoring, structural-outline, rendered-fragment, and suggestion APIs with end-to-end examples. Done when schema compatibility and workflow validation pass and 0.4.0 is published.
