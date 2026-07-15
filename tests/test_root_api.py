@@ -25,6 +25,7 @@ def test_root_exports_are_the_canonical_objects():
     assert flexdoc.TextUnit is flexdoc.docs.TextUnit
     assert flexdoc.DocRef is flexdoc.docs.DocRef
     assert flexdoc.TextRef is flexdoc.docs.TextRef
+    assert flexdoc.TextRefContext is flexdoc.docs.TextRefContext
     assert flexdoc.TextRefResolution is flexdoc.docs.TextRefResolution
 
 
@@ -39,6 +40,7 @@ def test_root_surface_is_deliberate():
         "NodeKind",
         "SpanRef",
         "TextRef",
+        "TextRefContext",
         "TextRefResolution",
         "TextRefTargetKind",
         "TextUnit",
@@ -91,7 +93,9 @@ def test_docs_surface_promotes_the_document_model_only():
         "SpanSelector",
         "TableInfo",
         "TextRef",
+        "TextRefContext",
         "TextRefResolution",
+        "TextRefTargetError",
         "TextRefTargetKind",
         "TextUnit",
         "Views",

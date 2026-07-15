@@ -259,7 +259,7 @@ classifications, redactions, review comments, and suggested-edit envelopes.
   schema, and URI values with conformance fixtures
 - [x] `flexdoc-rbvu`: implement typed exact resolution for span, point, and section
   selectors while preserving `SpanRef.resolve()`
-- [ ] `flexdoc-gupc`: add `FlexDoc.references()` and adapters for every locatable public
+- [x] `flexdoc-gupc`: add `FlexDoc.references()` and adapters for every locatable public
   value, including visible unlocatable and cross-document failures
 
 ### Phase 2: Context, Annotations, and Integration

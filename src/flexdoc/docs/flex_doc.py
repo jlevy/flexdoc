@@ -11,7 +11,7 @@ from collections.abc import Set as AbstractSet
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar, cast
 
 import regex
 from flowmark import flowmark_markdown
@@ -50,6 +50,10 @@ from flexdoc.docs.wordtoks import (
     SENT_BR_STR,
     join_wordtoks,
 )
+
+if TYPE_CHECKING:
+    from flexdoc.docs.text_ref import DocRef
+    from flexdoc.docs.text_ref_context import TextRefContext
 
 _PARA_BREAK_REGEX = regex.compile(r"(?:[ \t\r]*\n){2,}[ \t\r]*")
 r"""
@@ -325,6 +329,12 @@ class FlexDoc:
         the immutable `source_text` (see the class contract on read-time caching).
         """
         return build_node_table(self)
+
+    def references(self, document: str | DocRef) -> TextRefContext:
+        """Bind a document locator to this source snapshot for TextRef operations."""
+        from flexdoc.docs.text_ref_context import TextRefContext
+
+        return TextRefContext.bind(self, document)
 
     @classmethod
     @tally_calls(level="warning", min_total_runtime=5)

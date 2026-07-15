@@ -160,11 +160,14 @@ class SectionRange(_StrictModel):
     heading_start: Position
     heading_end: Position
     section_end: Position
+    boundary_start: Position | None = None
 
     @model_validator(mode="after")
     def _ordered(self) -> Self:
         if not self.heading_start < self.heading_end <= self.section_end:
             raise ValueError("section range must contain a non-empty heading")
+        if self.boundary_start is not None and self.boundary_start < self.section_end:
+            raise ValueError("section boundary must not precede section end")
         return self
 
 
@@ -586,7 +589,9 @@ def _resolve_section(
         )
         if end_result.span is not None and len(structural) > 1:
             structural = [
-                section for section in structural if section.section_end == end_result.span[0]
+                section
+                for section in structural
+                if (section.boundary_start or section.section_end) == end_result.span[0]
             ]
 
     if len(structural) > 1:
@@ -607,7 +612,8 @@ def _resolve_section(
             ResolutionMethod.section_structure,
             span,
         )
-    if end_result.span is None or end_result.span[0] != section.section_end:
+    boundary = section.boundary_start or section.section_end
+    if end_result.span is None or end_result.span[0] != boundary:
         return _Selection(
             SelectorStatus.boundary_mismatched,
             ResolutionMethod.section_structure,

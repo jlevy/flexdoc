@@ -48,6 +48,7 @@ from flexdoc.docs.text_ref import (
     resolve_text_ref,
     source_hash,
 )
+from flexdoc.docs.text_ref_context import TextRefContext, TextRefTargetError
 
 __all__ = [
     "DEFAULT_INCLUDE",
@@ -105,6 +106,8 @@ __all__ = [
     "TextRef",
     "TextRefResolution",
     "TextRefTargetKind",
+    "TextRefContext",
+    "TextRefTargetError",
     "normalize_source",
     "resolve_batch",
     "resolve_text_ref",
