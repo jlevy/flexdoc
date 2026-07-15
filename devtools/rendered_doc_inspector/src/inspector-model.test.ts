@@ -4,6 +4,7 @@ import {
   normalizeThemeMode,
   resolveHoverTrail,
   resolveThemeMode,
+  scrollTopToReveal,
   splitSourceForSpan,
   spansContain,
   type InspectorNode,
@@ -89,5 +90,29 @@ describe('rendered inspector model', () => {
     expect(resolveThemeMode('system', true)).toBe('dark')
     expect(resolveThemeMode('system', false)).toBe('light')
     expect(resolveThemeMode('light', true)).toBe('light')
+  })
+
+  test('keeps visible source selections still and centers hidden selections', () => {
+    expect(scrollTopToReveal({
+      contentHeight: 600,
+      currentScrollTop: 0,
+      targetHeight: 20,
+      targetTop: 50,
+      viewportHeight: 200,
+    })).toBe(0)
+    expect(scrollTopToReveal({
+      contentHeight: 600,
+      currentScrollTop: 0,
+      targetHeight: 20,
+      targetTop: 300,
+      viewportHeight: 200,
+    })).toBe(210)
+    expect(scrollTopToReveal({
+      contentHeight: 600,
+      currentScrollTop: 0,
+      targetHeight: 20,
+      targetTop: 590,
+      viewportHeight: 200,
+    })).toBe(400)
   })
 })

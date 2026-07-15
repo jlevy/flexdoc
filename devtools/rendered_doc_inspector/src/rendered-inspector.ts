@@ -4,6 +4,7 @@ import {
   normalizeThemeMode,
   resolveHoverTrail,
   resolveThemeMode,
+  scrollTopToReveal,
   spansContain,
   splitSourceForSpan,
   type InspectorNode,
@@ -209,7 +210,19 @@ function renderSourceSelection(span: SourceSpan): void {
 }
 
 function scrollSourceSelectionIntoView(): void {
-  requestAnimationFrame(() => sourceActive.scrollIntoView({ block: 'center', inline: 'nearest' }))
+  requestAnimationFrame(() => {
+    const scrollerBounds = sourceCode.getBoundingClientRect()
+    const selectionBounds = sourceActive.getBoundingClientRect()
+    const currentScrollTop = sourceCode.scrollTop
+    const nextScrollTop = scrollTopToReveal({
+      contentHeight: sourceCode.scrollHeight,
+      currentScrollTop,
+      targetHeight: selectionBounds.height,
+      targetTop: selectionBounds.top - scrollerBounds.top + currentScrollTop,
+      viewportHeight: sourceCode.clientHeight,
+    })
+    if (nextScrollTop !== currentScrollTop) sourceCode.scrollTop = nextScrollTop
+  })
 }
 
 function nodeLabel(node: InspectorNode): string {

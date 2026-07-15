@@ -20,6 +20,14 @@ export interface SourceSplit {
   after: string
 }
 
+interface ScrollRevealMetrics {
+  contentHeight: number
+  currentScrollTop: number
+  targetHeight: number
+  targetTop: number
+  viewportHeight: number
+}
+
 export type ResolvedTheme = 'light' | 'dark'
 export type ThemeMode = 'system' | ResolvedTheme
 
@@ -51,6 +59,21 @@ export function normalizeThemeMode(value: string | null | undefined): ThemeMode 
 export function resolveThemeMode(mode: ThemeMode, systemPrefersDark: boolean): ResolvedTheme {
   if (mode !== 'system') return mode
   return systemPrefersDark ? 'dark' : 'light'
+}
+
+/** Return a scroller position that reveals a target without moving visible content. */
+export function scrollTopToReveal(metrics: ScrollRevealMetrics): number {
+  const targetBottom = metrics.targetTop + metrics.targetHeight
+  const viewportBottom = metrics.currentScrollTop + metrics.viewportHeight
+  if (metrics.targetTop >= metrics.currentScrollTop && targetBottom <= viewportBottom) {
+    return metrics.currentScrollTop
+  }
+
+  const centeredScrollTop = metrics.targetTop
+    + metrics.targetHeight / 2
+    - metrics.viewportHeight / 2
+  const maximumScrollTop = Math.max(0, metrics.contentHeight - metrics.viewportHeight)
+  return Math.min(Math.max(0, centeredScrollTop), maximumScrollTop)
 }
 
 /** Return whether `outer` fully contains `inner`. */
