@@ -3,9 +3,9 @@ type: is
 id: is-01kx4v936azv1s1t8hbxq50gdt
 title: Add the TextRef annotation profile and DocGraph v0.2
 kind: feature
-status: open
+status: closed
 priority: 1
-version: 7
+version: 9
 spec_path: docs/project/specs/active/plan-2026-07-14-native-textref-integration.md
 labels:
   - annotations
@@ -20,6 +20,8 @@ dependencies:
     target: is-01kxj3n1xsdhwtqt10ncym5brg
 parent_id: is-01kxj2kx1q8dnmyevecnmtka1r
 created_at: 2026-07-10T01:46:37.129Z
-updated_at: 2026-07-15T05:24:22.502Z
+updated_at: 2026-07-15T06:04:40.229Z
+closed_at: 2026-07-15T06:04:40.227Z
+close_reason: Added strict consumer-owned annotation envelopes and one-document JSON/YAML sidecars, bare-selector expansion, explicit DocGraph/v0.2 with committed schema, preserved v0.1 behavior, and full validation.
 ---
 Implement the consumer-owned annotation envelope and one-document sidecar, including bare-selector expansion, stable annotation IDs, motivations, discriminated plain-text bodies, tags, style, captured text, and provenance. Passing annotations explicitly to FlexDoc.graph() selects strict DocGraph/v0.2; omitting them preserves v0.1 exactly. Done when JSON/YAML round trips, invalid records, detached targets, ownership flow, and both graph versions are tested and documented.
