@@ -10,7 +10,7 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div>
+      <div class="topbar-title">
         <p class="eyebrow">FlexDoc developer spike</p>
         <h1>Rendered FlexDoc inspector</h1>
         <p class="filename" id="document-filename"></p>
@@ -22,12 +22,6 @@
         </button>
       </div>
     </header>
-
-    <section class="structure-lens" id="structure-lens" aria-live="polite">
-      <p class="hover-hint" id="hover-hint">Hover or focus rendered content to reveal its nested FlexDoc structure.</p>
-      <div class="structure-trail" id="structure-trail" hidden></div>
-      <code class="active-span" id="active-span" hidden></code>
-    </section>
 
     <main class="workspace" id="workspace">
       <section class="rendered-pane" aria-labelledby="rendered-pane-title">
@@ -46,6 +40,14 @@
         <pre class="source-code" id="source-code" tabindex="0"><code><span id="source-before"></span><mark id="source-active"></mark><span id="source-after"></span></code></pre>
       </aside>
     </main>
+
+    <footer class="structure-lens" id="structure-lens" aria-label="Active FlexDoc structure" aria-live="polite">
+      <div class="structure-lens-content">
+        <p class="hover-hint" id="hover-hint">Hover or focus rendered content to reveal its nested FlexDoc structure.</p>
+        <div class="structure-trail" id="structure-trail" hidden></div>
+        <code class="active-span" id="active-span" hidden></code>
+      </div>
+    </footer>
 
     <p class="copy-status" id="copy-status" role="status" aria-live="polite"></p>
   </div>
