@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from bisect import bisect_right
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -35,6 +36,40 @@ _CONTEXT_CHARS = 24
 
 class TextRefTargetError(ValueError):
     """A requested target cannot be grounded in the bound document snapshot."""
+
+
+@dataclass(frozen=True)
+class SourceCoordinate:
+    """Derived one-based line and Unicode code-point column for a source offset."""
+
+    offset: int
+    line: int
+    column: int
+
+
+@dataclass(frozen=True)
+class SourceLine:
+    """One source line without its trailing newline."""
+
+    number: int
+    start: int
+    end: int
+    text: str
+
+
+@dataclass(frozen=True)
+class TextRefSourceContext:
+    """Exact resolution plus a bounded, derived source presentation window."""
+
+    reference: TextRef
+    resolution: TextRefResolution
+    resolved_span: tuple[int, int] | None
+    selected_source: str | None
+    start: SourceCoordinate | None
+    end: SourceCoordinate | None
+    lines: tuple[SourceLine, ...] = ()
+    omitted_before: bool = False
+    omitted_after: bool = False
 
 
 @dataclass(frozen=True)
@@ -158,6 +193,52 @@ class TextRefContext:
             sections=self._section_ranges(),
         )
 
+    def context(
+        self,
+        text_ref: TextRef,
+        *,
+        before_lines: int = 2,
+        after_lines: int = 2,
+    ) -> TextRefSourceContext:
+        """
+        Resolve a TextRef and derive a bounded line window. Coordinates are
+        one-based Unicode code-point labels and never become selector evidence.
+        """
+        if before_lines < 0:
+            raise ValueError("before_lines must be non-negative")
+        if after_lines < 0:
+            raise ValueError("after_lines must be non-negative")
+        resolution = self.resolve(text_ref)
+        if resolution.span is None:
+            return TextRefSourceContext(
+                reference=text_ref,
+                resolution=resolution,
+                resolved_span=None,
+                selected_source=None,
+                start=None,
+                end=None,
+            )
+
+        span = (resolution.span.start, resolution.span.end)
+        source = self._doc.source_text
+        source_lines = _source_lines(source)
+        start_index = _line_index(source_lines, span[0])
+        selected_end = span[0] if span[0] == span[1] else span[1] - 1
+        end_index = _line_index(source_lines, selected_end)
+        window_start = max(0, start_index - before_lines)
+        window_end = min(len(source_lines) - 1, end_index + after_lines)
+        return TextRefSourceContext(
+            reference=text_ref,
+            resolution=resolution,
+            resolved_span=span,
+            selected_source=source[slice(*span)],
+            start=_coordinate(source_lines, span[0]),
+            end=_coordinate(source_lines, span[1]),
+            lines=tuple(source_lines[window_start : window_end + 1]),
+            omitted_before=window_start > 0,
+            omitted_after=window_end < len(source_lines) - 1,
+        )
+
     def _text_ref(self, selector: SpanSelector | PointSelector | SectionSelector | None) -> TextRef:
         return TextRef(
             format=TEXTREF_FORMAT,
@@ -266,3 +347,29 @@ class TextRefContext:
                 )
             )
         return tuple(ranges)
+
+
+def _source_lines(source: str) -> list[SourceLine]:
+    lines: list[SourceLine] = []
+    start = 0
+    for number, raw_line in enumerate(source.splitlines(keepends=True), start=1):
+        text = raw_line[:-1] if raw_line.endswith("\n") else raw_line
+        end = start + len(text)
+        lines.append(SourceLine(number=number, start=start, end=end, text=text))
+        start += len(raw_line)
+    if not lines or source.endswith("\n"):
+        lines.append(SourceLine(number=len(lines) + 1, start=start, end=start, text=""))
+    return lines
+
+
+def _line_index(lines: list[SourceLine], offset: int) -> int:
+    return max(0, bisect_right([line.start for line in lines], offset) - 1)
+
+
+def _coordinate(lines: list[SourceLine], offset: int) -> SourceCoordinate:
+    line = lines[_line_index(lines, offset)]
+    return SourceCoordinate(
+        offset=offset,
+        line=line.number,
+        column=offset - line.start + 1,
+    )

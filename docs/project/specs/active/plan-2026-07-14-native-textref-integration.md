@@ -264,7 +264,7 @@ classifications, redactions, review comments, and suggested-edit envelopes.
 
 ### Phase 2: Context, Annotations, and Integration
 
-- [ ] `flexdoc-qw7n`: add bounded structured source context and derived line/column
+- [x] `flexdoc-qw7n`: add bounded structured source context and derived line/column
   labels for every resolution outcome
 - [ ] `flexdoc-jl5b`: add the consumer-owned annotation profile, one-document sidecar,
   and explicit `DocGraph/v0.2` path while preserving v0.1

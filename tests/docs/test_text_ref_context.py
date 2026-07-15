@@ -11,6 +11,7 @@ from flexdoc.docs import (
     SectionSelector,
     SelectorStatus,
     SpanSelector,
+    TextRef,
     TextRefTargetError,
 )
 
@@ -101,3 +102,62 @@ def test_reference_context_rejects_ref_for_another_document():
     result = refs.resolve(other)
     assert result.document == "invalid"
     assert result.selector == SelectorStatus.unsupported
+
+
+def test_structured_context_has_unicode_coordinates_and_bounded_lines():
+    source = "zero\nalpha cafe\N{COMBINING ACUTE ACCENT}\nomega\nlast"
+    doc = FlexDoc.from_text(source)
+    refs = doc.references(document="unicode.md")
+    start = source.index("cafe")
+    context = refs.context(
+        refs.for_span(start, start + len("cafe\N{COMBINING ACUTE ACCENT}")),
+        before_lines=1,
+        after_lines=1,
+    )
+
+    assert context.selected_source == "cafe\N{COMBINING ACUTE ACCENT}"
+    assert context.start is not None
+    assert (context.start.line, context.start.column) == (2, 7)
+    assert context.end is not None
+    assert (context.end.line, context.end.column) == (2, 12)
+    assert [line.number for line in context.lines] == [1, 2, 3]
+    assert context.omitted_before is False
+    assert context.omitted_after is True
+
+
+def test_structured_context_covers_whole_document_points_and_failures():
+    doc = FlexDoc.from_text(SOURCE)
+    refs = doc.references(document="design.md")
+
+    whole = refs.context(refs.whole_document(), before_lines=0, after_lines=0)
+    assert whole.selected_source == SOURCE
+    assert whole.start is not None and whole.start.line == 1
+    assert whole.end is not None and whole.end.offset == len(SOURCE)
+
+    position = SOURCE.index("Second")
+    point = refs.context(refs.for_point(position))
+    assert point.selected_source == ""
+    assert point.start == point.end
+
+    missing_ref = TextRef(
+        format="textref/0.1",
+        document=DocRef("design.md"),
+        selector=SpanSelector(type="span", exact="missing"),
+    )
+    missing = refs.context(missing_ref)
+    assert missing.resolution.selector == SelectorStatus.missing
+    assert missing.resolved_span is None
+    assert missing.selected_source is None
+    assert missing.lines == ()
+
+
+def test_structured_context_reports_source_mismatch_and_validates_limits():
+    doc = FlexDoc.from_text(SOURCE)
+    refs = doc.references(document="design.md")
+    text_ref = refs.for_span(0, 7).model_copy(update={"source_hash": "sha256:" + "0" * 64})
+    context = refs.context(text_ref)
+    assert context.resolution.source_validation == "mismatched"
+    assert context.selected_source == "# Alpha"
+
+    with pytest.raises(ValueError, match="before_lines"):
+        refs.context(text_ref, before_lines=-1)

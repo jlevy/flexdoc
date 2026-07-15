@@ -48,7 +48,13 @@ from flexdoc.docs.text_ref import (
     resolve_text_ref,
     source_hash,
 )
-from flexdoc.docs.text_ref_context import TextRefContext, TextRefTargetError
+from flexdoc.docs.text_ref_context import (
+    SourceCoordinate,
+    SourceLine,
+    TextRefContext,
+    TextRefSourceContext,
+    TextRefTargetError,
+)
 
 __all__ = [
     "DEFAULT_INCLUDE",
@@ -101,12 +107,15 @@ __all__ = [
     "SectionSelector",
     "SelectorStatus",
     "SourceRange",
+    "SourceCoordinate",
+    "SourceLine",
     "SourceValidation",
     "SpanSelector",
     "TextRef",
     "TextRefResolution",
     "TextRefTargetKind",
     "TextRefContext",
+    "TextRefSourceContext",
     "TextRefTargetError",
     "normalize_source",
     "resolve_batch",
