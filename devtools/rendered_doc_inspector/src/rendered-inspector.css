@@ -25,6 +25,7 @@
   --kpress-radius-sm: 3px;
   --kpress-ease: ease-in-out;
   --kpress-transition-fast: 0.15s var(--kpress-ease);
+  --kpress-transition-med: 0.2s var(--kpress-ease);
 
   --kpress-doc-text: light-dark(
     oklch(21.01% 0.0318 264.7),
@@ -70,15 +71,21 @@
     var(--kpress-doc-link) 24%,
     var(--kpress-doc-border)
   );
+  --inspector-active-outline-gap: 0.25rem;
+  --inspector-container-outline-gap: 0.5rem;
+  --inspector-hover-transition: var(--kpress-transition-med);
   --inspector-footer-height: 5.5rem;
   --inspector-layout-width: 93.75rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --kpress-card-shadow:
-      0 10px 15px -3px oklch(0% 0 0 / 0.3), 0 -2px 6px -1px oklch(0% 0 0 / 0.2);
-  }
+:root[data-kpress-resolved-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-kpress-resolved-theme="dark"] {
+  color-scheme: dark;
+  --kpress-card-shadow:
+    0 10px 15px -3px oklch(0% 0 0 / 0.3), 0 -2px 6px -1px oklch(0% 0 0 / 0.2);
 }
 
 *,
@@ -101,6 +108,108 @@ body {
 
 button {
   font: inherit;
+}
+
+.icon-sprite {
+  display: none;
+}
+
+.theme-settings {
+  inset-block-start: 0.75rem;
+  inset-inline-end: 0.75rem;
+  position: fixed;
+  z-index: 50;
+}
+
+.theme-settings-button {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--kpress-radius-sm);
+  color: var(--kpress-doc-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: 1.75rem;
+  justify-content: center;
+  padding: 0.25rem;
+  transition:
+    background-color var(--kpress-transition-fast),
+    border-color var(--kpress-transition-fast),
+    color var(--kpress-transition-fast);
+  width: 1.75rem;
+}
+
+.theme-settings-button:hover,
+.theme-settings[aria-expanded="true"] .theme-settings-button {
+  background: var(--kpress-doc-surface-hover);
+  border-color: var(--kpress-doc-border);
+  color: var(--kpress-doc-text);
+}
+
+.theme-settings-button:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--kpress-doc-link) 72%, transparent);
+  outline-offset: 2px;
+}
+
+.theme-settings-button svg,
+.theme-choice svg {
+  height: 1rem;
+  width: 1rem;
+}
+
+.theme-settings-menu {
+  background: var(--kpress-doc-bg);
+  border: 1px solid var(--kpress-doc-border);
+  border-radius: var(--kpress-radius-sm);
+  box-shadow:
+    0 4px 6px -1px oklch(0% 0 0 / 0.1),
+    0 2px 4px -1px oklch(0% 0 0 / 0.06);
+  display: none;
+  inset-block-start: calc(100% + 0.25rem);
+  inset-inline-end: 0;
+  min-width: 7.75rem;
+  padding: 0.25rem;
+  position: absolute;
+}
+
+.theme-settings[aria-expanded="true"] .theme-settings-menu {
+  display: flex;
+}
+
+.theme-chooser {
+  display: flex;
+  gap: 0.125rem;
+  width: 100%;
+}
+
+.theme-choice {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--kpress-radius-sm);
+  color: var(--kpress-doc-muted);
+  cursor: pointer;
+  display: flex;
+  flex: 1;
+  height: 1.875rem;
+  justify-content: center;
+  min-width: 2.125rem;
+  padding: 0;
+  transition:
+    background-color var(--kpress-transition-fast),
+    color var(--kpress-transition-fast);
+}
+
+.theme-choice:hover,
+.theme-choice:focus-visible {
+  background: var(--kpress-doc-surface-hover);
+  color: var(--kpress-doc-text);
+  outline: none;
+}
+
+.theme-choice[aria-checked="true"] {
+  background: var(--kpress-doc-surface-selected);
+  color: var(--kpress-doc-link);
 }
 
 .app-shell {
@@ -345,20 +454,28 @@ button {
 
 .rendered-document [data-source-span] {
   border-radius: var(--kpress-radius-sm);
+  outline: 1px solid transparent;
+  outline-offset: var(--inspector-active-outline-gap);
   transition:
-    background-color var(--kpress-transition-fast),
-    outline-color var(--kpress-transition-fast);
+    background-color var(--inspector-hover-transition),
+    outline-color var(--inspector-hover-transition),
+    outline-offset var(--inspector-hover-transition),
+    outline-width var(--inspector-hover-transition);
 }
 
 .rendered-document [data-source-span].is-container {
-  outline: 1px solid var(--inspector-border-gentle);
-  outline-offset: 3px;
+  outline-color: var(--inspector-border-gentle);
+  outline-offset: calc(
+    var(--inspector-container-outline-gap) + var(--inspector-container-level-gap, 0rem)
+  );
+  outline-width: 1px;
 }
 
 .rendered-document [data-source-span].is-hovered {
   background: var(--kpress-doc-surface-selected);
-  outline: 2px solid var(--kpress-doc-link);
-  outline-offset: 3px;
+  outline-color: var(--kpress-doc-link);
+  outline-offset: var(--inspector-active-outline-gap);
+  outline-width: 2px;
 }
 
 .source-pane {

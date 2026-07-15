@@ -20,6 +20,9 @@ export interface SourceSplit {
   after: string
 }
 
+export type ResolvedTheme = 'light' | 'dark'
+export type ThemeMode = 'system' | ResolvedTheme
+
 const INLINE_KINDS = new Set([
   'code_span',
   'footnote_ref',
@@ -32,6 +35,22 @@ const INLINE_KINDS = new Set([
 const TEXTUAL_KIND_RANK: Readonly<Record<string, number>> = {
   paragraph: 0,
   sentence: 1,
+}
+
+const THEME_MODES = new Set<ThemeMode>(['system', 'light', 'dark'])
+
+/** Normalize persisted or DOM-provided theme state. */
+export function normalizeThemeMode(value: string | null | undefined): ThemeMode {
+  if (value !== null && value !== undefined && THEME_MODES.has(value as ThemeMode)) {
+    return value as ThemeMode
+  }
+  return 'system'
+}
+
+/** Resolve an explicit or system-relative theme to its concrete palette. */
+export function resolveThemeMode(mode: ThemeMode, systemPrefersDark: boolean): ResolvedTheme {
+  if (mode !== 'system') return mode
+  return systemPrefersDark ? 'dark' : 'light'
 }
 
 /** Return whether `outer` fully contains `inner`. */

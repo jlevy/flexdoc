@@ -1,13 +1,81 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-kpress-theme="system" data-kpress-resolved-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Rendered-first FlexDoc structure inspector spike.">
+  <meta name="color-scheme" content="light dark">
   <title>Rendered FlexDoc Inspector</title>
+  <script>
+    (() => {
+      const root = document.documentElement
+      let mode = 'system'
+      try {
+        const stored = localStorage.getItem('flexdoc.inspector.theme')
+        if (stored === 'system' || stored === 'light' || stored === 'dark') mode = stored
+      } catch {
+        mode = 'system'
+      }
+      const resolved = mode === 'system'
+        ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : mode
+      root.dataset.kpressTheme = mode
+      root.dataset.kpressResolvedTheme = resolved
+    })()
+  </script>
   <link rel="stylesheet" href="./src/rendered-inspector.css">
 </head>
 <body>
+  <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="inspector-icon-settings" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/>
+      <circle cx="12" cy="12" r="3"/>
+    </symbol>
+    <symbol id="inspector-icon-monitor" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect width="20" height="14" x="2" y="3" rx="2"/>
+      <line x1="8" x2="16" y1="21" y2="21"/>
+      <line x1="12" x2="12" y1="17" y2="21"/>
+    </symbol>
+    <symbol id="inspector-icon-sun" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4"/>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+    </symbol>
+    <symbol id="inspector-icon-moon" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/>
+    </symbol>
+  </svg>
+
+  <div class="theme-settings" id="theme-settings" aria-expanded="false">
+    <button class="theme-settings-button" id="theme-settings-button" type="button"
+      aria-label="Settings" title="Settings" aria-haspopup="menu"
+      aria-controls="theme-settings-menu" aria-expanded="false">
+      <svg aria-hidden="true"><use href="#inspector-icon-settings"></use></svg>
+    </button>
+    <div class="theme-settings-menu" id="theme-settings-menu" role="menu" aria-label="Settings">
+      <div class="theme-chooser" role="group" aria-label="Theme">
+        <button class="theme-choice" type="button" role="menuitemradio"
+          data-kpress-theme-choice="system" aria-checked="false" aria-label="System theme"
+          title="System theme">
+          <svg aria-hidden="true"><use href="#inspector-icon-monitor"></use></svg>
+        </button>
+        <button class="theme-choice" type="button" role="menuitemradio"
+          data-kpress-theme-choice="light" aria-checked="false" aria-label="Light theme"
+          title="Light theme">
+          <svg aria-hidden="true"><use href="#inspector-icon-sun"></use></svg>
+        </button>
+        <button class="theme-choice" type="button" role="menuitemradio"
+          data-kpress-theme-choice="dark" aria-checked="false" aria-label="Dark theme"
+          title="Dark theme">
+          <svg aria-hidden="true"><use href="#inspector-icon-moon"></use></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="app-shell">
     <header class="topbar">
       <div class="topbar-title">

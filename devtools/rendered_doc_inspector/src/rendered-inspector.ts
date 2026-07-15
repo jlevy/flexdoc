@@ -1,11 +1,14 @@
 import inspectorData from '../generated/inspector-data.json'
 
 import {
+  normalizeThemeMode,
   resolveHoverTrail,
+  resolveThemeMode,
   spansContain,
   splitSourceForSpan,
   type InspectorNode,
   type SourceSpan,
+  type ThemeMode,
 } from './inspector-model'
 
 interface InspectorPayload {
@@ -21,8 +24,17 @@ interface InspectorPayload {
 /** Duration of visible confirmation after a copy action. */
 const COPY_FEEDBACK_DURATION_MS = 1600
 
+/** Additional outward spacing between nested ancestor outlines. */
+const CONTAINER_OUTLINE_LEVEL_STEP_REM = 0.125
+
 /** Maximum code-point length of secondary structure labels. */
 const MAX_TRAIL_LABEL_CODE_POINTS = 46
+
+/** Limit visual expansion for unusually deep rendered structures. */
+const MAX_CONTAINER_OUTLINE_LEVEL = 4
+
+const SYSTEM_THEME_QUERY = '(prefers-color-scheme: dark)'
+const THEME_STORAGE_KEY = 'flexdoc.inspector.theme'
 
 const data = inspectorData as InspectorPayload
 
@@ -39,14 +51,22 @@ const sourceBefore = requiredElement<HTMLElement>('source-before')
 const sourceCode = requiredElement<HTMLElement>('source-code')
 const sourcePane = requiredElement<HTMLElement>('source-pane')
 const structureTrail = requiredElement<HTMLElement>('structure-trail')
+const themeSettings = requiredElement<HTMLElement>('theme-settings')
+const themeSettingsButton = requiredElement<HTMLButtonElement>('theme-settings-button')
 const toggleSourceButton = requiredElement<HTMLButtonElement>('toggle-source')
 const workspace = requiredElement<HTMLElement>('workspace')
+const themeChoiceButtons = [
+  ...document.querySelectorAll<HTMLButtonElement>('[data-kpress-theme-choice]'),
+]
+const systemThemeQuery = window.matchMedia(SYSTEM_THEME_QUERY)
 
 let currentSpan: SourceSpan | null = null
+let currentTheme: ThemeMode = normalizeThemeMode(document.documentElement.dataset['kpressTheme'])
 
 renderedDocument.innerHTML = data.rendered_html
 documentFilename.textContent = data.source.filename
 sourceBefore.textContent = data.source.text
+initializeTheme()
 
 const mappedElements = [...renderedDocument.querySelectorAll<HTMLElement>('[data-source-span]')]
 for (const element of mappedElements) {
@@ -89,12 +109,40 @@ copySourceButton.addEventListener('click', () => {
   ).catch(showCopyFailure)
 })
 
+themeSettingsButton.addEventListener('click', () => {
+  setThemeMenuOpen(themeSettings.getAttribute('aria-expanded') !== 'true')
+})
+
+for (const button of themeChoiceButtons) {
+  button.addEventListener('click', () => {
+    applyTheme(normalizeThemeMode(button.dataset['kpressThemeChoice']), true)
+  })
+}
+
+document.addEventListener('pointerdown', event => {
+  if (event.target instanceof Node && !themeSettings.contains(event.target)) {
+    setThemeMenuOpen(false)
+  }
+})
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && themeSettings.getAttribute('aria-expanded') === 'true') {
+    setThemeMenuOpen(false)
+    themeSettingsButton.focus()
+  }
+})
+
+systemThemeQuery.addEventListener('change', () => {
+  if (currentTheme === 'system') applyTheme('system', false)
+})
+
 function activateElement(element: HTMLElement): void {
   const span = parseSpan(element.dataset['sourceSpan'])
   if (span === null) return
   currentSpan = span
   const directNodeId = element.dataset['nodeId'] ?? null
   const trail = resolveHoverTrail(data.nodes, span, directNodeId)
+  const containers: HTMLElement[] = []
 
   for (const candidate of mappedElements) {
     const candidateSpan = parseSpan(candidate.dataset['sourceSpan'])
@@ -102,6 +150,22 @@ function activateElement(element: HTMLElement): void {
     const isContainer = candidateSpan !== null && spansContain(candidateSpan, span) && !isDirect
     candidate.classList.toggle('is-hovered', isDirect)
     candidate.classList.toggle('is-container', isContainer)
+    if (isContainer) {
+      containers.push(candidate)
+    } else {
+      candidate.style.removeProperty('--inspector-container-level-gap')
+    }
+  }
+
+  for (const container of containers) {
+    const containedContainers = containers.filter(
+      candidate => candidate !== container && container.contains(candidate),
+    ).length
+    const level = Math.min(containedContainers, MAX_CONTAINER_OUTLINE_LEVEL)
+    container.style.setProperty(
+      '--inspector-container-level-gap',
+      `${level * CONTAINER_OUTLINE_LEVEL_STEP_REM}rem`,
+    )
   }
 
   renderTrail(trail)
@@ -169,6 +233,40 @@ function parseSpan(value: string | undefined): SourceSpan | null {
   return { start, end }
 }
 
+function initializeTheme(): void {
+  let storedTheme: string | null = null
+  try {
+    storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
+  } catch {
+    storedTheme = null
+  }
+  applyTheme(normalizeThemeMode(storedTheme ?? currentTheme), false)
+}
+
+function applyTheme(mode: ThemeMode, persist: boolean): void {
+  currentTheme = mode
+  const resolved = resolveThemeMode(mode, systemThemeQuery.matches)
+  document.documentElement.dataset['kpressTheme'] = mode
+  document.documentElement.dataset['kpressResolvedTheme'] = resolved
+  for (const button of themeChoiceButtons) {
+    button.setAttribute(
+      'aria-checked',
+      String(button.dataset['kpressThemeChoice'] === mode),
+    )
+  }
+  if (!persist) return
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, mode)
+  } catch {
+    showTransientStatus('Theme changed for this tab, but the preference could not be saved.')
+  }
+}
+
+function setThemeMenuOpen(open: boolean): void {
+  themeSettings.setAttribute('aria-expanded', String(open))
+  themeSettingsButton.setAttribute('aria-expanded', String(open))
+}
+
 function isNativelyFocusable(element: HTMLElement): boolean {
   return element.matches('a[href], button, input, select, textarea')
 }
@@ -181,10 +279,10 @@ async function copyText(
 ): Promise<void> {
   try {
     await navigator.clipboard.writeText(text)
-    showCopyStatus(confirmation)
+    showTransientStatus(confirmation)
   } catch {
     selectElementContents(selectionTarget)
-    showCopyStatus(fallbackConfirmation)
+    showTransientStatus(fallbackConfirmation)
   }
 }
 
@@ -197,14 +295,14 @@ function selectElementContents(element: HTMLElement): void {
   selection.addRange(range)
 }
 
-function showCopyStatus(message: string): void {
+function showTransientStatus(message: string): void {
   copyStatus.textContent = message
   copyStatus.classList.add('is-visible')
   window.setTimeout(() => copyStatus.classList.remove('is-visible'), COPY_FEEDBACK_DURATION_MS)
 }
 
 function showCopyFailure(error: unknown): void {
-  showCopyStatus(error instanceof Error ? error.message : 'Copy failed.')
+  showTransientStatus(error instanceof Error ? error.message : 'Copy failed.')
 }
 
 function requiredElement<T extends HTMLElement>(id: string): T {

@@ -1,7 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 
 import {
+  normalizeThemeMode,
   resolveHoverTrail,
+  resolveThemeMode,
   splitSourceForSpan,
   spansContain,
   type InspectorNode,
@@ -78,5 +80,14 @@ describe('rendered inspector model', () => {
       active: '😀',
       after: 'b',
     })
+  })
+
+  test('normalizes and resolves persisted theme preferences', () => {
+    expect(normalizeThemeMode('light')).toBe('light')
+    expect(normalizeThemeMode('dark')).toBe('dark')
+    expect(normalizeThemeMode('unexpected')).toBe('system')
+    expect(resolveThemeMode('system', true)).toBe('dark')
+    expect(resolveThemeMode('system', false)).toBe('light')
+    expect(resolveThemeMode('light', true)).toBe('light')
   })
 })

@@ -18,7 +18,8 @@ The minimum implementation answers these questions:
   links, and code spans?
 
 The spike includes a source-to-HTML exporter, one rendered document surface, a compact
-hover path, an optional synchronized source pane, and copy actions for both views.
+hover path, an optional synchronized source pane, copy actions for both views, and a
+KPress-aligned system/light/dark theme chooser.
 
 It does not implement editing, annotations, URL-addressable selections, virtualization,
 arbitrary synthetic layers, or a public FlexDoc API. Compatibility is not applicable:
@@ -43,8 +44,11 @@ the rendered-first interaction model:
   interaction.
 - Hovering or focusing a block or inline construct produces a useful cross-layer path,
   including nested sections, lists, textual paragraphs, sentences, and inline nodes.
+- Active and ancestor outlines use outward visual offsets instead of padding, so nested
+  wrappers remain distinct without changing text layout.
 - The optional Markdown pane follows the exact source span without changing either
   surface's native selection behavior.
+- The settings gear applies and persists system, light, or dark theme preferences.
 - Unicode code-point spans are converted explicitly before slicing browser strings.
 - Copy actions use the Clipboard API and fall back to selecting the complete surface
   when clipboard permission is unavailable.
