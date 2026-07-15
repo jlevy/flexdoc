@@ -7,6 +7,11 @@ has the full detail; this file is the summary.
 
 ## Open Work
 
+- **Native TextRef integration:** add portable whole-document, span, point, and section
+  references; document-bound mapping from every locatable FlexDoc value; typed
+  resolution; contextual annotation rendering; and `DocGraph/v0.2`.
+  Feature: `flexdoc-4imy`; spec:
+  [plan-2026-07-14-native-textref-integration.md](docs/project/specs/active/plan-2026-07-14-native-textref-integration.md).
 - **Cross-language logical word metrics:** define `TextUnit.words` as the normalized
   logical measure, add `raw_words` for literal whitespace counting, migrate token
   estimates, and document the pre-1.0 semantic break. Epic: `flexdoc-2u8z`; GitHub
@@ -36,7 +41,7 @@ has the full detail; this file is the summary.
 
 ## Deferred (Specified, Not Yet Built; Spec §14)
 
-- Annotation layer; cross-layer structural edits; fuzzy `SpanRef` re-anchoring;
+- Cross-layer structural edits; normalized and fuzzy TextRef re-anchoring;
   operation/provenance/layout layers (schema-reserved).
 - A uniform opt-in strict-validation/diagnostics pass over a parse (spec §2, Error
   posture).

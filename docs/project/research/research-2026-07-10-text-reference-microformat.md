@@ -1,10 +1,10 @@
 # Research: A Portable DocRef, SpanRef, and TextRef Microformat
 
-**Date:** 2026-07-10 (last updated 2026-07-13)
+**Date:** 2026-07-10 (last updated 2026-07-14)
 
 **Author:** Codex, synthesizing existing FlexDoc and tbd design work
 
-**Status:** Research complete; proposal pending review
+**Status:** Research complete; FlexDoc direction adopted, protocol details pending implementation
 
 ## Overview
 
@@ -64,6 +64,13 @@ when a TypeScript consumer needs the same persisted references.
 The core should be pure and dependency-free.
 Filesystem, network, Git, rendering, and application policy should remain in
 consumer-owned adapters.
+
+FlexDoc adopts this direction in the
+[native TextRef integration plan](../specs/active/plan-2026-07-14-native-textref-integration.md).
+That plan settles the FlexDoc binding API, consumer ownership of annotations,
+contextual rendering boundary, and explicit `DocGraph/v0.2` path. The remaining open
+decisions below concern protocol limits, conformance details, later adapters, and
+governance.
 
 ## Scope
 
@@ -3007,6 +3014,10 @@ Whole-document features should continue using DocRef or TextRef without `selecto
 FlexDoc should prove the TextRef shape while keeping FlexDoc-specific adapters locally:
 
 - Keep `SpanRef.from_node()` in FlexDoc
+- Add `FlexDoc.references(document=...)` as the one document-bound construction,
+  resolution, and context surface
+- Map paragraphs, sentences, blocks, base blocks, located links, and ordinary nodes to
+  span selectors; map sections and section nodes to semantic section selectors
 - Add a point-selector constructor and source-span boundary helpers without making
   points pretend to be empty SpanRefs
 - Add a section-selector constructor from `Section.heading_block.source_span`, with an
@@ -3014,11 +3025,14 @@ FlexDoc should prove the TextRef shape while keeping FlexDoc-specific adapters l
 - Keep the existing public SpanRef API while testing the new wire projection
 - Persist `start` when a TextRef also carries `source_hash`; continue treating unbound
   positions as hints
-- Move `SpanRef.to_text_fragment()` to a rendered-text adapter with explicit refusal
-  rules, since it currently projects source text directly
-- Preserve `DocGraph/v0.1`
-- Add document locator, optional source hash, and typed annotation targets in an
-  explicit later schema version
+- Keep `SpanRef.to_text_fragment()` compatible for 0.4 while routing new browser
+  navigation work through a rendered-text adapter with explicit refusal rules
+- Add document locator, optional source hash, and typed annotation targets in
+  `DocGraph/v0.2`
+- Keep annotations consumer-owned and pass them explicitly to FlexDoc for rendering or
+  graph serialization rather than storing them as mutable `FlexDoc` state
+- Preserve `DocGraph/v0.1` when annotations are absent; explicitly supplied annotations
+  select `DocGraph/v0.2`
 - Use bare `span`, `point`, or `section` selectors for annotations embedded in a
   DocGraph whose enclosing source already supplies document and source-hash context
 - Use complete TextRef for annotations detached from a graph or targeting another

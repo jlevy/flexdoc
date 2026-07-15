@@ -29,6 +29,18 @@ from flexdoc.docs.render import parse_source_span_attr, render_node_attrs, wrap_
 from flexdoc.docs.sections import Section
 from flexdoc.docs.sizes import TextUnit
 from flexdoc.docs.span_ref import SpanRef
+from flexdoc.docs.text_ref import (
+    DocRef,
+    HeadingAnchor,
+    PointAffinity,
+    PointSelector,
+    SectionSelector,
+    SpanSelector,
+    TextRef,
+    TextRefTargetKind,
+    normalize_source,
+    source_hash,
+)
 
 __all__ = [
     "DEFAULT_INCLUDE",
@@ -72,6 +84,16 @@ __all__ = [
     "NodeTable",
     "build_node_table",
     "SpanRef",
+    "DocRef",
+    "HeadingAnchor",
+    "PointAffinity",
+    "PointSelector",
+    "SectionSelector",
+    "SpanSelector",
+    "TextRef",
+    "TextRefTargetKind",
+    "normalize_source",
+    "source_hash",
     "render_node_attrs",
     "wrap_with_node_attrs",
     "parse_source_span_attr",
