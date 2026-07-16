@@ -6,6 +6,7 @@ import json
 from bisect import bisect_right
 from collections.abc import Sequence
 from dataclasses import dataclass
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 from flexdoc.docs.base_blocks import BaseBlock
@@ -27,7 +28,7 @@ from flexdoc.docs.text_ref import (
     SpanSelector,
     TextRef,
     TextRefResolution,
-    resolve_text_ref,
+    _resolve_text_ref_normalized,
     source_hash,
 )
 
@@ -88,7 +89,7 @@ class _RenderWindow:
 class TextRefContext:
     """
     Bind a document locator to one FlexDoc source snapshot. TextRefs remain derived
-    values; this context only caches the snapshot hash and adapts public source spans.
+    values; this context caches immutable snapshot indexes and adapts public source spans.
     """
 
     _doc: FlexDoc
@@ -145,7 +146,7 @@ class TextRefContext:
         """Reference a complete heading-owned section using semantic anchors."""
         if section._doc is not self._doc:  # pyright: ignore[reportPrivateUsage]
             raise TextRefTargetError("section belongs to a different document")
-        sections = self._flat_sections()
+        sections = self._flat_sections_cache
         matching_index = next(
             (index for index, candidate in enumerate(sections) if candidate.span == section.span),
             None,
@@ -183,7 +184,7 @@ class TextRefContext:
             section = next(
                 (
                     section
-                    for section in self._flat_sections()
+                    for section in self._flat_sections_cache
                     if section.span == target.source_span
                 ),
                 None,
@@ -198,11 +199,12 @@ class TextRefContext:
 
     def resolve(self, text_ref: TextRef) -> TextRefResolution:
         """Resolve a TextRef exactly against the bound source and section structure."""
-        return resolve_text_ref(
+        return _resolve_text_ref_normalized(
             text_ref,
             self._doc.source_text,
             document=self.document,
-            sections=self._section_ranges(),
+            sections=self._section_ranges_cache,
+            actual_source_hash=self.source_hash,
         )
 
     def context(
@@ -233,10 +235,10 @@ class TextRefContext:
 
         span = (resolution.span.start, resolution.span.end)
         source = self._doc.source_text
-        source_lines = _source_lines(source)
-        start_index = _line_index(source_lines, span[0])
+        source_lines = self._source_lines_cache
+        start_index = _line_index(self._line_starts_cache, span[0])
         selected_end = span[0] if span[0] == span[1] else span[1] - 1
-        end_index = _line_index(source_lines, selected_end)
+        end_index = _line_index(self._line_starts_cache, selected_end)
         window_start = max(0, start_index - before_lines)
         window_end = min(len(source_lines) - 1, end_index + after_lines)
         return TextRefSourceContext(
@@ -244,8 +246,8 @@ class TextRefContext:
             resolution=resolution,
             resolved_span=span,
             selected_source=source[slice(*span)],
-            start=_coordinate(source_lines, span[0]),
-            end=_coordinate(source_lines, span[1]),
+            start=_coordinate(source_lines, self._line_starts_cache, span[0]),
+            end=_coordinate(source_lines, self._line_starts_cache, span[1]),
             lines=tuple(source_lines[window_start : window_end + 1]),
             omitted_before=window_start > 0,
             omitted_after=window_end < len(source_lines) - 1,
@@ -331,6 +333,7 @@ class TextRefContext:
             f"Document: {_json(str(self.document))}",
             f"Annotations: {len(records)}",
         ]
+        total_lines = len(self._source_lines_cache)
         for window in _merge_windows(resolved):
             heading = (
                 f"Line {window.start_line}"
@@ -339,7 +342,6 @@ class TextRefContext:
             )
             result.extend(["", f"## {heading}", ""])
             ordered_lines = tuple(window.lines[number] for number in sorted(window.lines))
-            total_lines = len(_source_lines(self._doc.source_text))
             result.extend(
                 _render_source_lines(
                     ordered_lines,
@@ -439,7 +441,16 @@ class TextRefContext:
     def _owns_node(self, target: Node) -> bool:
         return self._doc.node_table().nodes.get(target.id) is target
 
-    def _flat_sections(self) -> list[Section]:
+    @cached_property
+    def _source_lines_cache(self) -> tuple[SourceLine, ...]:
+        return tuple(_source_lines(self._doc.source_text))
+
+    @cached_property
+    def _line_starts_cache(self) -> tuple[int, ...]:
+        return tuple(line.start for line in self._source_lines_cache)
+
+    @cached_property
+    def _flat_sections_cache(self) -> tuple[Section, ...]:
         sections: list[Section] = []
 
         def append_tree(values: list[Section]) -> None:
@@ -449,7 +460,7 @@ class TextRefContext:
 
         append_tree(self._doc.sections())
         sections.sort(key=lambda section: section.heading_block.span[0])
-        return sections
+        return tuple(sections)
 
     def _heading_anchor(self, section: Section) -> HeadingAnchor:
         start, end = section.heading_block.span
@@ -461,8 +472,9 @@ class TextRefContext:
             start=start,
         )
 
-    def _section_ranges(self) -> tuple[SectionRange, ...]:
-        sections = self._flat_sections()
+    @cached_property
+    def _section_ranges_cache(self) -> tuple[SectionRange, ...]:
+        sections = self._flat_sections_cache
         ranges: list[SectionRange] = []
         for index, section in enumerate(sections):
             boundary = next(
@@ -497,12 +509,16 @@ def _source_lines(source: str) -> list[SourceLine]:
     return lines
 
 
-def _line_index(lines: list[SourceLine], offset: int) -> int:
-    return max(0, bisect_right([line.start for line in lines], offset) - 1)
+def _line_index(line_starts: Sequence[int], offset: int) -> int:
+    return max(0, bisect_right(line_starts, offset) - 1)
 
 
-def _coordinate(lines: list[SourceLine], offset: int) -> SourceCoordinate:
-    line = lines[_line_index(lines, offset)]
+def _coordinate(
+    lines: Sequence[SourceLine],
+    line_starts: Sequence[int],
+    offset: int,
+) -> SourceCoordinate:
+    line = lines[_line_index(line_starts, offset)]
     return SourceCoordinate(
         offset=offset,
         line=line.number,

@@ -147,6 +147,12 @@ Bind a document locator once, then derive portable references for parsed values.
 same TextRef can become a canonical URI, retrieve source context, remain attached to an
 extracted value, or target a consumer-owned annotation.
 
+Document locators are opaque, consumer-owned strings: `./docs/guide.md` and
+`docs/guide.md` are different DocRefs unless the consumer normalizes them before
+binding. A store that cannot retrieve a requested locator may report
+`DocumentStatus.unavailable`; resolution against a bound `TextRefContext` reports
+`invalid` when the exact locator differs.
+
 ```python
 from flexdoc import AnnotationSet, TextAnnotation, TextBody
 
@@ -166,9 +172,18 @@ sidecar = AnnotationSet.from_annotations([annotation])
 print(refs.render_annotations(sidecar))
 ```
 
+Generated point references capture immediate context. A hand-authored point may omit
+context only for hash-bound document start: it requires `position=0` and a `source_hash`
+and resolves by position only when that hash matches. Position zero has stable
+structural meaning and also covers the sole boundary of an empty document; other bare
+positions are rejected.
+
 Store one `TextRef` or `tuple[TextRef, ...]` in a consumer-owned `source_refs` field.
 `doc.graph()` remains `DocGraph/v0.1`; `doc.graph(annotations=sidecar)` explicitly
-selects `DocGraph/v0.2` with source-relative annotation selectors.
+selects `DocGraph/v0.2` with source-relative annotation selectors. Graph embedding
+requires the sidecar's `source_hash` to match the document snapshot; hash-less sidecars
+remain valid for detached storage and context-based resolution but cannot lend trusted
+position evidence to a graph.
 
 ### Transform Text
 

@@ -886,7 +886,10 @@ The URI never contains an annotation body or workflow state.
   Span boundaries need not align with Markdown or parser nodes.
 - **Point.** One boundary between code points, with immediate context and `before` or
   `after` affinity. Points represent insertions, bookmarks, and zero-width comments;
-  they are not empty SpanRefs.
+  they are not empty SpanRefs. A point without prefix or suffix context is valid only
+  at `position=0` with a source hash. Position zero is the hash-bound document-start
+  sentinel and also represents the sole boundary of an empty source; other bare
+  positions lack structural meaning and are rejected.
 - **Section.** One complete heading-owned section. A SpanRef over the starting heading
   identifies it, an optional anchor over the next equal-or-higher heading corroborates
   its exclusive end, and the current range is derived from the section hierarchy.
@@ -910,6 +913,10 @@ paragraph_ref = refs.for_target(doc.paragraphs[0])
 section_ref = refs.for_target(doc.sections()[0])
 link_ref = refs.for_target(doc.collect(kinds={NodeKind.link})[0])
 ```
+
+DocRefs are opaque, consumer-owned locator strings. FlexDoc does not normalize paths or
+equate values such as `./design.md` and `design.md`; consumers that want that equivalence
+must canonicalize locators before binding them.
 
 The context supplies `for_target()`, `whole_document()`, `for_span()`, `for_point()`,
 and `for_section()`, plus resolution and context-rendering operations. The central
@@ -943,6 +950,10 @@ It returns a typed `TextRefResolution` with independent axes:
 | Selector | `whole_document`, `resolved`, `missing`, `ambiguous`, `boundary_mismatched`, `unsupported` |
 | Method | Source position, contextual position, exact quote, contextual quote, point context or affinity, section structure or anchors, or none |
 
+`TextRefContext.resolve()` operates on an available bound snapshot, so it emits
+`resolved` or `invalid` document status. `unavailable` is reserved for consumer-owned
+document stores that cannot retrieve the requested DocRef.
+
 Exact span resolution tries a source-bound position, corroborated position, unique exact
 quote, and contextual disambiguation in that order. Point and section selectors use
 equally conservative evidence ladders. Resolution never chooses an arbitrary duplicate.
@@ -961,7 +972,10 @@ as mutable `FlexDoc` state. `TextAnnotation` carries the complete target;
 `AnnotationSet` is the strict JSON/YAML one-document sidecar that hoists `document` and
 `source_hash`, stores bare selectors, and expands them to complete TextRefs before
 resolution. Annotation IDs are unique within a set. `doc.graph(annotations=sidecar)`
-selects `DocGraph/v0.2`; omitting `annotations` preserves v0.1 exactly.
+selects `DocGraph/v0.2`; omitting `annotations` preserves v0.1 exactly. Graph embedding
+requires a non-null sidecar source hash that matches the document snapshot. A hash-less
+sidecar remains valid for detached storage and conservative context-based resolution,
+but cannot gain trusted position evidence from a graph's source metadata.
 
 `TextRefContext.context()` returns structured selected source, surrounding lines,
 one-based line and code-point-column labels, and resolution evidence. Deterministic
@@ -1000,8 +1014,8 @@ Selections of rendered substrings require an explicit rendered-to-source adapter
 
 `FlexDoc.graph()` without annotations retains `DocGraph/v0.1`. Passing consumer-owned
 annotations explicitly selects `DocGraph/v0.2`; the graph supplies shared document and
-source-hash context for its embedded selectors. Detached annotations carry complete
-TextRefs.
+source-hash context for its embedded selectors only after verifying the sidecar carries
+the same hash. Detached annotations carry complete TextRefs.
 
 ## 13. Invariants and Non-Goals
 

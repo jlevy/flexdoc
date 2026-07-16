@@ -192,7 +192,7 @@ def resolve_quote_exact(
         ):
             return QuoteResolution("resolved", "context_position", (start, end))
 
-    occurrences = _find_occurrences(exact, source_text)
+    occurrences = find_occurrences(source_text, exact)
     if not occurrences:
         return QuoteResolution("missing", "none")
     candidates = tuple((position, position + len(exact)) for position in occurrences)
@@ -246,7 +246,8 @@ def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
     return result.span
 
 
-def _find_occurrences(exact: str, source_text: str) -> list[int]:
+def find_occurrences(source_text: str, exact: str) -> list[int]:
+    """Return every overlapping start offset of `exact` in `source_text`."""
     occurrences: list[int] = []
     search_start = 0
     while True:

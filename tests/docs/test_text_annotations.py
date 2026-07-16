@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import assert_type
 
 import pytest
 from pydantic import ValidationError
@@ -97,8 +98,8 @@ def test_explicit_annotations_select_docgraph_v2_without_changing_v1():
     annotation = _annotation(doc)
     sidecar = AnnotationSet.from_annotations([annotation])
 
-    v1 = doc.graph()
-    v2 = doc.graph(annotations=sidecar)
+    v1 = assert_type(doc.graph(), DocGraph)
+    v2 = assert_type(doc.graph(annotations=sidecar), DocGraphV2)
     assert type(v1) is DocGraph
     assert v1.schema_ == "DocGraph/v0.1"
     assert isinstance(v2, DocGraphV2)
@@ -123,6 +124,30 @@ def test_docgraph_v2_rejects_a_sidecar_for_another_snapshot():
     annotation = TextAnnotation(id="stale", target=target, motivations=["commenting"])
     sidecar = AnnotationSet.from_annotations([annotation])
     with pytest.raises(ValueError, match="source hash"):
+        doc.graph(annotations=sidecar)
+
+
+def test_docgraph_v2_rejects_a_hashless_sidecar():
+    source = "Alpha repeated\n\nBeta repeated"
+    doc = FlexDoc.from_text(source)
+    sidecar = AnnotationSet(
+        format="text-annotations/0.1",
+        document=DocRef("design.md"),
+        source_hash=None,
+        annotations=[
+            AnnotationSetEntry(
+                id="stale-position",
+                target=SpanSelector(
+                    type="span",
+                    exact="repeated",
+                    prefix="Beta ",
+                    start=source.index("repeated"),
+                ),
+                motivations=["commenting"],
+            )
+        ],
+    )
+    with pytest.raises(ValueError, match="source hash is required"):
         doc.graph(annotations=sidecar)
 
 

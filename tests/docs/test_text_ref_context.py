@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
+import flexdoc.docs.text_ref as text_ref_module
+import flexdoc.docs.text_ref_context as text_ref_context_module
 from flexdoc.docs import (
     DocRef,
     FlexDoc,
@@ -161,3 +165,25 @@ def test_structured_context_reports_source_mismatch_and_validates_limits():
 
     with pytest.raises(ValueError, match="before_lines"):
         refs.context(text_ref, before_lines=-1)
+
+
+def test_reference_context_reuses_snapshot_indexes():
+    doc = FlexDoc.from_text(SOURCE)
+    refs = doc.references(document="design.md")
+    text_ref = refs.for_span(0, len("# Alpha"))
+
+    with (
+        patch.object(text_ref_module, "source_hash", wraps=text_ref_module.source_hash) as hashes,
+        patch.object(
+            text_ref_context_module,
+            "_source_lines",
+            wraps=text_ref_context_module._source_lines,  # pyright: ignore[reportPrivateUsage]
+        ) as source_lines,
+        patch.object(doc, "sections", wraps=doc.sections) as sections,
+    ):
+        refs.context(text_ref)
+        refs.context(text_ref)
+
+    assert hashes.call_count == 0
+    assert source_lines.call_count == 1
+    assert sections.call_count == 1

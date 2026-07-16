@@ -21,7 +21,7 @@ from pydantic import (
 )
 from typing_extensions import override
 
-from flexdoc.docs.span_ref import resolve_quote_exact
+from flexdoc.docs.span_ref import find_occurrences, resolve_quote_exact
 
 TEXTREF_FORMAT = "textref/0.1"
 """Current normative JSON format identifier."""
@@ -42,6 +42,7 @@ _SOURCE_HASH_PATTERN = re.compile(r"sha256:[0-9a-f]{64}\Z")
 _PERCENT_ESCAPE_PATTERN = re.compile(r"%(?![0-9A-Fa-f]{2})")
 
 Position = Annotated[int, Field(ge=0, le=_MAX_JSON_SAFE_INTEGER, strict=True)]
+"""A non-negative interoperable JSON integer used as a source offset."""
 
 
 def _validate_unicode(value: str) -> str:
@@ -253,6 +254,7 @@ Selector = Annotated[
     SpanSelector | PointSelector | SectionSelector,
     Field(discriminator="type"),
 ]
+"""The strict discriminated union of TextRef selector kinds."""
 
 
 class TextRef(_StrictModel):
@@ -367,7 +369,24 @@ def resolve_text_ref(
     supplied snapshot belongs to the requested DocRef.
     """
     canonical_source = normalize_source(source)
-    validation = _source_validation(text_ref, canonical_source)
+    return _resolve_text_ref_normalized(
+        text_ref,
+        canonical_source,
+        document=document,
+        sections=sections,
+    )
+
+
+def _resolve_text_ref_normalized(
+    text_ref: TextRef,
+    source: str,
+    *,
+    document: DocRef | None = None,
+    sections: Sequence[SectionRange] | None = None,
+    actual_source_hash: str | None = None,
+) -> TextRefResolution:
+    """Resolve against canonical source, optionally reusing its trusted cached hash."""
+    validation = _source_validation(text_ref, source, actual_source_hash)
     if document is not None and document != text_ref.document:
         return TextRefResolution(
             document=DocumentStatus.invalid,
@@ -381,7 +400,7 @@ def resolve_text_ref(
             document=DocumentStatus.resolved,
             source_validation=validation,
             selector=SelectorStatus.whole_document,
-            span=SourceRange(start=0, end=len(canonical_source)),
+            span=SourceRange(start=0, end=len(source)),
         )
 
     hash_matched = validation == SourceValidation.matched
@@ -391,20 +410,25 @@ def resolve_text_ref(
             selector.prefix,
             selector.suffix,
             selector.start,
-            canonical_source,
+            source,
             hash_matched,
         )
     elif isinstance(selector, PointSelector):
-        selected = _resolve_point(selector, canonical_source, hash_matched)
+        selected = _resolve_point(selector, source, hash_matched)
     else:
-        selected = _resolve_section(selector, canonical_source, hash_matched, sections)
+        selected = _resolve_section(selector, source, hash_matched, sections)
     return _resolution_from_selection(selected, validation)
 
 
-def _source_validation(text_ref: TextRef, source: str) -> SourceValidation:
+def _source_validation(
+    text_ref: TextRef,
+    source: str,
+    actual_source_hash: str | None = None,
+) -> SourceValidation:
     if text_ref.source_hash is None:
         return SourceValidation.absent
-    if text_ref.source_hash == source_hash(source):
+    digest = actual_source_hash if actual_source_hash is not None else source_hash(source)
+    if text_ref.source_hash == digest:
         return SourceValidation.matched
     return SourceValidation.mismatched
 
@@ -462,17 +486,6 @@ def _context_matches(
     return True
 
 
-def _find_occurrences(source: str, exact: str) -> list[int]:
-    occurrences: list[int] = []
-    search_start = 0
-    while True:
-        position = source.find(exact, search_start)
-        if position < 0:
-            return occurrences
-        occurrences.append(position)
-        search_start = position + 1
-
-
 def _resolve_point(selector: PointSelector, source: str, hash_matched: bool) -> _Selection:
     position = selector.position
     if position is not None and 0 <= position <= len(source):
@@ -482,7 +495,9 @@ def _resolve_point(selector: PointSelector, source: str, hash_matched: bool) -> 
                 ResolutionMethod.source_position,
                 (position, position),
             )
-        if _point_context_matches(selector, source, position):
+        if (selector.prefix is not None or selector.suffix is not None) and _point_context_matches(
+            selector, source, position
+        ):
             return _Selection(
                 SelectorStatus.resolved,
                 ResolutionMethod.context_position,
@@ -491,9 +506,8 @@ def _resolve_point(selector: PointSelector, source: str, hash_matched: bool) -> 
 
     if selector.prefix is not None and selector.suffix is not None:
         boundaries = tuple(
-            candidate
-            for candidate in range(len(source) + 1)
-            if _point_context_matches(selector, source, candidate)
+            start + len(selector.prefix)
+            for start in find_occurrences(source, selector.prefix + selector.suffix)
         )
         if len(boundaries) == 1:
             boundary = boundaries[0]
@@ -539,11 +553,11 @@ def _affinity_boundaries(selector: PointSelector, source: str) -> tuple[int, ...
         owned = selector.prefix
         if owned is None or len(owned) < _MIN_POINT_AFFINITY_CONTEXT:
             return ()
-        return tuple(position + len(owned) for position in _find_occurrences(source, owned))
+        return tuple(position + len(owned) for position in find_occurrences(source, owned))
     owned = selector.suffix
     if owned is None or len(owned) < _MIN_POINT_AFFINITY_CONTEXT:
         return ()
-    return tuple(_find_occurrences(source, owned))
+    return tuple(find_occurrences(source, owned))
 
 
 def _resolve_section(
@@ -591,7 +605,12 @@ def _resolve_section(
             structural = [
                 section
                 for section in structural
-                if (section.boundary_start or section.section_end) == end_result.span[0]
+                if (
+                    section.boundary_start
+                    if section.boundary_start is not None
+                    else section.section_end
+                )
+                == end_result.span[0]
             ]
 
     if len(structural) > 1:
@@ -612,7 +631,7 @@ def _resolve_section(
             ResolutionMethod.section_structure,
             span,
         )
-    boundary = section.boundary_start or section.section_end
+    boundary = section.boundary_start if section.boundary_start is not None else section.section_end
     if end_result.span is None or end_result.span[0] != boundary:
         return _Selection(
             SelectorStatus.boundary_mismatched,
@@ -769,14 +788,26 @@ def _selector_from_uri(selector_type: str | None, values: dict[str, str]) -> Sel
 
 
 __all__ = [
+    "TEXTREF_FORMAT",
+    "TEXTREF_URI_PREFIX",
     "DocRef",
+    "DocumentStatus",
     "HeadingAnchor",
     "PointAffinity",
     "PointSelector",
+    "Position",
+    "ResolutionMethod",
+    "SectionRange",
     "SectionSelector",
+    "Selector",
+    "SelectorStatus",
+    "SourceRange",
+    "SourceValidation",
     "SpanSelector",
     "TextRef",
+    "TextRefResolution",
     "TextRefTargetKind",
     "normalize_source",
+    "resolve_text_ref",
     "source_hash",
 ]

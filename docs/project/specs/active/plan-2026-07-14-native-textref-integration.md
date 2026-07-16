@@ -113,7 +113,9 @@ consumer extensions live in a namespaced `extensions` object.
 
 FlexDoc-generated TextRefs include an algorithm-qualified source hash and retain their
 position hint by default. The source quote remains the durable recovery evidence after
-the source changes.
+the source changes. A context-free point is valid only at the hash-bound document-start
+sentinel (`position=0`), which also represents the sole boundary of an empty snapshot;
+other points require prefix or suffix context.
 
 ### Document-Bound Reference Context
 
@@ -131,7 +133,8 @@ span_ref = refs.for_span(start, end)
 point_ref = refs.for_point(position, affinity="after")
 ```
 
-The returned `TextRefContext` computes the canonical source hash once and supplies:
+The returned `TextRefContext` computes the canonical source hash once, caches source-line
+and section indexes on first use, and supplies:
 
 - `for_target(value)` for supported FlexDoc values
 - `whole_document()`, `for_span()`, `for_point()`, and `for_section()` constructors
@@ -142,6 +145,8 @@ The returned `TextRefContext` computes the canonical source hash once and suppli
 TextRefs are derived on demand rather than stored on parsed objects. This avoids
 duplicating document and hash fields, prevents stale materialized references, and keeps
 copied or edited paragraph and section values independent from reference ownership.
+DocRefs remain opaque consumer-owned strings; FlexDoc does not normalize path-like
+locators before comparison.
 
 ### Mapping FlexDoc Values
 
@@ -180,6 +185,9 @@ duplicate. Point selectors resolve boundaries through source-bound positions and
 two-sided or affinity-owned context. Section selectors resolve their heading anchors
 and derive the current range from FlexDoc's section hierarchy.
 
+The bound context emits `resolved` or `invalid` document status. `unavailable` is
+reserved for a consumer-owned document store that cannot retrieve a requested DocRef.
+
 `context()` returns a structured value containing the resolved span, selected source,
 surrounding source lines, one-based line and code-point-column labels, resolution
 method, and source-validation state. Line labels are derived presentation, not durable
@@ -204,7 +212,9 @@ selector.
 A one-document annotation set may hoist `document` and `source_hash` and store bare
 selectors. It expands each target to a complete TextRef before validation or resolution.
 Annotations remain consumer-owned and are passed to FlexDoc for serialization or
-rendering; `FlexDoc` does not store them as mutable document state.
+rendering; `FlexDoc` does not store them as mutable document state. Detached annotation
+sets may omit the hash, but `DocGraph/v0.2` embedding requires it to match the current
+document snapshot.
 
 The deterministic context renderer emits Markdown-compatible ASCII with:
 
@@ -226,8 +236,9 @@ YAML is available for concise one-document annotation sets.
 
 `FlexDoc.graph()` without annotations keeps its current `DocGraph/v0.1` behavior.
 Passing annotations explicitly selects `DocGraph/v0.2`, whose source context supplies
-the document and source hash for embedded bare selectors. Detached annotations retain
-complete TextRefs.
+the document and source hash for embedded bare selectors after verifying the sidecar's
+matching non-null source hash. Typed overloads preserve the v0.1 `DocGraph` return for
+calls without annotations. Detached annotations retain complete TextRefs.
 
 `SpanRef.to_text_fragment()` remains compatible in the 0.4 release. New browser
 navigation work uses an explicit rendered-text adapter and refusal rules rather than

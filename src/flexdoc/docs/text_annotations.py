@@ -205,7 +205,9 @@ def build_doc_graph_v2(
 ) -> DocGraphV2:
     """Build strict DocGraph/v0.2 with source-relative annotation selectors."""
     actual_hash = source_hash(table.source_text)
-    if annotation_set.source_hash is not None and annotation_set.source_hash != actual_hash:
+    if annotation_set.source_hash is None:
+        raise ValueError("annotation set source hash is required for DocGraph/v0.2")
+    if annotation_set.source_hash != actual_hash:
         raise ValueError("annotation set source hash does not match the document snapshot")
     base = build_doc_graph(table, include=include, detail=detail)
     source = SourceInfoV2(

@@ -11,7 +11,7 @@ from collections.abc import Set as AbstractSet
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import TYPE_CHECKING, TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar, cast, overload
 
 import regex
 from flowmark import flowmark_markdown
@@ -983,6 +983,24 @@ class FlexDoc:
             layer=layer,
         )
 
+    @overload
+    def graph(
+        self,
+        *,
+        include: AbstractSet[Layer] | None = None,
+        detail: AbstractSet[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
+        annotations: None = None,
+    ) -> DocGraph: ...
+
+    @overload
+    def graph(
+        self,
+        *,
+        include: AbstractSet[Layer] | None = None,
+        detail: AbstractSet[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
+        annotations: AnnotationSet,
+    ) -> DocGraphV2: ...
+
     def graph(
         self,
         *,
@@ -1003,8 +1021,8 @@ class FlexDoc:
             return build_doc_graph_v2(
                 self.node_table(),
                 annotations,
-                include=set(effective_include),
-                detail=set(detail),
+                include=effective_include,
+                detail=detail,
             )
         return build_doc_graph(self.node_table(), include=effective_include, detail=detail)
 

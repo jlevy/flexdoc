@@ -222,6 +222,45 @@ def test_typed_point_resolution_uses_context_and_affinity_conservatively():
     assert affinity.selector == SelectorStatus.resolved
     assert affinity.method == ResolutionMethod.point_affinity
 
+    repeated = TextRef(
+        format=TEXTREF_FORMAT,
+        document=DocRef("doc.md"),
+        selector=PointSelector(
+            type="point",
+            affinity=PointAffinity.after,
+            prefix="ab",
+            suffix="X",
+        ),
+    )
+    ambiguous = resolve_text_ref(repeated, "abXabX")
+    assert ambiguous.selector == SelectorStatus.ambiguous
+    assert [(candidate.start, candidate.end) for candidate in ambiguous.candidates] == [
+        (2, 2),
+        (5, 5),
+    ]
+
+
+def test_context_free_document_start_requires_a_matching_source_hash():
+    empty_source = ""
+    ref = TextRef(
+        format=TEXTREF_FORMAT,
+        document=DocRef("doc.md"),
+        source_hash=source_hash(empty_source),
+        selector=PointSelector(
+            type="point",
+            position=0,
+            affinity=PointAffinity.after,
+        ),
+    )
+
+    matched = resolve_text_ref(ref, empty_source)
+    assert matched.selector == SelectorStatus.resolved
+    assert matched.method == ResolutionMethod.source_position
+
+    mismatched = resolve_text_ref(ref, "content")
+    assert mismatched.source_validation == SourceValidation.mismatched
+    assert mismatched.selector == SelectorStatus.missing
+
 
 def test_section_resolution_requires_structure_and_reports_boundary_mismatch():
     source = "## Design\n\nBody.\n\n## Later\n\nEnd."
@@ -264,6 +303,40 @@ def test_section_resolution_requires_structure_and_reports_boundary_mismatch():
     )
     assert mismatch.selector == SelectorStatus.boundary_mismatched
     assert mismatch.span is not None
+
+
+def test_section_resolution_reports_ambiguous_structural_matches():
+    source = "## Same\n\nBody.\n\n## Same\n\nBody."
+    second_start = source.rindex("## Same")
+    heading_length = len("## Same")
+    ref = TextRef(
+        format=TEXTREF_FORMAT,
+        document=DocRef("doc.md"),
+        selector=SectionSelector(
+            type="section",
+            syntax="commonmark",
+            start_anchor=HeadingAnchor(exact="## Same"),
+        ),
+    )
+    structure = (
+        SectionRange(
+            heading_start=0,
+            heading_end=heading_length,
+            section_end=second_start,
+        ),
+        SectionRange(
+            heading_start=second_start,
+            heading_end=second_start + heading_length,
+            section_end=len(source),
+        ),
+    )
+
+    result = resolve_text_ref(ref, source, sections=structure)
+    assert result.selector == SelectorStatus.ambiguous
+    assert [(candidate.start, candidate.end) for candidate in result.candidates] == [
+        (0, second_start),
+        (second_start, len(source)),
+    ]
 
 
 def test_spanref_quote_construction_and_batch_resolution():
