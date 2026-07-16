@@ -117,6 +117,7 @@ same source offsets as Markdown blocks and document sections.
 from flexdoc import Detail, Layer
 
 graph = doc.graph(
+    document="docs/guide.md",
     include={Layer.markdown, Layer.document, Layer.textual},
     detail={Detail.text, Detail.inline},
 )
@@ -179,11 +180,13 @@ structural meaning and also covers the sole boundary of an empty document; other
 positions are rejected.
 
 Store one `TextRef` or `tuple[TextRef, ...]` in a consumer-owned `source_refs` field.
-`doc.graph()` remains `DocGraph/v0.1`; `doc.graph(annotations=sidecar)` explicitly
-selects `DocGraph/v0.2` with source-relative annotation selectors. Graph embedding
-requires the sidecar's `source_hash` to match the document snapshot; hash-less sidecars
-remain valid for detached storage and context-based resolution but cannot lend trusted
-position evidence to a graph.
+`doc.graph(document="docs/guide.md")` returns the single `DocGraph/v0.2` contract.
+Passing `annotations=sidecar` populates the same graph model with source-relative
+annotation selectors. The graph always carries its document and source hash, so every
+locatable node span can be materialized as a complete TextRef after retrieving and
+verifying the source. Graph embedding requires the sidecar's document and non-null
+source hash to match; hash-less sidecars remain valid for detached storage and
+context-based resolution.
 
 ### Transform Text
 

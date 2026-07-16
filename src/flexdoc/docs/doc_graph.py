@@ -7,46 +7,24 @@ It is a derived, read-only snapshot: the Python core is `FlexDoc`; edits go thro
 `FlexDoc`/source and re-derive. Authored as Pydantic models (DR-3) that emit a
 JSON Schema.
 
-This module is deliberately the only place the model uses Pydantic: validation and
-schema emission pay their way exactly at the serialization boundary, while the hot
-in-memory model (`Node`, `Block`, `SpanRef`, the editing view) stays plain dataclasses
-with no validation overhead. The split is intentional, not drift.
+Pydantic validation and schema emission sit at the wire boundary, while the hot
+in-memory parse model (`Node`, `Block`, and the editing view) stays in plain dataclasses
+with no validation overhead.
 """
 
 from __future__ import annotations
 
-import hashlib
 from collections.abc import Set as AbstractSet
 from enum import StrEnum
-from io import StringIO
-from typing import Literal
+from typing import Annotated, Literal, Self
 
-from frontmatter_format import new_yaml
-from pydantic import BaseModel, ConfigDict, Field, JsonValue
+from pydantic import BaseModel, ConfigDict, Field, JsonValue, model_validator
 
 from flexdoc.docs.collect import INLINE_KINDS
 from flexdoc.docs.node import Layer, Node, NodeKind, NodeTable
-
-_CLEAN_YAML_WIDTH = 4096
-"""Prevent ordinary scalar wrapping from introducing trailing whitespace in snapshots."""
-
-
-def _is_empty(value: object) -> bool:
-    return value is None or value == {} or value == []
-
-
-def clean_yaml(value: object) -> str:
-    """
-    Dump a plain value to clean, deterministic block-style YAML: `|` block scalars for
-    multi-line strings, field order preserved, and `None`/empty mappings/lists
-    suppressed. Shared by `DocGraph.to_yaml` and the `flexdoc.docs.debug` report so both
-    have identical formatting.
-    """
-    stream = StringIO()
-    yaml = new_yaml(suppress_vals=_is_empty, typ="rt")
-    yaml.width = _CLEAN_YAML_WIDTH
-    yaml.dump(value, stream)
-    return stream.getvalue()
+from flexdoc.docs.serialization import clean_yaml
+from flexdoc.docs.text_annotations import AnnotationSet, AnnotationSetEntry
+from flexdoc.docs.text_ref import DocRef, Position, SourceHash, normalize_source, source_hash
 
 
 class Detail(StrEnum):
@@ -62,34 +40,48 @@ class Detail(StrEnum):
     coords = "coords"
 
 
-class SourceInfo(BaseModel):
+class _StrictModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True, populate_by_name=True, strict=True)
+
+
+class SourceInfo(_StrictModel):
     """Source metadata for the document backing a `DocGraph`."""
 
-    model_config = ConfigDict(populate_by_name=True)
-
-    format: str
+    format: Annotated[str, Field(min_length=1, strict=True)]
     offset_unit: Literal["unicode_code_points"] = "unicode_code_points"
-    sha256: str
+    document: DocRef
+    source_hash: SourceHash
     text: str | None = None
 
+    @model_validator(mode="after")
+    def _text_matches_hash(self) -> Self:
+        if self.text is not None:
+            if normalize_source(self.text) != self.text:
+                raise ValueError("source text must use canonical LF line endings")
+            if source_hash(self.text) != self.source_hash:
+                raise ValueError("source text does not match source_hash")
+        return self
 
-class SourceSpan(BaseModel):
+
+class SourceSpan(_StrictModel):
     """A `[start, end)` span in Unicode code points."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    start: Position
+    end: Position
 
-    start: int
-    end: int
+    @model_validator(mode="after")
+    def _ordered(self) -> Self:
+        if self.end < self.start:
+            raise ValueError("source span end must not precede start")
+        return self
 
 
-class NodeModel(BaseModel):
+class NodeModel(_StrictModel):
     """
     Serialization model for a single node. Mirrors the runtime `Node` dataclass
     with JSON-friendly field types. `source_span` is a `{start, end}` object
     (or null for unlocatable nodes like reference links).
     """
-
-    model_config = ConfigDict(populate_by_name=True)
 
     id: str
     kind: str
@@ -103,10 +95,8 @@ class NodeModel(BaseModel):
     text: str | None = None
 
 
-class Views(BaseModel):
+class Views(_StrictModel):
     """Derived view indexes: arrays of node ids for common projections."""
-
-    model_config = ConfigDict(populate_by_name=True)
 
     toc: list[str] = Field(default_factory=list)
     blocks: list[str] = Field(default_factory=list)
@@ -115,7 +105,7 @@ class Views(BaseModel):
     sentences: list[str] = Field(default_factory=list)
 
 
-class DocGraph(BaseModel):
+class DocGraph(_StrictModel):
     """
     The DocGraph serialized projection (flexdoc-spec section 10). A single,
     source-anchored JSON object from which any view (block tree, section tree,
@@ -124,22 +114,43 @@ class DocGraph(BaseModel):
     The `schema` JSON key carries the version string; in Python it is accessed
     as `schema_` (with `Field(alias="schema")`).
 
-    `annotations`, `layout`, and `provenance` are reserved for later phases
-    (flexdoc-spec section 14): the builder never populates them and consumers
-    must not, until their schemas are defined in a future DocGraph version.
+    `annotations` contains optional source-relative annotation entries. `layout` and
+    `provenance` remain reserved for later phases (flexdoc-spec section 14).
     """
 
-    model_config = ConfigDict(populate_by_name=True)
-
-    schema_: str = Field(default="DocGraph/v0.1", alias="schema")
+    schema_: Literal["DocGraph/v0.2"] = Field(default="DocGraph/v0.2", alias="schema")
     source: SourceInfo
     nodes: list[NodeModel]
     views: Views
 
-    # Reserved layers for later phases.
-    annotations: list[object] = Field(default_factory=list)
+    annotations: list[AnnotationSetEntry] = Field(default_factory=list)
     layout: list[object] = Field(default_factory=list)
     provenance: list[object] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _validate_graph_references(self) -> Self:
+        node_ids = [node.id for node in self.nodes]
+        if len(node_ids) != len(set(node_ids)):
+            raise ValueError("DocGraph node ids must be unique")
+        known_ids = set(node_ids)
+        for node in self.nodes:
+            referenced_ids = [*node.children]
+            if node.parent is not None:
+                referenced_ids.append(node.parent)
+            if any(node_id not in known_ids for node_id in referenced_ids):
+                raise ValueError(f"node {node.id} contains a dangling node reference")
+            if self.source.text is not None and node.source_span is not None:
+                if node.source_span.end > len(self.source.text):
+                    raise ValueError(f"node {node.id} source span exceeds source text")
+                if node.text is not None:
+                    selected = self.source.text[node.source_span.start : node.source_span.end]
+                    if node.text != selected:
+                        raise ValueError(f"node {node.id} text does not match source span")
+        for view_name in ("toc", "blocks", "links", "paragraphs", "sentences"):
+            view_ids = getattr(self.views, view_name)
+            if any(node_id not in known_ids for node_id in view_ids):
+                raise ValueError(f"view {view_name} contains a dangling node reference")
+        return self
 
     def to_yaml(self) -> str:
         """
@@ -159,8 +170,10 @@ DEFAULT_INCLUDE: frozenset[Layer] = frozenset({Layer.markdown, Layer.document})
 def build_doc_graph(
     table: NodeTable,
     *,
+    document: str | DocRef,
     include: AbstractSet[Layer] = DEFAULT_INCLUDE,
     detail: AbstractSet[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
+    annotations: AnnotationSet | None = None,
 ) -> DocGraph:
     """
     Build a `DocGraph` from a `NodeTable`.
@@ -170,9 +183,13 @@ def build_doc_graph(
     structural core (ids, kinds, layer, parent/children, source_span) is
     always present for included layers.
 
+    `document` supplies the consumer-owned locator shared by every graph span.
     `detail` controls payload richness: `Detail.text` adds per-node source
     text (and includes `source.text`); `Detail.inline` includes inline nodes;
     `Detail.tokens` and `Detail.coords` are reserved for future payloads.
+
+    `annotations` optionally embeds source-relative annotation entries after verifying
+    that their shared document and source hash identify this snapshot.
     """
     # Auto-enable markdown when document is included.
     layers = set(include)
@@ -246,11 +263,22 @@ def build_doc_graph(
         if kind == NodeKind.sentence.value and layer == Layer.textual.value:
             sentence_ids.append(nm.id)
 
-    sha = hashlib.sha256(source_text.encode("utf-8")).hexdigest()
+    locator = document if isinstance(document, DocRef) else DocRef(document)
+    actual_source_hash = source_hash(source_text)
+    annotation_entries: list[AnnotationSetEntry] = []
+    if annotations is not None:
+        if annotations.document != locator:
+            raise ValueError("annotation set document does not match the DocGraph document")
+        if annotations.source_hash is None:
+            raise ValueError("annotation set source hash is required for DocGraph embedding")
+        if annotations.source_hash != actual_source_hash:
+            raise ValueError("annotation set source hash does not match the document snapshot")
+        annotation_entries = annotations.annotations
 
     source_info = SourceInfo(
         format="markdown",
-        sha256=sha,
+        document=locator,
+        source_hash=actual_source_hash,
         text=source_text if include_text else None,
     )
 
@@ -266,6 +294,7 @@ def build_doc_graph(
         source=source_info,
         nodes=node_models,
         views=views,
+        annotations=annotation_entries,
     )
 
 

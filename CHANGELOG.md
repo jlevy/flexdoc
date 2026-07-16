@@ -17,9 +17,9 @@ not a 0.3.x patch.
   resolves references with typed outcomes, retrieves structured source context, and
   renders deterministic human/LLM-readable annotation views.
 - **Consumer-owned TextRef annotations.** `TextAnnotation` and the one-document
-  `AnnotationSet` sidecar round-trip strict JSON and safe YAML. Supplying an annotation
-  set to `FlexDoc.graph()` explicitly selects schema-validated `DocGraph/v0.2`; omitting
-  it preserves `DocGraph/v0.1` exactly. The protocol and renderer add no dependencies.
+  `AnnotationSet` sidecar round-trip strict JSON and safe YAML. `DocGraph/v0.2` carries
+  required document identity and source hash in every graph, with optional typed
+  annotations in the same schema. The protocol and renderer add no dependencies.
 - **Cross-language logical word metrics.** `TextUnit.words` now measures normalized
   word-equivalent volume across natural language, CJK text, source code, URLs, and other
   punctuation-dense content. `TextUnit.raw_words` and `raw_word_count()` preserve
@@ -27,6 +27,13 @@ not a 0.3.x patch.
   dependency-free normalized primitive.
 
 ### Changed
+
+- **DocGraph has one current model and builder.** `FlexDoc.graph()` now requires a
+  consumer-owned `document` locator and always returns `DocGraph/v0.2`; annotations
+  optionally populate that same model. `DocGraphV2`, `SourceInfoV2`,
+  `build_doc_graph_v2`, the separate v0.2 schema file, and the redundant unqualified
+  `source.sha256` field are removed. Consumers use `source.source_hash`, whose
+  algorithm-qualified value is shared with TextRef.
 
 - **`TextUnit.words` changes from raw to logical semantics.** It matches the raw count
   for ordinary non-wide prose averaging 3–6 characters per word, but differs for

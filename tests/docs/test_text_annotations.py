@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import assert_type
 
 import pytest
 from pydantic import ValidationError
@@ -11,7 +10,6 @@ from flexdoc.docs import (
     AnnotationSet,
     AnnotationSetEntry,
     DocGraph,
-    DocGraphV2,
     DocRef,
     FlexDoc,
     SpanSelector,
@@ -21,7 +19,7 @@ from flexdoc.docs import (
 )
 
 SCHEMA_PATH = (
-    Path(__file__).resolve().parent.parent.parent / "src/flexdoc/docs/doc_graph_v2_schema.json"
+    Path(__file__).resolve().parent.parent.parent / "src/flexdoc/docs/doc_graph_schema.json"
 )
 
 
@@ -93,27 +91,27 @@ def test_bare_sidecar_expansion_includes_whole_document_targets():
     assert expanded.target.document == DocRef("design.md")
 
 
-def test_explicit_annotations_select_docgraph_v2_without_changing_v1():
+def test_docgraph_has_one_model_with_optional_annotations():
     doc = FlexDoc.from_text("# Alpha\n\nBody.")
     annotation = _annotation(doc)
     sidecar = AnnotationSet.from_annotations([annotation])
 
-    v1 = assert_type(doc.graph(), DocGraph)
-    v2 = assert_type(doc.graph(annotations=sidecar), DocGraphV2)
-    assert type(v1) is DocGraph
-    assert v1.schema_ == "DocGraph/v0.1"
-    assert isinstance(v2, DocGraphV2)
-    assert v2.schema_ == "DocGraph/v0.2"
-    assert v2.source.document == DocRef("design.md")
-    assert v2.source.source_hash == sidecar.source_hash
-    assert v2.annotations == sidecar.annotations
+    plain: DocGraph = doc.graph(document="design.md")
+    annotated: DocGraph = doc.graph(document="design.md", annotations=sidecar)
+    assert type(plain) is DocGraph
+    assert type(annotated) is DocGraph
+    assert plain.schema_ == annotated.schema_ == "DocGraph/v0.2"
+    assert plain.source.document == DocRef("design.md")
+    assert plain.source.source_hash == sidecar.source_hash
+    assert plain.annotations == []
+    assert annotated.annotations == sidecar.annotations
 
-    data = json.loads(v2.model_dump_json(by_alias=True))
+    data = json.loads(annotated.model_dump_json(by_alias=True))
     assert data["annotations"][0]["target"]["type"] == "span"
     assert "document" not in data["annotations"][0]["target"]
 
 
-def test_docgraph_v2_rejects_a_sidecar_for_another_snapshot():
+def test_docgraph_rejects_a_sidecar_for_another_snapshot():
     doc = FlexDoc.from_text("# Alpha\n\nBody.")
     target = TextRef(
         format="textref/0.1",
@@ -124,10 +122,14 @@ def test_docgraph_v2_rejects_a_sidecar_for_another_snapshot():
     annotation = TextAnnotation(id="stale", target=target, motivations=["commenting"])
     sidecar = AnnotationSet.from_annotations([annotation])
     with pytest.raises(ValueError, match="source hash"):
-        doc.graph(annotations=sidecar)
+        doc.graph(document="design.md", annotations=sidecar)
+
+    current = AnnotationSet.from_annotations([_annotation(doc)])
+    with pytest.raises(ValueError, match="document"):
+        doc.graph(document="other.md", annotations=current)
 
 
-def test_docgraph_v2_rejects_a_hashless_sidecar():
+def test_docgraph_rejects_a_hashless_sidecar():
     source = "Alpha repeated\n\nBeta repeated"
     doc = FlexDoc.from_text(source)
     sidecar = AnnotationSet(
@@ -148,14 +150,13 @@ def test_docgraph_v2_rejects_a_hashless_sidecar():
         ],
     )
     with pytest.raises(ValueError, match="source hash is required"):
-        doc.graph(annotations=sidecar)
+        doc.graph(document="design.md", annotations=sidecar)
 
 
-def test_docgraph_v2_json_schema_matches_committed_file():
-    current = (
-        json.dumps(DocGraphV2.model_json_schema(by_alias=True), indent=2, sort_keys=True) + "\n"
-    )
+def test_docgraph_json_schema_includes_typed_annotations():
+    current = json.dumps(DocGraph.model_json_schema(by_alias=True), indent=2, sort_keys=True) + "\n"
     assert SCHEMA_PATH.read_text() == current
+    assert '"AnnotationSetEntry"' in current
 
 
 def test_textref_annotation_and_graph_formats_compose_without_loss():
@@ -169,6 +170,6 @@ def test_textref_annotation_and_graph_formats_compose_without_loss():
     assert AnnotationSet.from_yaml(sidecar.to_yaml()) == sidecar
     assert AnnotationSet.model_validate_json(sidecar.model_dump_json()) == sidecar
 
-    graph = doc.graph(annotations=sidecar)
-    assert isinstance(graph, DocGraphV2)
-    assert DocGraphV2.model_validate_json(graph.model_dump_json(by_alias=True)) == graph
+    graph = doc.graph(document="design.md", annotations=sidecar)
+    assert type(graph) is DocGraph
+    assert DocGraph.model_validate_json(graph.model_dump_json(by_alias=True)) == graph

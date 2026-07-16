@@ -11,7 +11,7 @@ from collections.abc import Set as AbstractSet
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import TYPE_CHECKING, TypeVar, cast, overload
+from typing import TYPE_CHECKING, TypeVar, cast
 
 import regex
 from flowmark import flowmark_markdown
@@ -52,7 +52,7 @@ from flexdoc.docs.wordtoks import (
 )
 
 if TYPE_CHECKING:
-    from flexdoc.docs.text_annotations import AnnotationSet, DocGraphV2
+    from flexdoc.docs.text_annotations import AnnotationSet
     from flexdoc.docs.text_ref import DocRef
     from flexdoc.docs.text_ref_context import TextRefContext
 
@@ -983,48 +983,27 @@ class FlexDoc:
             layer=layer,
         )
 
-    @overload
     def graph(
         self,
         *,
-        include: AbstractSet[Layer] | None = None,
-        detail: AbstractSet[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
-        annotations: None = None,
-    ) -> DocGraph: ...
-
-    @overload
-    def graph(
-        self,
-        *,
-        include: AbstractSet[Layer] | None = None,
-        detail: AbstractSet[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
-        annotations: AnnotationSet,
-    ) -> DocGraphV2: ...
-
-    def graph(
-        self,
-        *,
+        document: str | DocRef,
         include: AbstractSet[Layer] | None = None,
         detail: AbstractSet[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
         annotations: AnnotationSet | None = None,
-    ) -> DocGraph | DocGraphV2:
+    ) -> DocGraph:
         """
-        Build a `DocGraph` projection of this document. `include` selects which
-        layers to serialize (default: markdown + document); `detail` controls
-        payload richness (see `Detail`). Supplying an annotation set explicitly
-        selects `DocGraph/v0.2`; omission preserves `DocGraph/v0.1` exactly.
+        Build the current `DocGraph` projection. `document` supplies the shared DocRef;
+        `include` selects layers (default: markdown and document); `detail` controls
+        payload richness; and `annotations` optionally embeds a matching sidecar.
         """
         effective_include = include if include is not None else DEFAULT_INCLUDE
-        if annotations is not None:
-            from flexdoc.docs.text_annotations import build_doc_graph_v2
-
-            return build_doc_graph_v2(
-                self.node_table(),
-                annotations,
-                include=effective_include,
-                detail=detail,
-            )
-        return build_doc_graph(self.node_table(), include=effective_include, detail=detail)
+        return build_doc_graph(
+            self.node_table(),
+            document=document,
+            include=effective_include,
+            detail=detail,
+            annotations=annotations,
+        )
 
     @override
     def __str__(self):

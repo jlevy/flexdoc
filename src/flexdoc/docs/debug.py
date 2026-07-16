@@ -10,8 +10,8 @@ diff-friendly:
 - `doc_report(doc)` — a multi-view YAML report: source stats, the base-block partition
   with a live cover check, sections/TOC, the full node table (all layers), links by
   section, and SpanRef round-trips.
-- `doc_graph_yaml(doc)` — the `DocGraph` projection as clean YAML.
-- `dump_views(doc, dest)` — write the standard artifact set (`report.yaml`,
+- `doc_graph_yaml(doc, document=...)` — the `DocGraph` projection as clean YAML.
+- `dump_views(doc, dest, document=...)` — write the standard artifact set (`report.yaml`,
   `docgraph.yaml`, `reassembled.md`) into a directory.
 
 Spans are rendered as compact `"start:end"` strings (Unicode code points), matching the
@@ -26,11 +26,12 @@ from typing import Any
 
 from strif import atomic_output_file
 
-from flexdoc.docs.doc_graph import clean_yaml
 from flexdoc.docs.flex_doc import FlexDoc
 from flexdoc.docs.node import NodeKind
+from flexdoc.docs.serialization import clean_yaml
 from flexdoc.docs.sizes import TextUnit
 from flexdoc.docs.span_ref import SpanRef
+from flexdoc.docs.text_ref import DocRef
 
 # Inline kinds that carry a locatable span worth round-tripping through SpanRef.
 _LOCATABLE_INLINE = frozenset({NodeKind.link, NodeKind.image, NodeKind.code_span})
@@ -157,12 +158,18 @@ def doc_report(doc: FlexDoc, *, item_partition_depth: int = 6) -> str:
     return clean_yaml(doc_report_data(doc, item_partition_depth=item_partition_depth))
 
 
-def doc_graph_yaml(doc: FlexDoc) -> str:
+def doc_graph_yaml(doc: FlexDoc, *, document: str | DocRef) -> str:
     """The default `DocGraph` projection (markdown + document layers) as clean YAML."""
-    return doc.graph().to_yaml()
+    return doc.graph(document=document).to_yaml()
 
 
-def dump_views(doc: FlexDoc, dest: Path | str, *, item_partition_depth: int = 6) -> None:
+def dump_views(
+    doc: FlexDoc,
+    dest: Path | str,
+    *,
+    document: str | DocRef,
+    item_partition_depth: int = 6,
+) -> None:
     """
     Write the standard artifact set for `doc` into directory `dest`: `report.yaml`,
     `docgraph.yaml`, and `reassembled.md`. Files are written atomically.
@@ -171,7 +178,7 @@ def dump_views(doc: FlexDoc, dest: Path | str, *, item_partition_depth: int = 6)
     dest.mkdir(parents=True, exist_ok=True)
     artifacts = {
         "report.yaml": doc_report(doc, item_partition_depth=item_partition_depth),
-        "docgraph.yaml": doc_graph_yaml(doc),
+        "docgraph.yaml": doc_graph_yaml(doc, document=document),
         "reassembled.md": doc.reassemble(),
     }
     for name, content in artifacts.items():

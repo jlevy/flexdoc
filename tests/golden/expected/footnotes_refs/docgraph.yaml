@@ -1,8 +1,9 @@
-schema: DocGraph/v0.1
+schema: DocGraph/v0.2
 source:
   format: markdown
   offset_unit: unicode_code_points
-  sha256: 015b6ed2fc3e737e57d44027a23c77ad6e7422232cb0b8fdcd9be34f36b55f4f
+  document: tests/golden/documents/footnotes_refs.md
+  source_hash: sha256:015b6ed2fc3e737e57d44027a23c77ad6e7422232cb0b8fdcd9be34f36b55f4f
 nodes:
 - id: n0001
   kind: heading

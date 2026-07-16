@@ -1,8 +1,9 @@
-schema: DocGraph/v0.1
+schema: DocGraph/v0.2
 source:
   format: markdown
   offset_unit: unicode_code_points
-  sha256: fa6743b2e12eeced64dce029aacadcfeec92ef5115a81e5f21d2aa3b4f54dbca
+  document: tests/golden/documents/preamble_only.md
+  source_hash: sha256:fa6743b2e12eeced64dce029aacadcfeec92ef5115a81e5f21d2aa3b4f54dbca
 nodes:
 - id: n0001
   kind: paragraph

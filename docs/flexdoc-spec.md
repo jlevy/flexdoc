@@ -141,8 +141,9 @@ follow from them. Decisions throughout this spec cite the principle they serve.
 - **P17. Lenient input, strict contracts, visible degradation**—parsing never throws on
   malformed input; it degrades to deterministic, documented best-effort structure (see
   Error posture below).
-- **P18. Additive evolution**—existing diff/window/wordtok behavior preserved; new
-  layers and details are additive.
+- **P18. Explicit evolution.** Serialized contracts carry format versions; runtime APIs
+  model the current contract directly instead of accumulating version-suffixed types.
+  New layers and details remain composable additions when their semantics are additive.
 
 ### Error posture
 
@@ -205,8 +206,9 @@ Each goal realizes the principle(s) noted.
   units, reassemble, serialize a clean normalized document.
 - **LLM/agent-friendly, Python-first, Rust-portable** (P5). Ergonomic from Python and
   from LLM/agent code; a tight spec and thorough tests make a Rust port feasible.
-- **Minimal dependencies; additive** (P18). Existing diff/window/wordtok behavior
-  preserved.
+- **Minimal dependencies; explicit evolution** (P18). Keep the model small, version
+  wire contracts visibly, and keep compatibility history out of the current runtime
+  vocabulary.
 
 ## 3. The Normalized Form
 
@@ -820,107 +822,248 @@ content units.
 
 ## 10. DocGraph: The Serialized Projection
 
-`DocGraph` is the JSON contract derived from `FlexDoc`, authored as Pydantic models that
-emit a JSON Schema. It is parser-agnostic: no marko/Python class names in stable fields.
-Shape (abbreviated):
+`DocGraph` is the strict, language-neutral JSON projection of one `FlexDoc` source
+snapshot. It contains one node table, derived node-id views, and enough shared source
+identity to turn every locatable node back into a complete TextRef (§11). Python class
+names and parser implementation details are not part of the wire contract.
 
-```
+The current shape is:
+
+```text
 DocGraph = {
-  schema: "DocGraph/v0.1",
-  source:  { format, offset_unit: "unicode_code_points", sha256, text? },
-  nodes:   [ Node, ... ],                       # the canonical node table
-  views:   { toc, blocks, links, paragraphs, sentences }, # node-id projections
-  annotations: [],  layout: [],  provenance: [] # reserved layers (later phases)
+  schema: "DocGraph/v0.2",
+  source: {
+    format,
+    offset_unit: "unicode_code_points",
+    document,
+    source_hash,
+    text?
+  },
+  nodes: [Node, ...],
+  views: {toc, blocks, links, paragraphs, sentences},
+  annotations: [AnnotationSetEntry, ...],
+  layout: [],
+  provenance: []
 }
 ```
 
-`FlexDoc.graph(*, include=..., detail=...)` builds/serializes it.
-**What is built and serialized is controlled by two composable axes**, not a fixed
-ladder:
+There is one runtime `DocGraph` model and one builder. The version belongs in the
+serialized `schema` field, not in Python class names. `document` and `source_hash` are
+required even when `annotations` is empty because they define what every
+`source_span` means outside the creating process. `source_hash` is the
+algorithm-qualified hash defined in §11.1; there is no second, redundant digest field.
+
+`FlexDoc.graph(document=..., include=..., detail=..., annotations=...)` builds the
+projection. The caller supplies the document locator because source text alone cannot
+identify where another process should retrieve it. If annotations are embedded, their
+sidecar document and non-null source hash must match the graph source exactly.
+
+### Source Spans as a Reference Basis
+
+Every locatable node carries `source_span: {start, end}` in the graph's shared Unicode
+code-point offset space. Together with `source.document` and `source.source_hash`, this
+is a compact **reference basis**, not a second reference format. To materialize a
+TextRef for a node, a client:
+
+1. Uses `source.text` when present, or retrieves canonical source through
+   `source.document`.
+2. Verifies that source against `source.source_hash`.
+3. Slices `[start, end)` to obtain the exact quote and immediate context.
+4. Constructs the span or semantic section selector described in §11.
+
+The same derivation is exposed in Python by `TextRefContext.for_target()`. A client must
+not persist only a node id or raw offsets: node ids are graph-local and positions alone
+lose meaning when the source changes. An unlocatable node has `source_span: null` and
+cannot be converted to a source TextRef without another explicit adapter.
+
+### Projection Controls
+
+Two composable axes control what is built, without changing the graph type:
 
 ```python
-graph()                                                  # default layers, structural core
-graph(include={Layer.markdown, Layer.document})          # blocks and sections
-graph(include={Layer.markdown}, detail={Detail.text, Detail.inline})  # add node text and inline
-graph(include={Layer.markdown, Layer.document, Layer.textual})  # add paragraphs/sentences
+doc.graph(document="docs/design.md")
+doc.graph(document="docs/design.md", include={Layer.markdown})
+doc.graph(
+    document="docs/design.md",
+    include={Layer.markdown, Layer.document, Layer.textual},
+    detail={Detail.text, Detail.inline},
+    annotations=annotation_set,
+)
 ```
 
-- **`include` is a set of `Layer`s:** the parse dimensions of §3: `textual`, `markdown`,
-  `document`, `synthetic`, later `annotations`/`layout`. Enabling a layer builds and
-  serializes its nodes/views; enabling `document` auto-enables its dependency
-  `markdown`.
-- **`detail` is a small set of payload sub-options:** `text` (per-node source text),
-  `inline` (inline nodes), `tokens`, derived coords, controlling richness *within*
-  enabled layers.
+- **`include`** selects parse layers. Enabling `document` also enables its `markdown`
+  dependency.
+- **`detail`** selects payloads within enabled layers. `text` includes the canonical
+  source and per-node slices; `inline` includes inline nodes. `tokens` and `coords` are
+  reserved payload categories.
+- **`annotations`** optionally embeds consumer-owned annotation entries. It is data in
+  the same graph contract, not a different graph model.
 
-The structural core (node table, `layer`, and spans) is always present.
-Presets are caller-defined `frozenset`s, documented as examples.
-A new parse dimension is one additive `Layer`; a new payload category is one additive
-`Detail`, never a refactor.
+The structural core—node ids, kinds, layers, tree edges, and source spans—is always
+present for included nodes. `layout` and `provenance` remain reserved until their
+schemas are specified.
 
-**Error handling—serialization.** Serialization is on the strict side of the error
-posture: `attrs` values are validated as JSON-safe at emission and violations raise
-(they indicate a builder bug, not bad input); node ids and their assignment order are
-deterministic and contract-tested so cross-language clients can reproduce them.
-There is no lenient mode for the wire format—a `DocGraph` either conforms to its schema
-or is not produced.
+**Error handling—serialization.** A `DocGraph` is produced only when it satisfies the
+schema. Invalid JSON values in `attrs`, dangling view or tree ids, malformed source
+identity, a source-text/hash mismatch, or mismatched annotation context raises. These
+are contract violations, not malformed-Markdown degradation. Node ids and emission
+order are deterministic and contract-tested.
 
 ## 11. TextRef, SpanRef, and Annotations
 
-`TextRef` is the portable reference to a source document or a target within it:
+A source offset is useful inside one parse but is not a portable reference: it omits the
+document, becomes stale after edits, and provides no evidence for recovery. `TextRef`
+solves that problem with one small composition:
 
 ```text
-TextRef = document + optional source_hash + optional selector
+TextRef = DocRef + optional source_hash + optional selector
 selector = span | point | section
 ```
 
-The four exhaustive target kinds are `whole_document`, `span`, `point`, and `section`.
-Omitting `selector` is the compact whole-document wire form. JSON is normative; a
-canonical `textref:0.1?...` URI is a reversible transport projection of one TextRef.
-The URI never contains an annotation body or workflow state.
+The four target kinds are exhaustive: `whole_document`, `span`, `point`, and `section`.
+Omitting `selector` means the whole document. TextRef identifies *where*; annotation
+bodies, workflow state, edits, and presentation remain separate values.
 
-### Selector Semantics
+### 11.1 Canonical Source and Document Identity
 
-- **Span.** One arbitrary non-empty range in normalized source text. `SpanRef` supplies
-  its exact quote, immediate prefix and suffix, and optional code-point position.
-  Span boundaries need not align with Markdown or parser nodes.
-- **Point.** One boundary between code points, with immediate context and `before` or
-  `after` affinity. Points represent insertions, bookmarks, and zero-width comments;
-  they are not empty SpanRefs. A point without prefix or suffix context is valid only
-  at `position=0` with a source hash. Position zero is the hash-bound document-start
-  sentinel and also represents the sole boundary of an empty source; other bare
-  positions lack structural meaning and are rejected.
-- **Section.** One complete heading-owned section. A SpanRef over the starting heading
-  identifies it, an optional anchor over the next equal-or-higher heading corroborates
-  its exclusive end, and the current range is derived from the section hierarchy.
-  Interior edits therefore do not invalidate section identity.
-- **Whole document.** The complete canonical source, represented without a selector.
+TextRefs address **canonical source text**, not rendered HTML or visual layout. FlexDoc's
+canonical source profile is:
 
-Tables, cells, headings without owned content, list items, code blocks, links, and other
-parsed objects use their complete source spans. Dedicated structural selector kinds are
-added only when a concrete identity requirement cannot be preserved by a span.
+- Unicode scalar values only
+- line endings normalized to `\n`
+- offsets measured as zero-based Unicode code points
+- spans represented as half-open `[start, end)` ranges
+- hashing over the UTF-8 encoding of the complete normalized source
 
-### FlexDoc Reference Context
+`DocRef` is a non-empty, opaque locator supplied by the consumer. It may be a repository
+locator, URL, database key, path, or application identifier. FlexDoc validates the
+string but does not perform I/O or decide that `./design.md` and `design.md` are equal.
+A document store owns retrieval and any locator canonicalization.
 
-Document objects do not store materialized TextRefs. `FlexDoc.references()` binds one
-DocRef and one immutable source snapshot, computes its source hash once, and returns a
-`TextRefContext`:
+`source_hash` is optional in a detached TextRef and has the form
+`sha256:<64 lowercase hexadecimal digits>`. It proves that position evidence was made
+against one exact canonical source snapshot. It does not retrieve that snapshot and
+does not make a mutable DocRef immutable; reproducible citations need an immutable
+DocRef or consumer-owned archival provenance.
+
+### 11.2 Selector Model
+
+#### Whole Document
+
+Selector absence refers to the complete canonical source:
+
+```json
+{
+  "format": "textref/0.1",
+  "document": "docs/design.md",
+  "source_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}
+```
+
+#### Span
+
+A span selects any non-empty source range. It requires the exact selected text, may
+carry immediate prefix and suffix context, and may carry its starting position:
+
+```json
+{
+  "format": "textref/0.1",
+  "document": "docs/design.md",
+  "source_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "selector": {
+    "type": "span",
+    "exact": "Canonical source is authoritative.",
+    "prefix": "The parser guarantees that ",
+    "suffix": " Derived views are secondary.",
+    "start": 1842
+  }
+}
+```
+
+The resolved range is `[start, start + len(exact))` when that position is trusted.
+`exact` and context are durable recovery evidence; `start` is a hint unless the source
+hash matches. Boundaries may fall inside Markdown syntax or cross nodes, blocks, and
+lines. `SpanRef` is the in-memory quote/context/position value used to construct and
+resolve this selector over caller-supplied text.
+
+#### Point
+
+A point selects one boundary between code points for insertions, bookmarks, and
+zero-width comments. It is not an empty span:
+
+```json
+{
+  "format": "textref/0.1",
+  "document": "docs/design.md",
+  "source_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "selector": {
+    "type": "point",
+    "position": 1881,
+    "affinity": "before",
+    "prefix": "authoritative.",
+    "suffix": "\nDerived views"
+  }
+}
+```
+
+`prefix` ends immediately before the boundary and `suffix` begins immediately after
+it. Affinity says which side owns the point across an insertion: `before` owns the
+prefix side and `after` owns the suffix side. A point normally requires context. The
+only context-free point is hash-bound `position=0`, the document-start sentinel and the
+sole boundary of empty source.
+
+#### Section
+
+A section selects a complete CommonMark heading-owned section, including nested
+subsections. Its start anchor identifies the complete heading. An optional end anchor
+identifies the next equal-or-higher-level heading, which is excluded:
+
+```json
+{
+  "format": "textref/0.1",
+  "document": "docs/design.md",
+  "selector": {
+    "type": "section",
+    "syntax": "commonmark",
+    "start_anchor": {
+      "exact": "## TextRef Design",
+      "start": 7421
+    },
+    "end_anchor": {
+      "exact": "## Open Decisions",
+      "start": 12684
+    }
+  }
+}
+```
+
+The resolver locates the start heading, derives the current range from the parsed
+heading hierarchy, and uses the end anchor as corroborating boundary evidence. It does
+not freeze all section text into the selector, so interior edits preserve section
+identity. A text-only resolver reports `unsupported` rather than guessing the range.
+
+Headings without owned content, tables, rows, cells, list items, code blocks, links, and
+ordinary nodes use span selectors over their complete source ranges. New structural
+selector kinds are justified only when a real identity requirement cannot survive as a
+span.
+
+### 11.3 Constructing TextRefs From FlexDoc
+
+`FlexDoc.references(document=...)` binds one DocRef to one immutable FlexDoc snapshot,
+computes its source hash once, and returns a `TextRefContext`:
 
 ```python
-refs = doc.references(document="./design.md")
+refs = doc.references(document="docs/design.md")
 
 paragraph_ref = refs.for_target(doc.paragraphs[0])
 section_ref = refs.for_target(doc.sections()[0])
 link_ref = refs.for_target(doc.collect(kinds={NodeKind.link})[0])
+arbitrary_ref = refs.for_span(start, end)
+insertion_ref = refs.for_point(position, affinity="after")
+document_ref = refs.whole_document()
 ```
 
-DocRefs are opaque, consumer-owned locator strings. FlexDoc does not normalize paths or
-equate values such as `./design.md` and `design.md`; consumers that want that equivalence
-must canonicalize locators before binding them.
-
-The context supplies `for_target()`, `whole_document()`, `for_span()`, `for_point()`,
-and `for_section()`, plus resolution and context-rendering operations. The central
-mapping is:
+The central mapping is:
 
 | FlexDoc value | TextRef target |
 | --- | --- |
@@ -930,70 +1073,126 @@ mapping is:
 | Explicit source boundary | Point |
 | Complete document | Whole document |
 
-Unlocatable values such as `Node.source_span=None` fail construction visibly. Node IDs,
-line numbers, and parser identities are useful in-memory handles but never the sole
-persisted target.
+Every public value with a valid source span must map through this table. TextRefs are
+derived on demand rather than stored on parsed objects: this avoids repeating document
+and hash data and prevents stale reference objects after a reparse. Unlocatable values
+such as `Node.source_span=None`, objects from another document, reversed spans, and
+empty spans fail construction visibly.
 
-### Resolution
+Extraction and processing results remain consumer-owned. A result may retain one
+`TextRef` or `tuple[TextRef, ...]` in a `source_refs` field, allowing a scalar, summary,
+classification, chunk, search hit, diagnostic, or citation to resolve back to all of
+its evidence without FlexDoc prescribing the result schema.
 
-`SpanRef` remains the public selector over caller-supplied text. Its exact quote and
-context are durable; offsets are position hints. The existing `resolve()` method stays
-pure, and `resolve_and_update()` explicitly refreshes the position hint.
+### 11.4 Persisted and Transport Forms
 
-TextRef resolution additionally verifies the document context and optional source hash.
-It returns a typed `TextRefResolution` with independent axes:
+The strict JSON object is normative. `format` and `document` are required; selector
+objects are a discriminated union; unknown fields are rejected; extension keys must be
+namespaced under `extensions`. JSON integers are limited to the interoperable safe
+range.
+
+`TextRef.to_uri()` produces a canonical, reversible URI projection:
+
+```text
+textref:0.1?doc=docs%2Fdesign.md&hash=sha256%3A...&type=span&exact=Canonical%20source&start=1842
+```
+
+The codec uses UTF-8 percent encoding, emits fields in canonical order, encodes spaces
+as `%20`, rejects duplicates and incompatible fields, performs no I/O, and refuses URIs
+over its defined size limit. The URI contains one TextRef only. It never contains an
+annotation body or workflow state.
+
+Restricted YAML is a convenience projection for annotation sidecars. It must parse to
+the same JSON-compatible value tree before strict model validation; YAML tags,
+duplicate keys, and YAML-specific value semantics are not part of the format.
+
+### 11.5 Resolution
+
+Resolution separates document retrieval, snapshot validation, and selector matching so
+callers can distinguish stale content from missing or ambiguous targets:
 
 | Axis | Values |
 | --- | --- |
 | Document | `resolved`, `unavailable`, `invalid` |
 | Source validation | `absent`, `matched`, `mismatched` |
 | Selector | `whole_document`, `resolved`, `missing`, `ambiguous`, `boundary_mismatched`, `unsupported` |
-| Method | Source position, contextual position, exact quote, contextual quote, point context or affinity, section structure or anchors, or none |
+| Method | `source_position`, `context_position`, `exact_quote`, `context_quote`, `point_context`, `point_affinity`, `section_structure`, `section_anchors`, `none` |
 
-`TextRefContext.resolve()` operates on an available bound snapshot, so it emits
-`resolved` or `invalid` document status. `unavailable` is reserved for consumer-owned
-document stores that cannot retrieve the requested DocRef.
+A consumer first retrieves the requested DocRef. Failure to retrieve it is
+`unavailable`; supplying a different bound document is `invalid`. The resolver then
+normalizes and hashes the source, records whether the optional hash is absent, matched,
+or mismatched, and applies the selector's evidence ladder:
 
-Exact span resolution tries a source-bound position, corroborated position, unique exact
-quote, and contextual disambiguation in that order. Point and section selectors use
-equally conservative evidence ladders. Resolution never chooses an arbitrary duplicate.
-Normalized and fuzzy policies may be added later without changing persisted TextRefs.
+- **Span:** hash-bound position, position corroborated by quote/context, unique exact
+  quote, then exact quote disambiguated by immediate context.
+- **Point:** hash-bound position, corroborated position, two-sided boundary context,
+  then sufficiently strong affinity-owned context.
+- **Section:** resolve the heading anchors, derive the range from CommonMark structure,
+  and verify the optional exclusive-end anchor.
+- **Whole document:** return `[0, len(source))` after document and source validation.
 
-### Annotations and Context Views
+Resolution never chooses an arbitrary duplicate. Missing, ambiguous, unsupported, and
+boundary-mismatched results are ordinary typed outcomes because a caller may display,
+retry, or reconcile them. Exact resolution is deterministic. Future normalized or
+fuzzy policies may consume the same persisted evidence but must report their method and
+must not silently rewrite the stored target.
 
-TextRef answers *where*. A consumer-owned annotation envelope answers *what is said or
-proposed there*. The initial envelope has an independent ID, one TextRef target, one or
-more motivations, an optional typed plain-text body, and optional style, tags,
-`captured_text`, and import provenance. Several annotations may share one target;
-consumers needing multiple targets retain multiple TextRefs.
+### 11.6 Source Context and LLM-Friendly Rendering
 
-Annotations are supplied to FlexDoc for rendering or serialization rather than stored
-as mutable `FlexDoc` state. `TextAnnotation` carries the complete target;
-`AnnotationSet` is the strict JSON/YAML one-document sidecar that hoists `document` and
-`source_hash`, stores bare selectors, and expands them to complete TextRefs before
-resolution. Annotation IDs are unique within a set. `doc.graph(annotations=sidecar)`
-selects `DocGraph/v0.2`; omitting `annotations` preserves v0.1 exactly. Graph embedding
-requires a non-null sidecar source hash that matches the document snapshot. A hash-less
-sidecar remains valid for detached storage and conservative context-based resolution,
-but cannot gain trusted position evidence from a graph's source metadata.
+`TextRefContext.context()` resolves a reference and returns structured selected source,
+the resolved range, surrounding source lines, one-based line and code-point-column
+labels, and resolution evidence. Lines and columns are display values, not persisted
+selectors.
 
-`TextRefContext.context()` returns structured selected source, surrounding lines,
-one-based line and code-point-column labels, and resolution evidence. Deterministic
-`render_context()` and `render_annotations()` add bounded quotes and optional bodies
-beside merged line-numbered source windows, with explicit elision. Missing, ambiguous,
-unsupported, boundary-mismatched, and orphaned targets are grouped separately. This is
-a human- and LLM-readable projection, not persisted state or an interchange format.
+`render_context()` produces a bounded Markdown-compatible view containing the document,
+target kind, TextRef URI, resolution status, exact quote, and line-numbered source
+window. `render_annotations()` merges overlapping windows, places stable annotation IDs
+and bodies beside their targets, uses explicit elision, and groups unresolved targets
+separately. These views are deterministic and readable by humans and LLMs, but they are
+derived presentation and are never parsed back as authoritative records.
 
-Rendered-text browser fragments remain an explicit adapter concern. Browsers match
-rendered page text rather than Markdown source, so source TextRefs are never silently
-reinterpreted as rendered selectors.
+This supports two distinct operations with the same reference:
 
-**Error handling—references.** Construction rejects malformed selectors and
-unlocatable objects. Resolution failure is a typed value because callers can display,
-retry, or reconcile it. Schema violations, invalid URIs, and internal source-span
-invariant failures raise because they indicate invalid contracts rather than ordinary
-missing targets. The current nullable `SpanRef.resolve()` remains available for
-compatibility; persisted workflows use typed TextRef results.
+- retrieve context around a cited or extracted source span without an annotation
+- render an annotation together with its target and surrounding document context
+
+### 11.7 Annotations
+
+TextRef answers *where*. A consumer-owned annotation answers *what is said or proposed
+there*. `TextAnnotation` contains an independent ID, one complete TextRef target, one or
+more motivations, an optional discriminated plain-text body, and optional style, tags,
+`captured_text`, and import provenance. Multiple annotations may share one target;
+multiple targets remain multiple TextRefs.
+
+`AnnotationSet` is a strict one-document JSON/YAML sidecar. It hoists `document` and
+optional `source_hash`, stores bare selectors under each annotation, and expands them
+mechanically to complete TextRefs before resolution. A null target represents the whole
+document. Annotation IDs are unique within a set.
+
+Annotations remain outside mutable `FlexDoc` state. Callers pass them to context
+rendering or `FlexDoc.graph()`. A detached, hash-less sidecar may resolve conservatively
+through quote and context. Embedding a sidecar in DocGraph requires its non-null hash
+and document to match the graph snapshot because the graph's shared source identity
+then binds every bare selector.
+
+Annotation workflow status, review history, synchronization state, edit operations,
+and publication metadata are not part of TextRef. Suggested edits use TextRef as their
+target but define replacement, validation, ordering, and application semantics in a
+separate typed envelope. Automatic edit application requires a matching base source
+hash.
+
+### 11.8 Representation Boundaries and Errors
+
+Source TextRefs never silently become rendered-page selectors. Browser text fragments,
+DOM paths, PDF coordinates, and Git line links address different representations and
+require explicit directional adapters with visible refusal when a faithful mapping is
+not possible.
+
+Construction, schema parsing, and URI parsing raise on invalid contracts: malformed
+DocRefs or hashes, empty required quotes, invalid selector combinations, unknown fields,
+unlocatable source objects, and out-of-range spans. Resolution failures are typed
+values. Document retrieval remains consumer-owned. TextRef does not perform I/O, store
+annotation state, define an edit language, or choose a fuzzy match.
 
 ## 12. Editing and Serialization
 
@@ -1012,18 +1211,19 @@ resolves annotations through TextRef. Render helpers emit `data-node-id` /
 `data-source-span` so a rendered selection resolves to a node and thence to source.
 Selections of rendered substrings require an explicit rendered-to-source adapter.
 
-`FlexDoc.graph()` without annotations retains `DocGraph/v0.1`. Passing consumer-owned
-annotations explicitly selects `DocGraph/v0.2`; the graph supplies shared document and
-source-hash context for its embedded selectors only after verifying the sidecar carries
-the same hash. Detached annotations carry complete TextRefs.
+`FlexDoc.graph(document=...)` always returns the current `DocGraph` contract. Supplying
+consumer-owned annotations populates its annotation list after verifying that the
+sidecar document and source hash match. Detached annotations carry complete TextRefs;
+embedded entries use the graph's shared source identity.
 
 ## 13. Invariants and Non-Goals
 
 Invariants: offset-anchored (code points), the source and offset space being the
 canonical substrate (P1); node ids stable within a parse; derived views over one shared
-parse (no duplicated content, no stored counts), the node table among them; references
-are source-grounded and resolve conservatively; annotations do not change target
-identity; additive (existing behavior preserved).
+parse (no duplicated content, no stored counts), the node table among them; every
+locatable value has a deterministic TextRef mapping; references are source-grounded and
+resolve conservatively; annotations do not change target identity; wire evolution is
+explicit.
 
 The promoted `flexdoc.docs` namespace is the document-model surface.
 Lower-level word-token/search and diff/mapping machinery remains available only through
@@ -1044,9 +1244,8 @@ a heuristic); a thread-safety layer.
 structural edits** (move/wrap/splice anchored on TextRef, generalizing today’s
 tag-region edit helpers) are deferred phases, not excluded.
 The operation, provenance, and layout layers are likewise schema-reserved and built
-later. TextRef and the small annotation profile are specified for the 0.4 phase. The
-hooks already in place (the `layer` field, offset-containment `collect()`, and shared
-source coordinates) keep these additive rather than a redesign.
+later. The hooks already in place (the `layer` field, offset-containment `collect()`,
+and shared source coordinates) let those layers compose with the current design.
 §14 states each phase’s current status and where it is tracked.
 
 ### Pitfalls and key decisions
@@ -1108,10 +1307,12 @@ Non-obvious choices, each grounded in a principle:
 - The recursive node table with deterministic contiguous-preorder ids (contract-tested)
   and strict layer-nesting validation at build (§4.3); JSON-safe `attrs` validated at
   serialization; the single `collect()` query primitive (§9); composable
-  `include`/`detail` serialization (§10); the `DocGraph` Pydantic schema
-  ("DocGraph/v0.1").
-- The `SpanRef` contract with exact and prefix/suffix quote resolution and
-  percent-encoded text-fragment export (§11).
+  `include`/`detail` serialization; and the unified `DocGraph/v0.2` Pydantic schema with
+  required document identity, source hash, and optional typed annotations (§10).
+- The `SpanRef`, DocRef, and TextRef contracts; span, point, section, and whole-document
+  construction; canonical JSON and URI forms; document-bound mapping and typed exact
+  resolution; contextual rendering; the annotation envelope and sidecar; and graph
+  embedding (§11).
 
 **Specified here, not yet implemented (tracked by active plans and repo beads and
 summarized in `TODO.md`):**
@@ -1125,10 +1326,6 @@ summarized in `TODO.md`):**
   boundaries, and the moved test suite.
   Moderate difficulty; no changes to the node table, `collect()`, or the schema are
   expected (the `synthetic` layer value is already reserved).
-- **Native TextRef integration** (§11): DocRef and TextRef values, point and section
-  selectors, the document-bound reference context, typed resolution, contextual
-  rendering, the small annotation profile, and `DocGraph/v0.2`. Tracked in
-  `plan-2026-07-14-native-textref-integration.md` and `flexdoc-4imy`.
 - **Cross-layer structural edits** (§13): operations anchored on TextRef.
 - **Normalized and fuzzy TextRef re-anchoring** (§11), after exact resolution has an
   edited-document corpus.
@@ -1170,7 +1367,9 @@ This spec stands alone; the following are background, not dependencies.
   (`build_node_table`), `collect.py` (the `collect()` primitive), and
   `interval_index.py`; serialization is `doc_graph.py` (the `DocGraph` schema and
   builder) with the render helpers in `render.py` and reports in `debug.py`; references
-  are `span_ref.py` (`SpanRef` and resolvers).
+  are `span_ref.py` (`SpanRef`), `text_ref.py` (the wire values and exact resolver),
+  `text_ref_context.py` (FlexDoc mapping, context, and rendering), and
+  `text_annotations.py` (annotation envelopes and sidecars).
   Supporting modules: `base_blocks.py` (the sequential partition), `sizes.py`
   (`TextUnit`), `frontmatter.py` (frontmatter isolation), and the wordtok/diff machinery
   in `wordtoks.py`, `token_diffs.py`, `token_mapping.py`, `search_tokens.py`.

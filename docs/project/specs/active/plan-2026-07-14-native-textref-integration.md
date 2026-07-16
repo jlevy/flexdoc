@@ -1,6 +1,6 @@
 # Feature: Native TextRef Integration
 
-**Date:** 2026-07-14 (last updated 2026-07-14)
+**Date:** 2026-07-14 (last updated 2026-07-16)
 
 **Author:** Joshua Levy and Codex
 
@@ -47,8 +47,8 @@ union without changing these branches.
 - Support small annotation envelopes and deterministic, text-friendly contextual views
 - Let extraction, search, chunking, diagnostics, and language-model workflows retain
   one or more TextRefs as provenance
-- Preserve `DocGraph/v0.1` and introduce typed annotations only through an explicit
-  `DocGraph/v0.2` path
+- Make one `DocGraph` contract source-identifying by default, so every serialized
+  source span has a direct TextRef derivation path whether or not annotations are present
 
 ## Non-Goals
 
@@ -78,6 +78,7 @@ adapter and rendering surfaces required by concrete clients.
 
 - `flexdoc-4imy`: implementation epic for this specification
 - `flexdoc-6582`: parent Phase 2 and 0.4.0 release epic
+- `flexdoc-9vfo`: unified DocGraph and self-contained specification follow-up
 
 | Order | Bead | Implementation slice | Blocked by |
 | --- | --- | --- | --- |
@@ -85,7 +86,7 @@ adapter and rendering surfaces required by concrete clients.
 | 2 | `flexdoc-rbvu` | Typed exact span, point, and section resolution | `flexdoc-7yos` |
 | 3 | `flexdoc-gupc` | `TextRefContext` and FlexDoc target adapters | `flexdoc-rbvu` |
 | 4a | `flexdoc-qw7n` | Structured source context and display coordinates | `flexdoc-gupc` |
-| 4b | `flexdoc-jl5b` | Annotation profile, sidecar, and `DocGraph/v0.2` | `flexdoc-7yos` |
+| 4b | `flexdoc-jl5b` | Annotation profile, sidecar, and initial DocGraph integration | `flexdoc-7yos` |
 | 5 | `flexdoc-ktl3` | Deterministic TextRef and annotation rendering | `flexdoc-qw7n`, `flexdoc-jl5b` |
 | 6 | `flexdoc-1nex` | Workflow examples, goldens, and compatibility validation | `flexdoc-ktl3` |
 
@@ -234,11 +235,16 @@ JSON is the normative TextRef value model. A canonical `textref:0.1?...` URI is 
 reversible projection of one TextRef and never carries an annotation body. Restricted
 YAML is available for concise one-document annotation sets.
 
-`FlexDoc.graph()` without annotations keeps its current `DocGraph/v0.1` behavior.
-Passing annotations explicitly selects `DocGraph/v0.2`, whose source context supplies
-the document and source hash for embedded bare selectors after verifying the sidecar's
-matching non-null source hash. Typed overloads preserve the v0.1 `DocGraph` return for
-calls without annotations. Detached annotations retain complete TextRefs.
+`FlexDoc.graph(document=...)` always returns the current `DocGraph/v0.2` model. Its
+source contains the required DocRef and algorithm-qualified source hash, so every node
+source span has the same reference basis. Passing annotations populates the same graph
+after verifying the sidecar's matching document and non-null source hash. Embedded
+annotations use bare selectors relative to that shared identity; detached annotations
+retain complete TextRefs.
+
+A graph client materializes a node TextRef by retrieving the source through the graph's
+DocRef (or using embedded source text), verifying the hash, slicing the node span for
+quote and context evidence, and combining that selector with the shared identity.
 
 `SpanRef.to_text_fragment()` remains compatible in the 0.4 release. New browser
 navigation work uses an explicit rendered-text adapter and refusal rules rather than
@@ -253,14 +259,15 @@ classifications, redactions, review comments, and suggested-edit envelopes.
 
 ## Compatibility Requirements
 
-- **Library APIs:** Additive for 0.4. Existing `SpanRef` construction, resolution, and
-  text-fragment methods remain available.
-- **Serialized formats:** `DocGraph/v0.1` retains its meaning. TextRef and
-  `DocGraph/v0.2` are new strict formats with explicit version fields.
-- **Source coordinates:** Continue using normalized Unicode code-point offsets.
-- **Annotation state:** No migration because the reserved v0.1 annotation list has no
-  defined populated schema.
-- **Dependencies:** Add none for the protocol or rendering core.
+- **Library APIs:** `FlexDoc.graph()` requires a document locator and returns the single
+  `DocGraph` model for every call. Source metadata and graph building likewise have one
+  current type and one path.
+- **Serialized formats:** The current format is `DocGraph/v0.2`, with required source
+  identity and typed annotations in the same schema.
+- **Source coordinates:** Keep normalized Unicode code-point offsets.
+- **Annotation state:** No migration is required because the old reserved annotation
+  list had no defined populated schema.
+- **Dependencies:** Add none.
 
 ## Implementation Plan
 
@@ -278,11 +285,19 @@ classifications, redactions, review comments, and suggested-edit envelopes.
 - [x] `flexdoc-qw7n`: add bounded structured source context and derived line/column
   labels for every resolution outcome
 - [x] `flexdoc-jl5b`: add the consumer-owned annotation profile, one-document sidecar,
-  and explicit `DocGraph/v0.2` path while preserving v0.1
+  and initial DocGraph annotation path
 - [x] `flexdoc-ktl3`: add deterministic single-reference and batch annotation context
   rendering with explicit elision and unresolved groups
 - [x] `flexdoc-1nex`: add cross-format goldens and runnable extraction, retrieval,
   annotation, citation, and edit-target workflows
+
+### Phase 3: Unified Contract and Specification
+
+- [x] `flexdoc-dk2p`: specify TextRef from canonical source and identity through
+  construction, transport, resolution, context rendering, annotations, and DocGraph
+- [x] `flexdoc-cvjr`: collapse the compatibility-driven graph types and builders into
+  one source-identifying `DocGraph/v0.2` contract
+- [x] `flexdoc-21rr`: align exports, schemas, tests, goldens, usage, and examples
 
 ## Testing Strategy
 
@@ -293,16 +308,16 @@ classifications, redactions, review comments, and suggested-edit envelopes.
 - Use shared JSON fixtures for canonical wire and URI round trips
 - Use the document golden corpus for cross-view source-span-to-TextRef invariants
 - Golden-test contextual views, merged windows, explicit elision, and unresolved groups
-- Preserve root-export and `DocGraph/v0.1` compatibility tests
+- Pin the single root export and `DocGraph/v0.2` JSON Schema
 - Run `make lint` and `make test` after each implementation slice
 
 ## Rollout Plan
 
-1. Land the core types and FlexDoc reference context without populating annotations.
-2. Land contextual rendering, the annotation profile, and `DocGraph/v0.2` behind
-   explicit APIs.
-3. Validate the complete workflows through runnable examples before publishing 0.4.0.
-4. Extract a standalone package only when a TypeScript or other second-language
+1. Land the core types and FlexDoc reference context.
+2. Land contextual rendering and the annotation profile.
+3. Replace the compatibility-driven graph split with one source-identifying contract.
+4. Validate the complete workflows through runnable examples before publishing 0.4.0.
+5. Extract a standalone package only when a TypeScript or other second-language
    consumer requires the persisted format.
 
 ## Chosen Presentation Limits

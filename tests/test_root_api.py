@@ -18,7 +18,6 @@ def test_root_exports_are_the_canonical_objects():
     assert flexdoc.AnnotationSet is flexdoc.docs.AnnotationSet
     assert flexdoc.FlexDoc is flexdoc.docs.FlexDoc
     assert flexdoc.DocGraph is flexdoc.docs.DocGraph
-    assert flexdoc.DocGraphV2 is flexdoc.docs.DocGraphV2
     assert flexdoc.Detail is flexdoc.docs.Detail
     assert flexdoc.SpanRef is flexdoc.docs.SpanRef
     assert flexdoc.BlockType is flexdoc.docs.BlockType
@@ -39,7 +38,6 @@ def test_root_surface_is_deliberate():
         "BlockType",
         "Detail",
         "DocGraph",
-        "DocGraphV2",
         "DocRef",
         "FlexDoc",
         "Layer",
@@ -70,7 +68,6 @@ def test_docs_surface_promotes_the_document_model_only():
         "DEFAULT_INCLUDE",
         "Detail",
         "DocGraph",
-        "DocGraphV2",
         "DocRef",
         "DocumentStatus",
         "FlexDoc",
@@ -99,7 +96,6 @@ def test_docs_surface_promotes_the_document_model_only():
         "Sentence",
         "SourceCoordinate",
         "SourceInfo",
-        "SourceInfoV2",
         "SourceLine",
         "SourceRange",
         "SourceValidation",
@@ -119,7 +115,6 @@ def test_docs_surface_promotes_the_document_model_only():
         "base_blocks",
         "block_type_for",
         "build_doc_graph",
-        "build_doc_graph_v2",
         "build_node_table",
         "collect",
         "doc_graph_yaml",

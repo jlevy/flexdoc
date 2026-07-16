@@ -3,24 +3,14 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from collections.abc import Set as AbstractSet
 from io import StringIO
 from typing import Literal, Self
 
 from frontmatter_format import new_yaml
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
 
-from flexdoc.docs.doc_graph import (
-    DEFAULT_INCLUDE,
-    Detail,
-    NodeModel,
-    SourceInfo,
-    Views,
-    build_doc_graph,
-    clean_yaml,
-)
-from flexdoc.docs.node import Layer, NodeTable
-from flexdoc.docs.text_ref import DocRef, Selector, TextRef, source_hash
+from flexdoc.docs.serialization import clean_yaml
+from flexdoc.docs.text_ref import DocRef, Selector, SourceHash, TextRef
 
 ANNOTATION_FORMAT = "text-annotations/0.1"
 
@@ -89,17 +79,11 @@ class AnnotationSet(_StrictModel):
 
     format: Literal["text-annotations/0.1"]
     document: DocRef
-    source_hash: str | None = None
+    source_hash: SourceHash | None = None
     annotations: list[AnnotationSetEntry] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _validate_set(self) -> Self:
-        if self.source_hash is not None:
-            TextRef(
-                format="textref/0.1",
-                document=self.document,
-                source_hash=self.source_hash,
-            )
         ids = [annotation.id for annotation in self.annotations]
         if len(ids) != len(set(ids)):
             raise ValueError("annotation ids must be unique within a set")
@@ -158,66 +142,3 @@ class AnnotationSet(_StrictModel):
         if not isinstance(loaded, dict):
             raise ValueError("annotation YAML must contain one mapping")
         return cls.model_validate(loaded)
-
-
-class SourceInfoV2(SourceInfo):
-    """DocGraph v0.2 source metadata that binds embedded bare selectors."""
-
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-    document: DocRef
-    source_hash: str
-
-    @model_validator(mode="after")
-    def _validate_source_hash(self) -> Self:
-        TextRef(
-            format="textref/0.1",
-            document=self.document,
-            source_hash=self.source_hash,
-        )
-        return self
-
-
-class DocGraphV2(BaseModel):
-    """Explicit annotation-bearing DocGraph projection; v0.1 remains unchanged."""
-
-    model_config = ConfigDict(extra="forbid", populate_by_name=True)
-
-    schema_: Literal["DocGraph/v0.2"] = Field(default="DocGraph/v0.2", alias="schema")
-    source: SourceInfoV2
-    nodes: list[NodeModel]
-    views: Views
-    annotations: list[AnnotationSetEntry]
-    layout: list[object] = Field(default_factory=list)
-    provenance: list[object] = Field(default_factory=list)
-
-    def to_yaml(self) -> str:
-        """Serialize the v0.2 projection using the deterministic DocGraph style."""
-        return clean_yaml(self.model_dump(by_alias=True, mode="json"))
-
-
-def build_doc_graph_v2(
-    table: NodeTable,
-    annotation_set: AnnotationSet,
-    *,
-    include: AbstractSet[Layer] = DEFAULT_INCLUDE,
-    detail: AbstractSet[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
-) -> DocGraphV2:
-    """Build strict DocGraph/v0.2 with source-relative annotation selectors."""
-    actual_hash = source_hash(table.source_text)
-    if annotation_set.source_hash is None:
-        raise ValueError("annotation set source hash is required for DocGraph/v0.2")
-    if annotation_set.source_hash != actual_hash:
-        raise ValueError("annotation set source hash does not match the document snapshot")
-    base = build_doc_graph(table, include=include, detail=detail)
-    source = SourceInfoV2(
-        **base.source.model_dump(),
-        document=annotation_set.document,
-        source_hash=actual_hash,
-    )
-    return DocGraphV2(
-        source=source,
-        nodes=base.nodes,
-        views=base.views,
-        annotations=annotation_set.annotations,
-    )

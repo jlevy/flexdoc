@@ -274,6 +274,7 @@
     "source_hash": {
       "anyOf": [
         {
+          "pattern": "^sha256:[0-9a-f]{64}$",
           "type": "string"
         },
         {

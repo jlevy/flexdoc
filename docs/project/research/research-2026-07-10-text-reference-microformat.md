@@ -1,10 +1,10 @@
 # Research: A Portable DocRef, SpanRef, and TextRef Microformat
 
-**Date:** 2026-07-10 (last updated 2026-07-14)
+**Date:** 2026-07-10 (last updated 2026-07-16)
 
 **Author:** Codex, synthesizing existing FlexDoc and tbd design work
 
-**Status:** Research complete; FlexDoc direction adopted, protocol details pending implementation
+**Status:** Research complete; FlexDoc direction and core protocol implemented
 
 ## Overview
 
@@ -68,8 +68,8 @@ consumer-owned adapters.
 FlexDoc adopts this direction in the
 [native TextRef integration plan](../specs/active/plan-2026-07-14-native-textref-integration.md).
 That plan settles the FlexDoc binding API, consumer ownership of annotations,
-contextual rendering boundary, and explicit `DocGraph/v0.2` path. The remaining open
-decisions below concern protocol limits, conformance details, later adapters, and
+contextual rendering boundary, and the unified `DocGraph/v0.2` contract. The remaining
+open decisions below concern protocol limits, conformance details, later adapters, and
 governance.
 
 ## Scope
@@ -3027,12 +3027,12 @@ FlexDoc should prove the TextRef shape while keeping FlexDoc-specific adapters l
   positions as hints
 - Keep `SpanRef.to_text_fragment()` compatible for 0.4 while routing new browser
   navigation work through a rendered-text adapter with explicit refusal rules
-- Add document locator, optional source hash, and typed annotation targets in
-  `DocGraph/v0.2`
+- Require document locator and source hash in `DocGraph/v0.2`, making every graph span
+  a compact reference basis
 - Keep annotations consumer-owned and pass them explicitly to FlexDoc for rendering or
   graph serialization rather than storing them as mutable `FlexDoc` state
-- Preserve `DocGraph/v0.1` when annotations are absent; explicitly supplied annotations
-  select `DocGraph/v0.2`
+- Use one `DocGraph` runtime model and builder; annotations optionally populate the same
+  `DocGraph/v0.2` wire contract
 - Use bare `span`, `point`, or `section` selectors for annotations embedded in a
   DocGraph whose enclosing source already supplies document and source-hash context
 - Use complete TextRef for annotations detached from a graph or targeting another

@@ -1,7 +1,169 @@
 {
   "$defs": {
+    "AnnotationSetEntry": {
+      "additionalProperties": false,
+      "description": "One annotation with a selector relative to its enclosing annotation set.",
+      "properties": {
+        "body": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TextBody"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "captured_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Captured Text"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "motivations": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Motivations",
+          "type": "array"
+        },
+        "provenance": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Provenance",
+          "type": "object"
+        },
+        "style": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Style"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "point": "#/$defs/PointSelector",
+                  "section": "#/$defs/SectionSelector",
+                  "span": "#/$defs/SpanSelector"
+                },
+                "propertyName": "type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SpanSelector"
+                },
+                {
+                  "$ref": "#/$defs/PointSelector"
+                },
+                {
+                  "$ref": "#/$defs/SectionSelector"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Target"
+        }
+      },
+      "required": [
+        "id",
+        "motivations",
+        "target"
+      ],
+      "title": "AnnotationSetEntry",
+      "type": "object"
+    },
+    "DocRef": {
+      "description": "A non-empty document locator. Parsing and serialization perform no I/O.",
+      "title": "DocRef",
+      "type": "string"
+    },
+    "HeadingAnchor": {
+      "additionalProperties": false,
+      "description": "Quote and position evidence for one complete CommonMark heading.",
+      "properties": {
+        "exact": {
+          "title": "Exact",
+          "type": "string"
+        },
+        "prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prefix"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "suffix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Suffix"
+        }
+      },
+      "required": [
+        "exact"
+      ],
+      "title": "HeadingAnchor",
+      "type": "object"
+    },
     "JsonValue": {},
     "NodeModel": {
+      "additionalProperties": false,
       "description": "Serialization model for a single node. Mirrors the runtime `Node` dataclass\nwith JSON-friendly field types. `source_span` is a `{start, end}` object\n(or null for unlocatable nodes like reference links).",
       "properties": {
         "attrs": {
@@ -74,10 +236,119 @@
       "title": "NodeModel",
       "type": "object"
     },
+    "PointAffinity": {
+      "description": "The side of a point that owns its identity across insertions.",
+      "enum": [
+        "before",
+        "after"
+      ],
+      "title": "PointAffinity",
+      "type": "string"
+    },
+    "PointSelector": {
+      "additionalProperties": false,
+      "description": "A zero-width source boundary with affinity and recovery context.",
+      "properties": {
+        "affinity": {
+          "$ref": "#/$defs/PointAffinity"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Position"
+        },
+        "prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prefix"
+        },
+        "suffix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Suffix"
+        },
+        "type": {
+          "const": "point",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "affinity"
+      ],
+      "title": "PointSelector",
+      "type": "object"
+    },
+    "SectionSelector": {
+      "additionalProperties": false,
+      "description": "A complete CommonMark heading section, including nested subsections.",
+      "properties": {
+        "end_anchor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HeadingAnchor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "start_anchor": {
+          "$ref": "#/$defs/HeadingAnchor"
+        },
+        "syntax": {
+          "const": "commonmark",
+          "title": "Syntax",
+          "type": "string"
+        },
+        "type": {
+          "const": "section",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "syntax",
+        "start_anchor"
+      ],
+      "title": "SectionSelector",
+      "type": "object"
+    },
     "SourceInfo": {
+      "additionalProperties": false,
       "description": "Source metadata for the document backing a `DocGraph`.",
       "properties": {
+        "document": {
+          "$ref": "#/$defs/DocRef"
+        },
         "format": {
+          "minLength": 1,
           "title": "Format",
           "type": "string"
         },
@@ -87,8 +358,9 @@
           "title": "Offset Unit",
           "type": "string"
         },
-        "sha256": {
-          "title": "Sha256",
+        "source_hash": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "title": "Source Hash",
           "type": "string"
         },
         "text": {
@@ -106,19 +378,25 @@
       },
       "required": [
         "format",
-        "sha256"
+        "document",
+        "source_hash"
       ],
       "title": "SourceInfo",
       "type": "object"
     },
     "SourceSpan": {
+      "additionalProperties": false,
       "description": "A `[start, end)` span in Unicode code points.",
       "properties": {
         "end": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
           "title": "End",
           "type": "integer"
         },
         "start": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
           "title": "Start",
           "type": "integer"
         }
@@ -130,7 +408,88 @@
       "title": "SourceSpan",
       "type": "object"
     },
+    "SpanSelector": {
+      "additionalProperties": false,
+      "description": "A non-empty arbitrary source range anchored by exact text and optional context.",
+      "properties": {
+        "exact": {
+          "title": "Exact",
+          "type": "string"
+        },
+        "prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prefix"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "suffix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Suffix"
+        },
+        "type": {
+          "const": "span",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "exact"
+      ],
+      "title": "SpanSelector",
+      "type": "object"
+    },
+    "TextBody": {
+      "additionalProperties": false,
+      "description": "A discriminated plain-text annotation body.",
+      "properties": {
+        "type": {
+          "const": "text",
+          "title": "Type",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "value"
+      ],
+      "title": "TextBody",
+      "type": "object"
+    },
     "Views": {
+      "additionalProperties": false,
       "description": "Derived view indexes: arrays of node ids for common projections.",
       "properties": {
         "blocks": {
@@ -173,10 +532,13 @@
       "type": "object"
     }
   },
-  "description": "The DocGraph serialized projection (flexdoc-spec section 10). A single,\nsource-anchored JSON object from which any view (block tree, section tree,\ninline index) and any rollup is derivable.\n\nThe `schema` JSON key carries the version string; in Python it is accessed\nas `schema_` (with `Field(alias=\"schema\")`).\n\n`annotations`, `layout`, and `provenance` are reserved for later phases\n(flexdoc-spec section 14): the builder never populates them and consumers\nmust not, until their schemas are defined in a future DocGraph version.",
+  "additionalProperties": false,
+  "description": "The DocGraph serialized projection (flexdoc-spec section 10). A single,\nsource-anchored JSON object from which any view (block tree, section tree,\ninline index) and any rollup is derivable.\n\nThe `schema` JSON key carries the version string; in Python it is accessed\nas `schema_` (with `Field(alias=\"schema\")`).\n\n`annotations` contains optional source-relative annotation entries. `layout` and\n`provenance` remain reserved for later phases (flexdoc-spec section 14).",
   "properties": {
     "annotations": {
-      "items": {},
+      "items": {
+        "$ref": "#/$defs/AnnotationSetEntry"
+      },
       "title": "Annotations",
       "type": "array"
     },
@@ -198,7 +560,8 @@
       "type": "array"
     },
     "schema": {
-      "default": "DocGraph/v0.1",
+      "const": "DocGraph/v0.2",
+      "default": "DocGraph/v0.2",
       "title": "Schema",
       "type": "string"
     },

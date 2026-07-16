@@ -67,10 +67,10 @@ def main() -> None:
     sidecar = AnnotationSet.from_annotations([annotation])
     assert AnnotationSet.from_yaml(sidecar.to_yaml()) == sidecar
 
-    graph_v1 = doc.graph()
-    graph_v2 = doc.graph(annotations=sidecar)
-    assert graph_v1.schema_ == "DocGraph/v0.1"
-    assert graph_v2.schema_ == "DocGraph/v0.2"
+    graph = doc.graph(document="reports/2025.md", annotations=sidecar)
+    assert graph.schema_ == "DocGraph/v0.2"
+    assert graph.source.document == refs.document
+    assert graph.annotations == sidecar.annotations
 
     edit = SuggestedEdit(
         target=refs.for_target(doc.paragraphs[-1]),

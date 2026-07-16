@@ -32,11 +32,8 @@ from flexdoc.docs.span_ref import SpanRef, resolve_batch
 from flexdoc.docs.text_annotations import (
     AnnotationSet,
     AnnotationSetEntry,
-    DocGraphV2,
-    SourceInfoV2,
     TextAnnotation,
     TextBody,
-    build_doc_graph_v2,
 )
 from flexdoc.docs.text_ref import (
     DocRef,
@@ -71,13 +68,10 @@ __all__ = [
     "DEFAULT_INCLUDE",
     "Detail",
     "DocGraph",
-    "DocGraphV2",
     "NodeModel",
     "SourceInfo",
-    "SourceInfoV2",
     "Views",
     "build_doc_graph",
-    "build_doc_graph_v2",
     "TextUnit",
     "Block",
     "BlockType",

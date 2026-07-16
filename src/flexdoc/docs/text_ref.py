@@ -38,11 +38,14 @@ _MAX_TEXTREF_URI_LENGTH = 8_192
 _MIN_POINT_AFFINITY_CONTEXT = 8
 """Minimum owning context needed to recover a point after its other side changes."""
 
-_SOURCE_HASH_PATTERN = re.compile(r"sha256:[0-9a-f]{64}\Z")
+_SOURCE_HASH_REGEX = r"^sha256:[0-9a-f]{64}$"
 _PERCENT_ESCAPE_PATTERN = re.compile(r"%(?![0-9A-Fa-f]{2})")
 
 Position = Annotated[int, Field(ge=0, le=_MAX_JSON_SAFE_INTEGER, strict=True)]
 """A non-negative interoperable JSON integer used as a source offset."""
+
+SourceHash = Annotated[str, Field(pattern=_SOURCE_HASH_REGEX, strict=True)]
+"""An algorithm-qualified SHA-256 digest of canonical source text."""
 
 
 def _validate_unicode(value: str) -> str:
@@ -262,16 +265,9 @@ class TextRef(_StrictModel):
 
     format: Literal["textref/0.1"]
     document: DocRef
-    source_hash: str | None = None
+    source_hash: SourceHash | None = None
     selector: Selector | None = None
     extensions: dict[str, JsonValue] = Field(default_factory=dict)
-
-    @field_validator("source_hash")
-    @classmethod
-    def _validate_source_hash(cls, value: str | None) -> str | None:
-        if value is not None and _SOURCE_HASH_PATTERN.fullmatch(value) is None:
-            raise ValueError("source_hash must be a lowercase algorithm-qualified SHA-256 digest")
-        return value
 
     @field_validator("extensions")
     @classmethod

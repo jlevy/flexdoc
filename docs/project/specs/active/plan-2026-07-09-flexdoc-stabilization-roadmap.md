@@ -88,8 +88,8 @@ beads below.
 
 - **0.3.0:** PR #9 behavior changes, anchoring contract decision, pre-1.0 API cleanup,
   and release/supply-chain gates
-- **0.4.0:** additive TextRef, contextual annotation, suggestion, and structural-outline
-  APIs plus `DocGraph/v0.2`
+- **0.4.0:** TextRef, contextual annotation, suggestion, and structural-outline APIs
+  plus the single source-identifying `DocGraph/v0.2` contract
 - **Later minor release:** synthetic layer and any associated cross-layer editing API
 
 Do not publish the PR #9 changes as a 0.2.x patch.
@@ -100,10 +100,10 @@ observable behavior and belong in the documented pre-1.0 minor release.
 
 - **Library APIs:** 0.3.0 may break APIs listed in Phase 1, with no compatibility
   aliases; every break needs a changelog migration note and root-surface contract test
-- **0.4 library APIs:** additive; preserve the released `SpanRef` surface while new
-  persisted workflows use typed TextRef results
-- **Serialized formats:** preserve `DocGraph/v0.1`; introduce a new schema version when
-  annotation fields become typed or populated
+- **0.4 library APIs:** preserve the released `SpanRef` surface while new persisted
+  workflows use typed TextRef results; expose one current DocGraph runtime model
+- **Serialized formats:** use one `DocGraph/v0.2` schema carrying required document
+  identity, source hash, and typed annotations
 - **Source coordinates:** offsets index normalized `source_text`; external CRLF
   coordinates are unsupported unless a future mapping API is designed explicitly
 - **Downstream Chopdiff:** coordinate export cleanup and the external-package rewire so
@@ -245,8 +245,8 @@ workflow APIs and the Chopdiff migration.
 
 - Consumers own annotations and pass them explicitly to FlexDoc for rendering or graph
   serialization; `FlexDoc` does not store mutable annotation state.
-- `FlexDoc.graph()` without annotations preserves `DocGraph/v0.1`. Explicitly supplying
-  annotations selects `DocGraph/v0.2`.
+- `FlexDoc.graph(document=...)` returns one `DocGraph/v0.2` type. Annotations optionally
+  populate that same contract after document and source-hash validation.
 - TextRef identifies targets. Annotation bodies, workflow state, edit operations, and
   contextual views remain separate layers over it.
 

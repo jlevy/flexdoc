@@ -1,8 +1,9 @@
-schema: DocGraph/v0.1
+schema: DocGraph/v0.2
 source:
   format: markdown
   offset_unit: unicode_code_points
-  sha256: 613b556081ab78fa2add904a0368d2d19cf6ca55170aaf0e40a466f6bee63d7f
+  document: tests/golden/documents/kitchen_sink.md
+  source_hash: sha256:613b556081ab78fa2add904a0368d2d19cf6ca55170aaf0e40a466f6bee63d7f
 nodes:
 - id: n0001
   kind: heading

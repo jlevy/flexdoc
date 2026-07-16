@@ -1,8 +1,9 @@
-schema: DocGraph/v0.1
+schema: DocGraph/v0.2
 source:
   format: markdown
   offset_unit: unicode_code_points
-  sha256: 498ed9cd78568b06f4f871c8c9293ccdce03eab2e4b02fa8831ec43add094459
+  document: tests/golden/documents/nested_list.md
+  source_hash: sha256:498ed9cd78568b06f4f871c8c9293ccdce03eab2e4b02fa8831ec43add094459
 nodes:
 - id: n0001
   kind: heading
