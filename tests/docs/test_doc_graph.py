@@ -11,7 +11,15 @@ from textwrap import dedent
 import pytest
 from pydantic import ValidationError
 
-from flexdoc.docs import DocRef, FlexDoc, SpanSelector, TextRef
+from flexdoc.docs import (
+    AnnotationSetEntry,
+    DocRef,
+    FlexDoc,
+    PointAffinity,
+    PointSelector,
+    SpanSelector,
+    TextRef,
+)
 from flexdoc.docs.doc_graph import (
     Detail,
     DocGraph,
@@ -123,6 +131,35 @@ def test_source_text_present_with_detail_text():
     doc = _make_doc()
     graph = doc.graph(document="sample.md", detail=frozenset({Detail.text}))
     assert graph.source.text == SAMPLE_DOC
+
+
+def test_embedded_source_bounds_annotation_position_hints():
+    doc = _make_doc()
+    graph_data = doc.graph(
+        document="sample.md",
+        detail=frozenset({Detail.text}),
+    ).model_dump(by_alias=True)
+    source_end = len(SAMPLE_DOC)
+    invalid_targets = (
+        SpanSelector(type="span", exact="x", start=source_end),
+        PointSelector(
+            type="point",
+            position=source_end + 1,
+            affinity=PointAffinity.after,
+            suffix="x",
+        ),
+    )
+
+    for target in invalid_targets:
+        graph_data["annotations"] = [
+            AnnotationSetEntry(
+                id="outside-source",
+                target=target,
+                motivations=["commenting"],
+            ).model_dump()
+        ]
+        with pytest.raises(ValidationError, match="annotation outside-source"):
+            DocGraph.model_validate(graph_data)
 
 
 def test_node_text_present_with_detail_text():

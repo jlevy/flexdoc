@@ -165,11 +165,33 @@
     },
     "SpanSelector": {
       "additionalProperties": false,
-      "description": "A non-empty arbitrary source range anchored by exact text and optional context.",
+      "description": "A non-empty source range with optional quote evidence or hash-bound positions.",
       "properties": {
+        "end": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
         "exact": {
-          "title": "Exact",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exact"
         },
         "prefix": {
           "anyOf": [
@@ -216,8 +238,7 @@
         }
       },
       "required": [
-        "type",
-        "exact"
+        "type"
       ],
       "title": "SpanSelector",
       "type": "object"

@@ -2419,12 +2419,13 @@ The v0.1 rules are:
   The final DocRef rules must define this per kind before it is enforced.
 - `selector.type` is required.
   v0.1 defines `span`, `point`, and `section`.
-- A `span` selector requires an `exact` string containing at least one Unicode code
-  point. `prefix` and `suffix` are optional, non-empty immediate context strings.
-  `start` is an optional non-negative JSON-safe integer measured in Unicode code points.
-  The selected half-open range is `[start, start + code_point_length(exact))`. In-memory
-  SpanRef APIs may retain a derived `end`, but the wire format does not store the
-  redundant value.
+- A quote-anchored `span` selector contains a non-empty `exact` string. `prefix` and
+  `suffix` are optional, non-empty immediate context strings, and `start` is an optional
+  non-negative JSON-safe code-point position. Its range is
+  `[start, start + code_point_length(exact))` when the position is trusted.
+- A snapshot-bound `span` selector omits `exact` and context, requires `start`, `end`,
+  and the enclosing TextRef or container `source_hash`, and identifies the non-empty
+  half-open range `[start, end)`. It resolves only when the source hash matches.
 - Span boundaries need not align with Markdown tokens, inline nodes, blocks, headings,
   lines, rendered selections, or parser nodes. They are boundaries in canonical source
   text. A consumer may impose stricter alignment for a particular operation without
@@ -3025,6 +3026,10 @@ FlexDoc should prove the TextRef shape while keeping FlexDoc-specific adapters l
 - Keep the existing public SpanRef API while testing the new wire projection
 - Persist `start` when a TextRef also carries `source_hash`; continue treating unbound
   positions as hints
+- Permit either quote-anchored spans (`exact` with optional context and start) or compact
+  snapshot-bound spans (`start`/`end` without `exact`, requiring `source_hash`). Keep
+  quote-size policy with the application: FlexDoc includes exact text by default,
+  accepts a caller-selected `max_exact_chars`, and allows per-span overrides.
 - Keep `SpanRef.to_text_fragment()` compatible for 0.4 while routing new browser
   navigation work through a rendered-text adapter with explicit refusal rules
 - Require document locator and source hash in `DocGraph/v0.2`, making every graph span
@@ -3094,6 +3099,11 @@ Rendered browser fragments remain a separate FlexDoc adapter concern.
 17. **Batch ambiguity:** Should a batch resolver ever use global assignment constraints,
     or must every selector resolve independently so iteration order and assumptions
     about target uniqueness cannot manufacture certainty?
+
+The compact snapshot-bound span resolves the immediate size problem without defining a
+second selector kind. A future format revision may add bounded boundary evidence or a
+span digest if consumers need compact references that also re-anchor after snapshot
+changes; v0.1 exact-less spans deliberately report `missing` on a hash mismatch.
 
 ### Section Construction and Resolution
 

@@ -126,14 +126,14 @@ paragraph_nodes = [node for node in graph.nodes if node.id in graph.views.paragr
 sentence_nodes = [node for node in graph.nodes if node.id in graph.views.sentences]
 ```
 
-### Persist and Resolve Spans
+### Anchor Spans Within Supplied Text
 
-Use `SpanRef` for in-memory or document-local source anchoring and re-resolution after a
-reparse. A `SpanRef` carries a text quote (the durable anchor) plus offsets (a
-recomputable hint): `to_persisted()` drops the offsets, keeping the quote, and
-`SpanRef.resolve()` re-locates the quote in the (possibly changed) source, returning
-`None` if the quote is gone or ambiguous. Persist a `TextRef` for anything that leaves
-the process because it also carries portable document and snapshot identity.
+Use `TextRef` for portable references that leave the process. Use `SpanRef` as
+lower-level quote-anchoring machinery when a tool already owns the source text and
+needs to re-resolve a span after a reparse. A `SpanRef` carries a text quote (the
+durable anchor) plus offsets (a recomputable hint): `to_persisted()` drops the offsets,
+keeping the quote, and `SpanRef.resolve()` re-locates the quote in the changed source,
+returning `None` if the quote is gone or ambiguous.
 
 ```python
 from flexdoc import SpanRef
@@ -174,6 +174,19 @@ sidecar = AnnotationSet.from_annotations([annotation])
 print(refs.render_annotations(sidecar))
 ```
 
+Generated spans include complete exact quote evidence by default, preserving recovery
+after edits but making reference size proportional to span length. Applications choose
+their own size policy with `doc.references(..., max_exact_chars=limit)`; spans above the
+chosen limit omit the quote and carry hash-bound `start`/`end` positions. A single call
+can override that policy with `for_span(..., include_exact=True|False)` or
+`for_target(..., include_exact=True|False)`. Exact-less spans resolve only against the
+matching source hash. There is no built-in cutoff.
+
+Large quote-anchored spans can exceed the TextRef URI limit. Use structured JSON when
+the quote must be retained, configure compact span generation when snapshot-bound
+positions are sufficient, and prefer section selectors for complete heading-owned
+regions.
+
 Generated point references capture immediate context. A hand-authored point may omit
 context only for hash-bound document start: it requires `position=0` and a `source_hash`
 and resolves by position only when that hash matches. Position zero has stable
@@ -192,8 +205,8 @@ Passing `annotations=sidecar` populates the same graph model with source-relativ
 annotation selectors. The graph always carries its document and source hash, so every
 locatable node span can be materialized as a complete TextRef after retrieving and
 verifying the source. Graph embedding requires the sidecar's document and non-null
-source hash to match; hash-less sidecars remain valid for detached storage and
-context-based resolution.
+source hash to match. Hash-less sidecars remain valid for detached quote-based storage
+and context resolution, but cannot contain exact-less spans.
 
 ### Transform Text
 

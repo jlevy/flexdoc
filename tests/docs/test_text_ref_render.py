@@ -88,7 +88,7 @@ def test_annotation_render_golden_covers_merged_and_unresolved_groups():
 
 
 def test_annotation_set_render_and_quote_elision_are_deterministic():
-    source = "# Heading\n\n" + "x" * 9000
+    source = "# Heading\n\n" + "x" * 100
     doc = FlexDoc.from_text(source)
     refs = doc.references("long.md")
     annotation = TextAnnotation(
@@ -101,7 +101,16 @@ def test_annotation_set_render_and_quote_elision_are_deterministic():
     second = refs.render_annotations(sidecar, max_quote_chars=40)
     assert first == second
     assert "chars elided" in first
-    assert "URI: unavailable (use structured TextRef)" in first
+
+
+def test_render_falls_back_when_textref_uri_exceeds_its_limit():
+    source = "x" * 9_000
+    refs = FlexDoc.from_text(source).references("long.md")
+
+    rendered = refs.render_context(refs.for_span(0, len(source)))
+
+    assert "URI: unavailable (use structured TextRef)" in rendered
+    assert "chars elided" in rendered
 
 
 def test_render_exposes_boundary_mismatch_and_source_mismatch():

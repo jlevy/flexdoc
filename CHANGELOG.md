@@ -15,7 +15,9 @@ not a 0.3.x patch.
   documents, spans, points, and semantic sections with canonical JSON and reversible
   `textref:0.1` URIs. `FlexDoc.references()` maps every locatable public document value,
   resolves references with typed outcomes, retrieves structured source context, and
-  renders deterministic human/LLM-readable annotation views.
+  renders deterministic human/LLM-readable annotation views. Span quote evidence is
+  optional: callers can select a context-wide size policy or override individual spans,
+  while compact exact-less spans remain safely bound to one source hash.
 - **Consumer-owned TextRef annotations.** `TextAnnotation` and the one-document
   `AnnotationSet` sidecar round-trip strict JSON and safe YAML. `DocGraph/v0.2` carries
   required document identity and source hash in every graph, with optional typed

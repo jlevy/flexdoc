@@ -50,6 +50,40 @@ def test_reference_context_maps_public_locatable_values():
     assert resolution.span.end == len(SOURCE)
 
 
+def test_reference_context_configures_and_overrides_exact_span_evidence():
+    doc = FlexDoc.from_text(SOURCE)
+    first_paragraph = doc.paragraphs[1]
+    start, end = first_paragraph.span
+    refs = doc.references(document="design.md", max_exact_chars=8)
+
+    bounded = refs.for_span(start, end)
+    assert isinstance(bounded.selector, SpanSelector)
+    assert bounded.selector.exact is None
+    assert bounded.selector.prefix is None
+    assert bounded.selector.suffix is None
+    assert (bounded.selector.start, bounded.selector.end) == (start, end)
+
+    forced = refs.for_target(first_paragraph, include_exact=True)
+    assert isinstance(forced.selector, SpanSelector)
+    assert forced.selector.exact == SOURCE[start:end]
+
+    omitted = doc.references(document="design.md").for_span(0, 7, include_exact=False)
+    assert isinstance(omitted.selector, SpanSelector)
+    assert omitted.selector.exact is None
+
+    with pytest.raises(ValueError, match="max_exact_chars"):
+        doc.references(document="design.md", max_exact_chars=-1)
+
+
+def test_reference_context_compares_and_hashes_by_identity():
+    doc = FlexDoc.from_text(SOURCE)
+    first = doc.references(document="design.md")
+    second = doc.references(document="design.md")
+
+    assert first != second
+    assert len({first, second}) == 2
+
+
 def test_sections_remain_semantic_and_resolve_to_trimmed_flexdoc_span():
     doc = FlexDoc.from_text(SOURCE)
     refs = doc.references(document=DocRef("design.md"))
@@ -206,12 +240,3 @@ def test_reference_context_reuses_snapshot_indexes():
     assert hashes.call_count == 0
     assert source_lines.call_count == 1
     assert sections.call_count == 1
-
-
-def test_reference_context_uses_identity_equality_and_hashing():
-    doc = FlexDoc.from_text(SOURCE)
-    first = doc.references(document="design.md")
-    second = doc.references(document="design.md")
-
-    assert first != second
-    assert len({first, second}) == 2

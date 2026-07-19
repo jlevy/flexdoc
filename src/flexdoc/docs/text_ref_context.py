@@ -89,36 +89,59 @@ class _RenderWindow:
 class TextRefContext:
     """
     Bind a document locator to one FlexDoc source snapshot. TextRefs remain derived
-    values; this context caches immutable snapshot indexes and adapts public source spans.
+    values; this context caches immutable snapshot indexes, adapts public source spans,
+    and applies the caller's exact-quote size policy.
     """
 
     _doc: FlexDoc
     document: DocRef
     source_hash: str
+    max_exact_chars: int | None = None
 
     @classmethod
-    def bind(cls, doc: FlexDoc, document: str | DocRef) -> TextRefContext:
+    def bind(
+        cls,
+        doc: FlexDoc,
+        document: str | DocRef,
+        *,
+        max_exact_chars: int | None = None,
+    ) -> TextRefContext:
         """Bind `document` to `doc` and compute its canonical source hash once."""
+        if max_exact_chars is not None and max_exact_chars < 0:
+            raise ValueError("max_exact_chars must be non-negative")
         locator = document if isinstance(document, DocRef) else DocRef(document)
-        return cls(doc, locator, source_hash(doc.source_text))
+        return cls(doc, locator, source_hash(doc.source_text), max_exact_chars)
 
     def whole_document(self) -> TextRef:
         """Reference the complete bound source snapshot."""
         return self._text_ref(None)
 
-    def for_span(self, start: int, end: int) -> TextRef:
-        """Reference one non-empty half-open source range."""
+    def for_span(
+        self,
+        start: int,
+        end: int,
+        *,
+        include_exact: bool | None = None,
+    ) -> TextRef:
+        """
+        Reference one non-empty half-open source range. `include_exact` overrides the
+        context's `max_exact_chars` policy for this span.
+        """
         self._validate_span(start, end)
-        evidence = SpanRef.from_span(self._doc.source_text, start, end)
-        return self._text_ref(
-            SpanSelector(
+        if include_exact is None:
+            include_exact = self.max_exact_chars is None or end - start <= self.max_exact_chars
+        if include_exact:
+            evidence = SpanRef.from_span(self._doc.source_text, start, end)
+            selector = SpanSelector(
                 type="span",
                 exact=evidence.exact,
                 prefix=evidence.prefix,
                 suffix=evidence.suffix,
                 start=start,
             )
-        )
+        else:
+            selector = SpanSelector(type="span", start=start, end=end)
+        return self._text_ref(selector)
 
     def for_point(
         self,
@@ -174,8 +197,13 @@ class TextRefContext:
     def for_target(
         self,
         target: Paragraph | Sentence | Block | BaseBlock | Link | Node | Section | tuple[int, int],
+        *,
+        include_exact: bool | None = None,
     ) -> TextRef:
-        """Map one supported public FlexDoc value to its portable source reference."""
+        """
+        Map one supported public FlexDoc value to its portable source reference.
+        `include_exact` applies when the value maps to a span.
+        """
         if isinstance(target, Section):
             return self.for_section(target)
         if isinstance(target, Node) and target.kind == NodeKind.section:
@@ -195,7 +223,7 @@ class TextRefContext:
 
         span = self._target_span(target)
         self._validate_target(target, span)
-        return self.for_span(*span)
+        return self.for_span(*span, include_exact=include_exact)
 
     def resolve(self, text_ref: TextRef) -> TextRefResolution:
         """Resolve a TextRef exactly against the bound source and section structure."""

@@ -71,6 +71,19 @@ def test_annotation_validation_is_strict_and_ids_are_unique():
     with pytest.raises(ValueError, match="one document"):
         AnnotationSet.from_annotations([annotation, detached])
 
+    with pytest.raises(ValidationError, match="span without exact requires a source hash"):
+        AnnotationSet(
+            format="text-annotations/0.1",
+            document=DocRef("design.md"),
+            annotations=[
+                AnnotationSetEntry(
+                    id="position-only",
+                    target=SpanSelector(type="span", start=0, end=7),
+                    motivations=["commenting"],
+                )
+            ],
+        )
+
 
 def test_bare_sidecar_expansion_includes_whole_document_targets():
     sidecar = AnnotationSet(

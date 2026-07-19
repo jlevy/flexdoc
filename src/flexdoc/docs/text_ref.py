@@ -177,8 +177,8 @@ class SectionRange(_StrictModel):
 
 class TextRefResolution(_StrictModel):
     """
-    Typed exact-resolution result whose failure axes remain independent.
-    The selector axis is meaningful only when `document` is resolved.
+    Typed exact-resolution result whose failure axes remain independent. Selector status
+    is meaningful only when `document` is resolved.
     """
 
     document: DocumentStatus
@@ -215,17 +215,32 @@ class HeadingAnchor(_StrictModel):
 
 
 class SpanSelector(_StrictModel):
-    """A non-empty arbitrary source range anchored by exact text and optional context."""
+    """A non-empty source range with optional quote evidence or hash-bound positions."""
 
     type: Literal["span"]
-    exact: str
+    exact: str | None = None
     prefix: str | None = None
     suffix: str | None = None
     start: Position | None = None
+    end: Position | None = None
 
-    _exact = field_validator("exact")(_validate_required_string)
+    _exact = field_validator("exact")(_validate_optional_string)
     _prefix = field_validator("prefix")(_validate_optional_string)
     _suffix = field_validator("suffix")(_validate_optional_string)
+
+    @model_validator(mode="after")
+    def _has_complete_evidence(self) -> Self:
+        if self.exact is None:
+            if self.start is None or self.end is None:
+                raise ValueError("span selector without exact requires start and end")
+            if self.end <= self.start:
+                raise ValueError("span selector must identify a non-empty range")
+            if self.prefix is not None or self.suffix is not None:
+                raise ValueError("span selector without exact does not use quote context")
+        elif self.end is not None:
+            if self.start is None or self.end != self.start + len(self.exact):
+                raise ValueError("span end must equal start plus exact length")
+        return self
 
 
 class PointSelector(_StrictModel):
@@ -282,12 +297,15 @@ class TextRef(_StrictModel):
         return value
 
     @model_validator(mode="after")
-    def _validate_context_free_point(self) -> Self:
+    def _validate_evidence_requirements(self) -> Self:
         if isinstance(self.selector, PointSelector) and not (
             self.selector.prefix or self.selector.suffix
         ):
             if self.selector.position != 0 or self.source_hash is None:
                 raise ValueError("a point without context requires position zero and a source hash")
+        if isinstance(self.selector, SpanSelector) and self.selector.exact is None:
+            if self.source_hash is None:
+                raise ValueError("a span without exact requires a source hash")
         return self
 
     @property
@@ -404,14 +422,7 @@ def _resolve_text_ref_normalized(
 
     hash_matched = validation == SourceValidation.matched
     if isinstance(selector, SpanSelector):
-        selected = _resolve_quote(
-            selector.exact,
-            selector.prefix,
-            selector.suffix,
-            selector.start,
-            source,
-            hash_matched,
-        )
+        selected = _resolve_span(selector, source, hash_matched)
     elif isinstance(selector, PointSelector):
         selected = _resolve_point(selector, source, hash_matched)
     else:
@@ -469,6 +480,30 @@ def _resolve_quote(
         span=result.span,
         candidates=result.candidates,
     )
+
+
+def _resolve_span(selector: SpanSelector, source: str, hash_matched: bool) -> _Selection:
+    if selector.exact is not None:
+        return _resolve_quote(
+            selector.exact,
+            selector.prefix,
+            selector.suffix,
+            selector.start,
+            source,
+            hash_matched,
+        )
+    if (
+        hash_matched
+        and selector.start is not None
+        and selector.end is not None
+        and selector.end <= len(source)
+    ):
+        return _Selection(
+            SelectorStatus.resolved,
+            ResolutionMethod.source_position,
+            (selector.start, selector.end),
+        )
+    return _Selection(SelectorStatus.missing)
 
 
 def _context_matches(
@@ -676,13 +711,17 @@ def _parse_query(query: str) -> dict[str, str]:
 
 
 def _span_uri_fields(selector: SpanSelector) -> list[tuple[str, str]]:
-    fields = [("type", "span"), ("exact", selector.exact)]
+    fields = [("type", "span")]
+    if selector.exact is not None:
+        fields.append(("exact", selector.exact))
     if selector.prefix is not None:
         fields.append(("prefix", selector.prefix))
     if selector.suffix is not None:
         fields.append(("suffix", selector.suffix))
     if selector.start is not None:
         fields.append(("start", str(selector.start)))
+    if selector.end is not None:
+        fields.append(("end", str(selector.end)))
     return fields
 
 
@@ -723,6 +762,8 @@ def _parse_position(values: dict[str, str], key: str) -> int | None:
         return None
     if not raw.isascii() or not raw.isdecimal():
         raise ValueError(f"{key} must be a non-negative decimal integer")
+    if len(raw) > 1 and raw.startswith("0"):
+        raise ValueError(f"{key} must use canonical decimal form")
     return int(raw)
 
 
@@ -748,14 +789,13 @@ def _selector_from_uri(selector_type: str | None, values: dict[str, str]) -> Sel
         return None
     if selector_type == "span":
         exact = values.pop("exact", None)
-        if exact is None:
-            raise ValueError("span URI requires exact")
         return SpanSelector(
             type="span",
             exact=exact,
             prefix=values.pop("prefix", None),
             suffix=values.pop("suffix", None),
             start=_parse_position(values, "start"),
+            end=_parse_position(values, "end"),
         )
     if selector_type == "point":
         affinity = values.pop("affinity", None)

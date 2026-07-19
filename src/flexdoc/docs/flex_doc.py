@@ -331,11 +331,20 @@ class FlexDoc:
         """
         return build_node_table(self)
 
-    def references(self, document: str | DocRef) -> TextRefContext:
-        """Bind a document locator to this source snapshot for TextRef operations."""
+    def references(
+        self,
+        document: str | DocRef,
+        *,
+        max_exact_chars: int | None = None,
+    ) -> TextRefContext:
+        """
+        Bind a document locator to this source snapshot for TextRef operations.
+        `max_exact_chars` is an application policy for compact hash-bound spans;
+        `None` retains complete exact quote evidence.
+        """
         from flexdoc.docs.text_ref_context import TextRefContext
 
-        return TextRefContext.bind(self, document)
+        return TextRefContext.bind(self, document, max_exact_chars=max_exact_chars)
 
     @classmethod
     @tally_calls(level="warning", min_total_runtime=5)

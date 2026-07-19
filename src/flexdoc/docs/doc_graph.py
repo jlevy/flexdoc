@@ -24,7 +24,16 @@ from flexdoc.docs.collect import INLINE_KINDS
 from flexdoc.docs.node import Layer, Node, NodeKind, NodeTable
 from flexdoc.docs.serialization import clean_yaml
 from flexdoc.docs.text_annotations import AnnotationSet, AnnotationSetEntry
-from flexdoc.docs.text_ref import DocRef, Position, SourceHash, normalize_source, source_hash
+from flexdoc.docs.text_ref import (
+    DocRef,
+    PointSelector,
+    Position,
+    SectionSelector,
+    SourceHash,
+    SpanSelector,
+    normalize_source,
+    source_hash,
+)
 
 
 class Detail(StrEnum):
@@ -150,6 +159,9 @@ class DocGraph(_StrictModel):
             view_ids = getattr(self.views, view_name)
             if any(node_id not in known_ids for node_id in view_ids):
                 raise ValueError(f"view {view_name} contains a dangling node reference")
+        if self.source.text is not None:
+            for annotation in self.annotations:
+                _validate_annotation_bounds(annotation, len(self.source.text))
         return self
 
     def to_yaml(self) -> str:
@@ -161,6 +173,28 @@ class DocGraph(_StrictModel):
         canonical wire form; YAML is the human/golden form (see `flexdoc.docs.debug`).
         """
         return clean_yaml(self.model_dump(by_alias=True))
+
+
+def _validate_annotation_bounds(annotation: AnnotationSetEntry, source_length: int) -> None:
+    target = annotation.target
+    if isinstance(target, SpanSelector) and target.start is not None:
+        end = target.end
+        if end is None and target.exact is not None:
+            end = target.start + len(target.exact)
+        if target.start > source_length or (end is not None and end > source_length):
+            raise ValueError(f"annotation {annotation.id} span exceeds source text")
+    elif isinstance(target, PointSelector):
+        if target.position is not None and target.position > source_length:
+            raise ValueError(f"annotation {annotation.id} point exceeds source text")
+    elif isinstance(target, SectionSelector):
+        anchors = [target.start_anchor]
+        if target.end_anchor is not None:
+            anchors.append(target.end_anchor)
+        if any(
+            anchor.start is not None and anchor.start + len(anchor.exact) > source_length
+            for anchor in anchors
+        ):
+            raise ValueError(f"annotation {annotation.id} section anchor exceeds source text")
 
 
 # Default layers included when none are specified.

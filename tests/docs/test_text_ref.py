@@ -84,6 +84,36 @@ def test_textref_json_and_uri_round_trip_all_target_kinds():
         assert TextRef.from_uri(ref.to_uri()).to_uri() == ref.to_uri()
 
 
+def test_hash_bound_span_can_omit_exact_quote_evidence():
+    source = "alpha target omega"
+    start = source.index("target")
+    ref = TextRef(
+        format=TEXTREF_FORMAT,
+        document=DocRef("doc.md"),
+        source_hash=source_hash(source),
+        selector=SpanSelector(
+            type="span",
+            start=start,
+            end=start + len("target"),
+        ),
+    )
+
+    assert ref.source_hash is not None
+    assert ref.to_uri() == (
+        "textref:0.1?doc=doc.md&hash="
+        f"{ref.source_hash.replace(':', '%3A')}&type=span&start=6&end=12"
+    )
+    assert TextRef.from_uri(ref.to_uri()) == ref
+    resolved = resolve_text_ref(ref, source)
+    assert resolved.selector == SelectorStatus.resolved
+    assert resolved.method == ResolutionMethod.source_position
+    assert resolved.span is not None
+    assert (resolved.span.start, resolved.span.end) == (start, start + len("target"))
+
+    stale = ref.model_copy(update={"source_hash": "sha256:" + "0" * 64})
+    assert resolve_text_ref(stale, source).selector == SelectorStatus.missing
+
+
 def test_textref_uri_is_canonical_and_rejects_lossy_inputs():
     ref = TextRef(
         format=TEXTREF_FORMAT,
@@ -98,6 +128,7 @@ def test_textref_uri_is_canonical_and_rejects_lossy_inputs():
         "textref:0.1?doc=a&doc=b",
         "textref:0.1?doc=a&unknown=x",
         "textref:0.1?doc=a&type=span",
+        "textref:0.1?doc=a&type=span&exact=x&start=01",
         "textref:0.2?doc=a",
         "textref:0.1?doc=a+b",
     )
@@ -125,6 +156,12 @@ def test_textref_models_reject_invalid_or_ambiguous_values():
             document=DocRef("a"),
             selector=SpanSelector(type="span", exact=""),
         ),
+        lambda: TextRef(
+            format=TEXTREF_FORMAT,
+            document=DocRef("a"),
+            selector=SpanSelector(type="span", start=0, end=1),
+        ),
+        lambda: SpanSelector(type="span", start=0),
         lambda: PointSelector.model_validate({"type": "point", "affinity": "before"}),
         lambda: PointSelector.model_validate(
             {"type": "point", "position": -1, "affinity": "after", "suffix": "x"}

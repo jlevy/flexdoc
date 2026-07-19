@@ -10,7 +10,14 @@ from frontmatter_format import new_yaml
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
 
 from flexdoc.docs.serialization import clean_yaml
-from flexdoc.docs.text_ref import TEXTREF_FORMAT, DocRef, Selector, SourceHash, TextRef
+from flexdoc.docs.text_ref import (
+    TEXTREF_FORMAT,
+    DocRef,
+    Selector,
+    SourceHash,
+    SpanSelector,
+    TextRef,
+)
 
 ANNOTATION_FORMAT = "text-annotations/0.1"
 
@@ -87,6 +94,11 @@ class AnnotationSet(_StrictModel):
         ids = [annotation.id for annotation in self.annotations]
         if len(ids) != len(set(ids)):
             raise ValueError("annotation ids must be unique within a set")
+        if self.source_hash is None and any(
+            isinstance(annotation.target, SpanSelector) and annotation.target.exact is None
+            for annotation in self.annotations
+        ):
+            raise ValueError("a span without exact requires a source hash")
         return self
 
     @classmethod

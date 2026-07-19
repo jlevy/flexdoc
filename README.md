@@ -89,8 +89,8 @@ golden-test corpus that pins this behavior).
 The full public surfaces live in the submodules:
 
 - `flexdoc.docs`: `FlexDoc`, `Paragraph`, `Sentence`, `Section`, `Block`, `BlockType`,
-  the node table, `collect()`, `DocGraph`, `SpanRef`, and source-linked render/report
-  helpers.
+  the node table, `collect()`, `DocGraph`, `TextRef`, annotation values, `SpanRef`, and
+  source-linked render/report helpers.
 - `flexdoc.docs.wordtoks`, `flexdoc.docs.search_tokens`,
   `flexdoc.docs.token_diffs`, and `flexdoc.docs.token_mapping`: lower-level token,
   search, diff, and mapping utilities that are not promoted by `flexdoc.docs`.

@@ -935,9 +935,9 @@ canonical source profile is:
 - spans represented as half-open `[start, end)` ranges
 - hashing over the UTF-8 encoding of the complete normalized source
 
-The profile does not apply Unicode normalization. Canonically equivalent NFC and NFD
-strings remain different source text, and quote evidence must come from the canonical
-source rather than a rendered or normalized derivative.
+No Unicode normalization is applied. Except for line-ending conversion, the original
+Unicode code-point sequence is preserved; canonically equivalent NFC and NFD text are
+different source snapshots and quote evidence must come from the canonical source.
 
 `DocRef` is a non-empty, opaque locator supplied by the consumer. It may be a repository
 locator, URL, database key, path, or application identifier. FlexDoc validates the
@@ -966,8 +966,9 @@ Selector absence refers to the complete canonical source:
 
 #### Span
 
-A span selects any non-empty source range. It requires the exact selected text, may
-carry immediate prefix and suffix context, and may carry its starting position:
+A span selects any non-empty source range. The quote-anchored form carries exact
+selected text, optional immediate prefix and suffix context, and an optional starting
+position:
 
 ```json
 {
@@ -986,9 +987,29 @@ carry immediate prefix and suffix context, and may carry its starting position:
 
 The resolved range is `[start, start + len(exact))` when that position is trusted.
 `exact` and context are durable recovery evidence; `start` is a hint unless the source
-hash matches. Boundaries may fall inside Markdown syntax or cross nodes, blocks, and
-lines. `SpanRef` is the in-memory quote/context/position value used to construct and
-resolve this selector over caller-supplied text.
+hash matches.
+
+The compact snapshot-bound form omits quote evidence and carries both positions:
+
+```json
+{
+  "format": "textref/0.1",
+  "document": "docs/design.md",
+  "source_hash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "selector": {
+    "type": "span",
+    "start": 1842,
+    "end": 1876
+  }
+}
+```
+
+This form requires a source hash and resolves only when that hash matches; stale or
+hash-less snapshots report `missing` rather than trusting positions. It is appropriate
+when compact snapshot identity matters more than recovery after edits. Boundaries in
+either form may fall inside Markdown syntax or cross nodes, blocks, and lines.
+`SpanRef` is the lower-level quote/context/position value used to construct and resolve
+quote-anchored selectors over caller-supplied text.
 
 #### Point
 
@@ -1067,6 +1088,13 @@ insertion_ref = refs.for_point(position, affinity="after")
 document_ref = refs.whole_document()
 ```
 
+By default, generated spans include complete exact quote evidence. Applications that
+need bounded reference size can choose their own policy once for the context, for
+example `doc.references(document=..., max_exact_chars=1024)`. Spans above that limit
+use the compact hash-bound form. `for_span(..., include_exact=...)` and span-producing
+`for_target(..., include_exact=...)` override the context policy for exceptional cases.
+There is no format-level or library-default span-length cutoff.
+
 The central mapping is:
 
 | FlexDoc value | TextRef target |
@@ -1106,12 +1134,13 @@ as `%20`, rejects duplicates and incompatible fields, performs no I/O, and refus
 over its defined size limit. The URI contains one TextRef only. It never contains an
 annotation body or workflow state.
 
-A span selector retains the complete selected source as `exact`, so its structured size
-is O(span length). The URI projection is therefore intended for modest spans and may be
-unavailable for long paragraphs, chunks, code blocks, or tables. Prefer section
-selectors for large heading-owned regions. Persist structured JSON, use an annotation
-sidecar, or embed the selector in a DocGraph when a large arbitrary span exceeds the URI
-limit.
+Quote-anchored reference size is O(span length). Its URI form is therefore intended for
+modest spans and may be unavailable for large paragraphs, code blocks, tables, or
+chunks; use structured JSON when the full quote is required. Applications needing
+compact URIs can configure exact-quote capture or omit it per span, producing the
+hash-bound `start`/`end` form. Section selectors remain preferable for complete
+heading-owned regions because they preserve identity across interior edits without
+copying the section body.
 
 Restricted YAML is a convenience projection for annotation sidecars. It must parse to
 the same JSON-compatible value tree before strict model validation; YAML tags,
@@ -1138,8 +1167,14 @@ A consumer first retrieves the requested DocRef. Failure to retrieve it is
 normalizes and hashes the source, records whether the optional hash is absent, matched,
 or mismatched, and applies the selector's evidence ladder:
 
-- **Span:** hash-bound position, position corroborated by quote/context, unique exact
-  quote, then exact quote disambiguated by immediate context.
+Selector status is meaningful only when the document axis is `resolved`. A consumer
+must handle `unavailable` or `invalid` first; renderers present that document status
+instead of the unevaluated selector status.
+
+- **Span:** hash-bound `start`/`end`; for quote-anchored spans, hash-bound start,
+  position corroborated by quote/context, unique exact quote, then exact quote
+  disambiguated by immediate context. An exact-less span with a missing or mismatched
+  hash reports `missing`.
 - **Point:** hash-bound position, corroborated position, two-sided boundary context,
   then sufficiently strong affinity-owned context.
 - **Section:** resolve the heading anchors, derive the range from CommonMark structure,
@@ -1160,7 +1195,7 @@ labels, and resolution evidence. Lines and columns are display values, not persi
 selectors.
 
 `render_context()` produces a bounded Markdown-compatible view containing the document,
-target kind, TextRef URI, resolution status, exact quote, and line-numbered source
+target kind, TextRef URI, resolution status, selected source, and line-numbered source
 window. `render_annotations()` merges overlapping windows, places stable annotation IDs
 and bodies beside their targets, uses explicit elision, and groups unresolved targets
 separately. These views are deterministic and readable by humans and LLMs, but they are
@@ -1182,7 +1217,8 @@ multiple targets remain multiple TextRefs.
 `AnnotationSet` is a strict one-document JSON/YAML sidecar. It hoists `document` and
 optional `source_hash`, stores bare selectors under each annotation, and expands them
 mechanically to complete TextRefs before resolution. A null target represents the whole
-document. Annotation IDs are unique within a set.
+document. Annotation IDs are unique within a set. A sidecar containing an exact-less
+span requires the shared source hash.
 
 Annotations remain outside mutable `FlexDoc` state. Callers pass them to context
 rendering or `FlexDoc.graph()`. A detached, hash-less sidecar may resolve conservatively

@@ -113,10 +113,13 @@ Core values are immutable. Serialization uses strict models and rejects unknown 
 consumer extensions live in a namespaced `extensions` object.
 
 FlexDoc-generated TextRefs include an algorithm-qualified source hash and retain their
-position hint by default. The source quote remains the durable recovery evidence after
-the source changes. A context-free point is valid only at the hash-bound document-start
-sentinel (`position=0`), which also represents the sole boundary of an empty snapshot;
-other points require prefix or suffix context.
+position hint. Span quote evidence is included by default, may be bounded by a
+caller-selected `max_exact_chars` context policy, and may be overridden per target.
+Exact-less spans carry `start`/`end` and resolve only against a matching hash; quoted
+spans retain durable recovery evidence after source changes. A context-free point is
+valid only at the hash-bound document-start sentinel (`position=0`), which also
+represents the sole boundary of an empty snapshot; other points require prefix or
+suffix context.
 
 ### Document-Bound Reference Context
 
@@ -124,6 +127,7 @@ other points require prefix or suffix context.
 
 ```python
 refs = doc.references(document="./design.md")
+compact_refs = doc.references(document="./design.md", max_exact_chars=1024)
 
 paragraph_ref = refs.for_target(doc.paragraphs[0])
 section_ref = refs.for_target(doc.sections()[0])
@@ -139,6 +143,7 @@ and section indexes on first use, and supplies:
 
 - `for_target(value)` for supported FlexDoc values
 - `whole_document()`, `for_span()`, `for_point()`, and `for_section()` constructors
+- caller-selected exact-quote size policy plus per-span `include_exact` overrides
 - `resolve(ref)` for typed resolution against the bound document
 - `context(ref, ...)` for structured excerpts and display coordinates
 - `render_context(ref, ...)` and `render_annotations(...)` as derived views
