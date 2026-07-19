@@ -339,8 +339,8 @@ class FlexDoc:
     ) -> TextRefContext:
         """
         Bind a document locator to this source snapshot for TextRef operations.
-        `max_exact_chars` is an application policy for compact hash-bound spans;
-        `None` retains complete exact quote evidence.
+        Spans longer than `max_exact_chars` omit their exact quote and carry hash-bound
+        positions instead; `None` (the default) always retains complete quote evidence.
         """
         from flexdoc.docs.text_ref_context import TextRefContext
 

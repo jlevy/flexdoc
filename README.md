@@ -18,8 +18,9 @@ source string. The **Markdown layer** (blocks, inline elements, typed attributes
 (heading hierarchy, table of contents) are independent parses of the same text, so
 cross-cutting questions are simple offset queries.
 One query primitive (`collect()`) spans all layers; **`DocGraph`** serializes any slice
-as language-neutral JSON; **`TextRef`** gives spans, points, sections, and documents a
-portable URI and typed resolution; **`SpanRef`** remains the lightweight quote anchor.
+as language-neutral JSON; **`TextRef`** gives spans, points, sections, and whole
+documents portable references (canonical JSON with a URI projection) and typed
+resolution; **`SpanRef`** remains the lightweight quote anchor.
 
 FlexDoc is a standalone library.
 [chopdiff](https://github.com/jlevy/chopdiff) builds its diff-filtering and

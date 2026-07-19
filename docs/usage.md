@@ -182,22 +182,17 @@ can override that policy with `for_span(..., include_exact=True|False)` or
 `for_target(..., include_exact=True|False)`. Exact-less spans resolve only against the
 matching source hash. There is no built-in cutoff.
 
-Large quote-anchored spans can exceed the TextRef URI limit. Use structured JSON when
-the quote must be retained, configure compact span generation when snapshot-bound
-positions are sufficient, and prefer section selectors for complete heading-owned
-regions.
+Large quote-anchored spans can exceed the TextRef URI limit. When the quote must be
+retained, persist structured JSON directly, in an annotation sidecar, or embedded in a
+DocGraph rather than requiring a URI. Configure compact span generation when
+snapshot-bound positions are sufficient, and prefer section selectors for complete
+heading-owned regions.
 
 Generated point references capture immediate context. A hand-authored point may omit
 context only for hash-bound document start: it requires `position=0` and a `source_hash`
 and resolves by position only when that hash matches. Position zero has stable
 structural meaning and also covers the sole boundary of an empty document; other bare
 positions are rejected.
-
-Span TextRefs retain the complete selected source as exact evidence, so their size grows
-with the selected span. The URI form is intended for modest spans and may be unavailable
-for long paragraphs, chunks, code blocks, or tables. Prefer section selectors for large
-heading-owned regions; otherwise persist structured JSON, use an annotation sidecar, or
-embed the selector in a DocGraph instead of requiring a URI.
 
 Store one `TextRef` or `tuple[TextRef, ...]` in a consumer-owned `source_refs` field.
 `doc.graph(document="docs/guide.md")` returns the single `DocGraph/v0.2` contract.

@@ -1004,8 +1004,8 @@ The compact snapshot-bound form omits quote evidence and carries both positions:
 }
 ```
 
-This form requires a source hash and resolves only when that hash matches; stale or
-hash-less snapshots report `missing` rather than trusting positions. It is appropriate
+This form requires a source hash and resolves only when that hash matches; against any
+other snapshot it reports `missing` rather than trusting positions. It is appropriate
 when compact snapshot identity matters more than recovery after edits. Boundaries in
 either form may fall inside Markdown syntax or cross nodes, blocks, and lines.
 `SpanRef` is the lower-level quote/context/position value used to construct and resolve
@@ -1159,22 +1159,19 @@ callers can distinguish stale content from missing or ambiguous targets:
 | Method | `source_position`, `context_position`, `exact_quote`, `context_quote`, `point_context`, `point_affinity`, `section_structure`, `section_anchors`, `none` |
 
 Consumers must inspect the document axis first. The selector axis is meaningful only
-when the document is `resolved`; a missing or different document prevents selector
-evaluation.
+when the document is `resolved`: a missing or different document prevents selector
+evaluation, and renderers present that document status instead of the unevaluated
+selector status.
 
 A consumer first retrieves the requested DocRef. Failure to retrieve it is
 `unavailable`; supplying a different bound document is `invalid`. The resolver then
 normalizes and hashes the source, records whether the optional hash is absent, matched,
 or mismatched, and applies the selector's evidence ladder:
 
-Selector status is meaningful only when the document axis is `resolved`. A consumer
-must handle `unavailable` or `invalid` first; renderers present that document status
-instead of the unevaluated selector status.
-
-- **Span:** hash-bound `start`/`end`; for quote-anchored spans, hash-bound start,
-  position corroborated by quote/context, unique exact quote, then exact quote
-  disambiguated by immediate context. An exact-less span with a missing or mismatched
-  hash reports `missing`.
+- **Span (exact-less):** hash-bound `start`/`end`; a mismatched hash reports
+  `missing`.
+- **Span (quote-anchored):** hash-bound start, position corroborated by quote/context,
+  unique exact quote, then exact quote disambiguated by immediate context.
 - **Point:** hash-bound position, corroborated position, two-sided boundary context,
   then sufficiently strong affinity-owned context.
 - **Section:** resolve the heading anchors, derive the range from CommonMark structure,
