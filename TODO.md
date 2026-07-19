@@ -36,7 +36,7 @@ has the full detail; this file is the summary.
 
 ## Deferred (Specified, Not Yet Built; Spec §14)
 
-- Annotation layer; cross-layer structural edits; fuzzy `SpanRef` re-anchoring;
+- Cross-layer structural edits; normalized and fuzzy TextRef re-anchoring;
   operation/provenance/layout layers (schema-reserved).
 - A uniform opt-in strict-validation/diagnostics pass over a parse (spec §2, Error
   posture).

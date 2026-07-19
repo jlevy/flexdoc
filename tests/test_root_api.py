@@ -15,6 +15,7 @@ import flexdoc.docs
 
 
 def test_root_exports_are_the_canonical_objects():
+    assert flexdoc.AnnotationSet is flexdoc.docs.AnnotationSet
     assert flexdoc.FlexDoc is flexdoc.docs.FlexDoc
     assert flexdoc.DocGraph is flexdoc.docs.DocGraph
     assert flexdoc.Detail is flexdoc.docs.Detail
@@ -23,17 +24,31 @@ def test_root_exports_are_the_canonical_objects():
     assert flexdoc.NodeKind is flexdoc.docs.NodeKind
     assert flexdoc.Layer is flexdoc.docs.Layer
     assert flexdoc.TextUnit is flexdoc.docs.TextUnit
+    assert flexdoc.DocRef is flexdoc.docs.DocRef
+    assert flexdoc.TextRef is flexdoc.docs.TextRef
+    assert flexdoc.TextAnnotation is flexdoc.docs.TextAnnotation
+    assert flexdoc.TextBody is flexdoc.docs.TextBody
+    assert flexdoc.TextRefContext is flexdoc.docs.TextRefContext
+    assert flexdoc.TextRefResolution is flexdoc.docs.TextRefResolution
 
 
 def test_root_surface_is_deliberate():
     assert sorted(flexdoc.__all__) == [
+        "AnnotationSet",
         "BlockType",
         "Detail",
         "DocGraph",
+        "DocRef",
         "FlexDoc",
         "Layer",
         "NodeKind",
         "SpanRef",
+        "TextAnnotation",
+        "TextBody",
+        "TextRef",
+        "TextRefContext",
+        "TextRefResolution",
+        "TextRefTargetKind",
         "TextUnit",
     ]
     assert not hasattr(flexdoc, "resolve")
@@ -44,6 +59,8 @@ def test_root_surface_is_deliberate():
 
 def test_docs_surface_promotes_the_document_model_only():
     assert sorted(flexdoc.docs.__all__) == [
+        "AnnotationSet",
+        "AnnotationSetEntry",
         "BaseBlock",
         "Block",
         "BlockType",
@@ -51,7 +68,10 @@ def test_docs_surface_promotes_the_document_model_only():
         "DEFAULT_INCLUDE",
         "Detail",
         "DocGraph",
+        "DocRef",
+        "DocumentStatus",
         "FlexDoc",
+        "HeadingAnchor",
         "HeadingInfo",
         "LAYER_NESTING",
         "Layer",
@@ -66,12 +86,30 @@ def test_docs_surface_promotes_the_document_model_only():
         "NodeTable",
         "Offsets",
         "Paragraph",
+        "PointAffinity",
+        "PointSelector",
+        "ResolutionMethod",
         "Section",
+        "SectionSelector",
+        "SelectorStatus",
         "SentIndex",
         "Sentence",
+        "SourceCoordinate",
         "SourceInfo",
+        "SourceLine",
+        "SourceRange",
+        "SourceValidation",
         "SpanRef",
+        "SpanSelector",
         "TableInfo",
+        "TextAnnotation",
+        "TextBody",
+        "TextRef",
+        "TextRefContext",
+        "TextRefResolution",
+        "TextRefSourceContext",
+        "TextRefTargetError",
+        "TextRefTargetKind",
         "TextUnit",
         "Views",
         "base_blocks",
@@ -83,9 +121,13 @@ def test_docs_surface_promotes_the_document_model_only():
         "doc_report",
         "doc_report_data",
         "dump_views",
+        "normalize_source",
         "parse_blocks",
         "parse_source_span_attr",
         "render_node_attrs",
+        "resolve_batch",
+        "resolve_text_ref",
+        "source_hash",
         "walk_blocks",
         "wrap_with_node_attrs",
     ]

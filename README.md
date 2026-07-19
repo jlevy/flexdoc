@@ -18,8 +18,9 @@ source string. The **Markdown layer** (blocks, inline elements, typed attributes
 (heading hierarchy, table of contents) are independent parses of the same text, so
 cross-cutting questions are simple offset queries.
 One query primitive (`collect()`) spans all layers; **`DocGraph`** serializes any slice
-as language-neutral JSON; **`SpanRef`** anchors spans by quoted text so references
-survive edits and reparses.
+as language-neutral JSON; **`TextRef`** gives spans, points, sections, and whole
+documents portable references (canonical JSON with a URI projection) and typed
+resolution; **`SpanRef`** remains the lightweight quote anchor.
 
 FlexDoc is a standalone library.
 [chopdiff](https://github.com/jlevy/chopdiff) builds its diff-filtering and
@@ -89,8 +90,8 @@ golden-test corpus that pins this behavior).
 The full public surfaces live in the submodules:
 
 - `flexdoc.docs`: `FlexDoc`, `Paragraph`, `Sentence`, `Section`, `Block`, `BlockType`,
-  the node table, `collect()`, `DocGraph`, `SpanRef`, and source-linked render/report
-  helpers.
+  the node table, `collect()`, `DocGraph`, `TextRef`, annotation values, `SpanRef`, and
+  source-linked render/report helpers.
 - `flexdoc.docs.wordtoks`, `flexdoc.docs.search_tokens`,
   `flexdoc.docs.token_diffs`, and `flexdoc.docs.token_mapping`: lower-level token,
   search, diff, and mapping utilities that are not promoted by `flexdoc.docs`.
@@ -109,6 +110,8 @@ checkout):
   covers block-type tallies, list-density invariance, and per-section links.
 - [`backfill_timestamps.py`](https://github.com/jlevy/flexdoc/blob/main/examples/backfill_timestamps.py)
   aligns an edited transcript to its timestamped source via token mapping.
+- [`textref_workflows.py`](https://github.com/jlevy/flexdoc/blob/main/examples/textref_workflows.py)
+  composes extraction provenance, context retrieval, citations, annotations, and edit targets.
 
 ## Project Docs
 

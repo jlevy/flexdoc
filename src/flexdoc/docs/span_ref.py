@@ -12,7 +12,9 @@ instance methods on the root-exported `SpanRef`.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Literal
 from urllib.parse import quote
 
 from flexdoc.docs.node import Node
@@ -71,6 +73,29 @@ class SpanRef:
         suffix = source_text[end:suffix_end] if end < suffix_end else None
         return cls(exact=exact, prefix=prefix, suffix=suffix, start=start, end=end)
 
+    @classmethod
+    def from_quote(
+        cls,
+        exact: str,
+        source_text: str,
+        *,
+        prefix: str | None = None,
+        suffix: str | None = None,
+    ) -> SpanRef:
+        """
+        Resolve an external exact quote and return a positioned reference.
+        Missing or ambiguous quotes fail visibly instead of selecting an occurrence.
+        When no context is supplied, the resolved source context is captured.
+        """
+        candidate = cls(exact=exact, prefix=prefix, suffix=suffix)
+        result = resolve(candidate, source_text)
+        if result is None:
+            raise ValueError("quote is missing or ambiguous in source_text")
+        if prefix is None and suffix is None:
+            return cls.from_span(source_text, *result)
+        candidate.start, candidate.end = result
+        return candidate
+
     def to_persisted(self, *, include_position_hint: bool = False) -> SpanRef:
         """
         Return a copy suitable for persistence. The quote (`exact`/`prefix`/`suffix`)
@@ -117,6 +142,73 @@ class SpanRef:
         return resolve_and_update(self, source_text)
 
 
+@dataclass(frozen=True)
+class QuoteResolution:
+    """Internal exact-quote outcome shared by SpanRef and TextRef."""
+
+    status: Literal["resolved", "missing", "ambiguous"]
+    method: Literal[
+        "source_position",
+        "context_position",
+        "exact_quote",
+        "context_quote",
+        "none",
+    ]
+    span: tuple[int, int] | None = None
+    candidates: tuple[tuple[int, int], ...] = ()
+
+
+def resolve_quote_exact(
+    exact: str,
+    source_text: str,
+    *,
+    prefix: str | None = None,
+    suffix: str | None = None,
+    start: int | None = None,
+    trust_position: bool = False,
+) -> QuoteResolution:
+    """
+    Resolve exact quote evidence conservatively. `trust_position` is valid only when
+    the caller has independently matched the source hash.
+    """
+    if not exact:
+        return QuoteResolution("missing", "none")
+    if start is not None:
+        end = start + len(exact)
+        position_matches = 0 <= start <= end <= len(source_text) and source_text[start:end] == exact
+        if position_matches and trust_position:
+            return QuoteResolution("resolved", "source_position", (start, end))
+        candidate = SpanRef(
+            exact=exact,
+            prefix=prefix,
+            suffix=suffix,
+            start=start,
+            end=end,
+        )
+        if (
+            position_matches
+            and (prefix or suffix)
+            and _context_matches_at(candidate, source_text, start, end)
+        ):
+            return QuoteResolution("resolved", "context_position", (start, end))
+
+    occurrences = find_occurrences(source_text, exact)
+    if not occurrences:
+        return QuoteResolution("missing", "none")
+    candidates = tuple((position, position + len(exact)) for position in occurrences)
+    if len(candidates) == 1:
+        return QuoteResolution("resolved", "exact_quote", candidates[0])
+
+    best = _best_match(occurrences, exact, prefix, suffix, source_text)
+    if best is not None:
+        return QuoteResolution(
+            "resolved",
+            "context_quote",
+            (best, best + len(exact)),
+        )
+    return QuoteResolution("ambiguous", "none", candidates=candidates)
+
+
 def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
     """
     Resolve a `SpanRef` against `source_text`, returning the `(start, end)`
@@ -139,49 +231,31 @@ def resolve(span_ref: SpanRef, source_text: str) -> tuple[int, int] | None:
     With neither a non-empty `prefix` nor `suffix`, offsets cannot disambiguate
     duplicate quotes. A unique quote still resolves through the search path.
     """
-    # A zero-width quote anchors nothing; reject it on both paths.
-    if not span_ref.exact:
-        return None
+    start = (
+        span_ref.start
+        if span_ref.start is not None and span_ref.end == span_ref.start + len(span_ref.exact)
+        else None
+    )
+    result = resolve_quote_exact(
+        span_ref.exact,
+        source_text,
+        prefix=span_ref.prefix,
+        suffix=span_ref.suffix,
+        start=start,
+    )
+    return result.span
 
-    # A position hint is trustworthy only when non-empty context corroborates it.
-    has_context = bool(span_ref.prefix or span_ref.suffix)
-    if has_context and span_ref.start is not None and span_ref.end is not None:
-        s, e = span_ref.start, span_ref.end
-        if (
-            0 <= s <= e <= len(source_text)
-            and source_text[s:e] == span_ref.exact
-            and _context_matches_at(span_ref, source_text, s, e)
-        ):
-            return (s, e)
 
-    # Slow path: search for the exact text in the source.
-    exact = span_ref.exact
-
-    # Collect all occurrences.
+def find_occurrences(source_text: str, exact: str) -> list[int]:
+    """Return every overlapping start offset of `exact` in `source_text`."""
     occurrences: list[int] = []
     search_start = 0
     while True:
-        idx = source_text.find(exact, search_start)
-        if idx < 0:
-            break
-        occurrences.append(idx)
-        search_start = idx + 1
-
-    if not occurrences:
-        return None
-
-    if len(occurrences) == 1:
-        best = occurrences[0]
-    else:
-        # Disambiguate with prefix/suffix scoring; ambiguous stays unresolved.
-        best_or_none = _best_match(
-            occurrences, exact, span_ref.prefix, span_ref.suffix, source_text
-        )
-        if best_or_none is None:
-            return None
-        best = best_or_none
-
-    return (best, best + len(exact))
+        position = source_text.find(exact, search_start)
+        if position < 0:
+            return occurrences
+        occurrences.append(position)
+        search_start = position + 1
 
 
 def _context_matches_at(span_ref: SpanRef, source_text: str, start: int, end: int) -> bool:
@@ -213,6 +287,14 @@ def resolve_and_update(span_ref: SpanRef, source_text: str) -> tuple[int, int] |
     if result is not None:
         span_ref.start, span_ref.end = result
     return result
+
+
+def resolve_batch(span_refs: Iterable[SpanRef], source_text: str) -> list[tuple[int, int] | None]:
+    """
+    Resolve several references with the same conservative contract as `resolve()`.
+    The clear loop is intentional until representative batches justify an index.
+    """
+    return [resolve(span_ref, source_text) for span_ref in span_refs]
 
 
 def _best_match(

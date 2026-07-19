@@ -1,7 +1,7 @@
 """
 flexdoc is a source-grounded, layered document model for Markdown and text: parse to a
 `FlexDoc`, query its structure across independent layers with `collect()`, serialize it
-as a `DocGraph`, and anchor spans and edits with `SpanRef` so they survive reparse. It
+as a `DocGraph`, and retain portable source targets with `TextRef`. It
 is a standalone library (chopdiff builds its diff and windowed-transform layer on top
 of it).
 
@@ -35,23 +35,39 @@ are deliberate; `tests/test_root_api.py` pins the exact surface.
 """
 
 from flexdoc.docs import (
+    AnnotationSet,
     BlockType,
     Detail,
     DocGraph,
+    DocRef,
     FlexDoc,
     Layer,
     NodeKind,
     SpanRef,
+    TextAnnotation,
+    TextBody,
+    TextRef,
+    TextRefContext,
+    TextRefResolution,
+    TextRefTargetKind,
     TextUnit,
 )
 
 __all__ = [
+    "AnnotationSet",
     "BlockType",
     "Detail",
+    "DocRef",
     "DocGraph",
     "FlexDoc",
     "Layer",
     "NodeKind",
     "SpanRef",
+    "TextAnnotation",
+    "TextBody",
+    "TextRef",
+    "TextRefContext",
+    "TextRefResolution",
+    "TextRefTargetKind",
     "TextUnit",
 ]

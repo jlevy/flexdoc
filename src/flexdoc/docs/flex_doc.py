@@ -11,7 +11,7 @@ from collections.abc import Set as AbstractSet
 from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import TypeVar, cast
+from typing import TYPE_CHECKING, TypeVar, cast
 
 import regex
 from flowmark import flowmark_markdown
@@ -50,6 +50,11 @@ from flexdoc.docs.wordtoks import (
     SENT_BR_STR,
     join_wordtoks,
 )
+
+if TYPE_CHECKING:
+    from flexdoc.docs.text_annotations import AnnotationSet
+    from flexdoc.docs.text_ref import DocRef
+    from flexdoc.docs.text_ref_context import TextRefContext
 
 _PARA_BREAK_REGEX = regex.compile(r"(?:[ \t\r]*\n){2,}[ \t\r]*")
 r"""
@@ -325,6 +330,21 @@ class FlexDoc:
         the immutable `source_text` (see the class contract on read-time caching).
         """
         return build_node_table(self)
+
+    def references(
+        self,
+        document: str | DocRef,
+        *,
+        max_exact_chars: int | None = None,
+    ) -> TextRefContext:
+        """
+        Bind a document locator to this source snapshot for TextRef operations.
+        Spans longer than `max_exact_chars` omit their exact quote and carry hash-bound
+        positions instead; `None` (the default) always retains complete quote evidence.
+        """
+        from flexdoc.docs.text_ref_context import TextRefContext
+
+        return TextRefContext.bind(self, document, max_exact_chars=max_exact_chars)
 
     @classmethod
     @tally_calls(level="warning", min_total_runtime=5)
@@ -975,18 +995,24 @@ class FlexDoc:
     def graph(
         self,
         *,
+        document: str | DocRef,
         include: AbstractSet[Layer] | None = None,
         detail: AbstractSet[Detail] = frozenset(),  # pyright: ignore[reportCallInDefaultInitializer]
+        annotations: AnnotationSet | None = None,
     ) -> DocGraph:
         """
-        Build a `DocGraph` projection of this document. `include` selects which
-        layers to serialize (default: markdown + document); `detail` controls
-        payload richness (see `Detail`). Both accept any set (plain `set` literals
-        work; they are never mutated). See `flexdoc.docs.doc_graph` for the full
-        contract.
+        Build the current `DocGraph` projection. `document` supplies the shared DocRef;
+        `include` selects layers (default: markdown and document); `detail` controls
+        payload richness; and `annotations` optionally embeds a matching sidecar.
         """
         effective_include = include if include is not None else DEFAULT_INCLUDE
-        return build_doc_graph(self.node_table(), include=effective_include, detail=detail)
+        return build_doc_graph(
+            self.node_table(),
+            document=document,
+            include=effective_include,
+            detail=detail,
+            annotations=annotations,
+        )
 
     @override
     def __str__(self):

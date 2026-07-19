@@ -1,10 +1,10 @@
 # Research: A Portable DocRef, SpanRef, and TextRef Microformat
 
-**Date:** 2026-07-10 (last updated 2026-07-13)
+**Date:** 2026-07-10 (last updated 2026-07-16)
 
 **Author:** Codex, synthesizing existing FlexDoc and tbd design work
 
-**Status:** Research complete; proposal pending review
+**Status:** Research complete; FlexDoc direction and core protocol implemented
 
 ## Overview
 
@@ -64,6 +64,13 @@ when a TypeScript consumer needs the same persisted references.
 The core should be pure and dependency-free.
 Filesystem, network, Git, rendering, and application policy should remain in
 consumer-owned adapters.
+
+FlexDoc adopts this direction in the
+[native TextRef integration plan](../specs/active/plan-2026-07-14-native-textref-integration.md).
+That plan settles the FlexDoc binding API, consumer ownership of annotations,
+contextual rendering boundary, and the unified `DocGraph/v0.2` contract. The remaining
+open decisions below concern protocol limits, conformance details, later adapters, and
+governance.
 
 ## Scope
 
@@ -2412,12 +2419,13 @@ The v0.1 rules are:
   The final DocRef rules must define this per kind before it is enforced.
 - `selector.type` is required.
   v0.1 defines `span`, `point`, and `section`.
-- A `span` selector requires an `exact` string containing at least one Unicode code
-  point. `prefix` and `suffix` are optional, non-empty immediate context strings.
-  `start` is an optional non-negative JSON-safe integer measured in Unicode code points.
-  The selected half-open range is `[start, start + code_point_length(exact))`. In-memory
-  SpanRef APIs may retain a derived `end`, but the wire format does not store the
-  redundant value.
+- A quote-anchored `span` selector contains a non-empty `exact` string. `prefix` and
+  `suffix` are optional, non-empty immediate context strings, and `start` is an optional
+  non-negative JSON-safe code-point position. Its range is
+  `[start, start + code_point_length(exact))` when the position is trusted.
+- A snapshot-bound `span` selector omits `exact` and context, requires `start`, `end`,
+  and the enclosing TextRef or container `source_hash`, and identifies the non-empty
+  half-open range `[start, end)`. It resolves only when the source hash matches.
 - Span boundaries need not align with Markdown tokens, inline nodes, blocks, headings,
   lines, rendered selections, or parser nodes. They are boundaries in canonical source
   text. A consumer may impose stricter alignment for a particular operation without
@@ -3007,6 +3015,10 @@ Whole-document features should continue using DocRef or TextRef without `selecto
 FlexDoc should prove the TextRef shape while keeping FlexDoc-specific adapters locally:
 
 - Keep `SpanRef.from_node()` in FlexDoc
+- Add `FlexDoc.references(document=...)` as the one document-bound construction,
+  resolution, and context surface
+- Map paragraphs, sentences, blocks, base blocks, located links, and ordinary nodes to
+  span selectors; map sections and section nodes to semantic section selectors
 - Add a point-selector constructor and source-span boundary helpers without making
   points pretend to be empty SpanRefs
 - Add a section-selector constructor from `Section.heading_block.source_span`, with an
@@ -3014,11 +3026,18 @@ FlexDoc should prove the TextRef shape while keeping FlexDoc-specific adapters l
 - Keep the existing public SpanRef API while testing the new wire projection
 - Persist `start` when a TextRef also carries `source_hash`; continue treating unbound
   positions as hints
-- Move `SpanRef.to_text_fragment()` to a rendered-text adapter with explicit refusal
-  rules, since it currently projects source text directly
-- Preserve `DocGraph/v0.1`
-- Add document locator, optional source hash, and typed annotation targets in an
-  explicit later schema version
+- Permit either quote-anchored spans (`exact` with optional context and start) or compact
+  snapshot-bound spans (`start`/`end` without `exact`, requiring `source_hash`). Keep
+  quote-size policy with the application: FlexDoc includes exact text by default,
+  accepts a caller-selected `max_exact_chars`, and allows per-span overrides.
+- Keep `SpanRef.to_text_fragment()` compatible for 0.4 while routing new browser
+  navigation work through a rendered-text adapter with explicit refusal rules
+- Require document locator and source hash in `DocGraph/v0.2`, making every graph span
+  a compact reference basis
+- Keep annotations consumer-owned and pass them explicitly to FlexDoc for rendering or
+  graph serialization rather than storing them as mutable `FlexDoc` state
+- Use one `DocGraph` runtime model and builder; annotations optionally populate the same
+  `DocGraph/v0.2` wire contract
 - Use bare `span`, `point`, or `section` selectors for annotations embedded in a
   DocGraph whose enclosing source already supplies document and source-hash context
 - Use complete TextRef for annotations detached from a graph or targeting another
@@ -3080,6 +3099,11 @@ Rendered browser fragments remain a separate FlexDoc adapter concern.
 17. **Batch ambiguity:** Should a batch resolver ever use global assignment constraints,
     or must every selector resolve independently so iteration order and assumptions
     about target uniqueness cannot manufacture certainty?
+
+The compact snapshot-bound span resolves the immediate size problem without defining a
+second selector kind. A future format revision may add bounded boundary evidence or a
+span digest if consumers need compact references that also re-anchor after snapshot
+changes; v0.1 exact-less spans deliberately report `missing` on a hash mismatch.
 
 ### Section Construction and Resolution
 
@@ -3154,7 +3178,9 @@ positions or drop stale positions before changing the hoisted hash.
 
 36. **Quote limits:** What maximum `exact`, `captured_text`, prefix, suffix, document
     size, and candidate count prevent denial of service and accidental copying of large
-    copyrighted or sensitive passages?
+    copyrighted or sensitive passages? Should a later format add bounded span evidence,
+    such as head and tail quotes plus selected length and an `exact_hash`, so large spans
+    remain verifiable without embedding their complete source?
 37. **Versioning:** What changes are compatible within `textref/0.x`, and when does a
     new major become necessary?
 38. **Governance:** Who owns releases and adjudicates behavior changes when tbd and

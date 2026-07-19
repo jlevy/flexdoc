@@ -1,8 +1,9 @@
-schema: DocGraph/v0.1
+schema: DocGraph/v0.2
 source:
   format: markdown
   offset_unit: unicode_code_points
-  sha256: 12543093d867364bae9479159f1c005534e1e6a68c74918ea1dab4a0527455f5
+  document: tests/golden/documents/tight_vs_loose.md
+  source_hash: sha256:12543093d867364bae9479159f1c005534e1e6a68c74918ea1dab4a0527455f5
 nodes:
 - id: n0001
   kind: heading

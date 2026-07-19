@@ -1,6 +1,6 @@
 # Feature: Staged FlexDoc Stabilization and Promotion Roadmap
 
-**Date:** 2026-07-09 (last updated 2026-07-11)
+**Date:** 2026-07-09 (last updated 2026-07-14)
 
 **Author:** Joshua Levy and Codex
 
@@ -17,8 +17,8 @@ review snapshot.
 The immediate objective is a coherent 0.3.0 boundary: ship the correctness changes
 already on PR #9 together with the remaining pre-1.0 API decisions, refresh the
 supply-chain state, and make the public contract internally consistent.
-Later releases can add annotation and synthetic-layer mechanisms without reopening that
-foundation.
+The 0.4.0 phase adds native TextRef references, contextual annotations, and related
+workflow mechanisms without reopening that foundation.
 
 ## Goals
 
@@ -28,8 +28,8 @@ foundation.
   every projection
 - Make anchoring failures visible, including context-free offset hints over duplicate
   quotes
-- Add annotation, suggestion, chunking, and outline mechanisms with explicit ownership,
-  conflict, and schema-version semantics
+- Add native TextRef mapping, contextual annotations, suggestions, chunking, and
+  outlines with explicit ownership, conflict, and schema-version semantics
 - Complete the synthetic layer and downstream Chopdiff adoption after the public API is
   stable
 - Keep every stage linked to real `tbd` beads, tests, release notes, and maintained
@@ -71,6 +71,8 @@ exceptions and audit ignores are removed, and the unignored audit passes.
 - `flexdoc-aqjg`: top-level execution epic for this specification
 - `flexdoc-r634`: Phase 1, stabilize and release FlexDoc 0.3.0
 - `flexdoc-6582`: Phase 2, add source-grounded workflow APIs and release 0.4.0
+- `flexdoc-4imy`: implementation epic for the native TextRef integration specified in
+  `plan-2026-07-14-native-textref-integration.md`
 - `flexdoc-ww1i`: Phase 3, complete extensions, downstream adoption, and promotion
 - `flexdoc-z09f`: optional fuzzy anchoring after the normalized matching corpus; not a
   0.4.0 release gate
@@ -86,8 +88,8 @@ beads below.
 
 - **0.3.0:** PR #9 behavior changes, anchoring contract decision, pre-1.0 API cleanup,
   and release/supply-chain gates
-- **0.4.0:** additive annotation, suggestion, and structural-outline APIs plus the next
-  `DocGraph` schema version
+- **0.4.0:** TextRef, contextual annotation, suggestion, and structural-outline APIs
+  plus the single source-identifying `DocGraph/v0.2` contract
 - **Later minor release:** synthetic layer and any associated cross-layer editing API
 
 Do not publish the PR #9 changes as a 0.2.x patch.
@@ -98,8 +100,10 @@ observable behavior and belong in the documented pre-1.0 minor release.
 
 - **Library APIs:** 0.3.0 may break APIs listed in Phase 1, with no compatibility
   aliases; every break needs a changelog migration note and root-surface contract test
-- **Serialized formats:** preserve `DocGraph/v0.1`; introduce a new schema version when
-  annotation fields become typed or populated
+- **0.4 library APIs:** preserve the released `SpanRef` surface while new persisted
+  workflows use typed TextRef results; expose one current DocGraph runtime model
+- **Serialized formats:** use one `DocGraph/v0.2` schema carrying required document
+  identity, source hash, and typed annotations
 - **Source coordinates:** offsets index normalized `source_text`; external CRLF
   coordinates are unsupported unless a future mapping API is designed explicitly
 - **Downstream Chopdiff:** coordinate export cleanup and the external-package rewire so
@@ -109,6 +113,8 @@ observable behavior and belong in the documented pre-1.0 minor release.
 
 - `docs/flexdoc-spec.md` is the current behavioral contract
 - This roadmap owns future sequencing and decisions
+- `plan-2026-07-14-native-textref-integration.md` owns the focused TextRef API and
+  implementation design
 - Review documents record evidence and conclusions; they do not remain parallel task
   lists
 - Implemented plans should move to the archive after their remaining deferred work is
@@ -179,18 +185,18 @@ editing model.
 ### Phase 2: Add Source-Grounded AI Workflow Primitives
 
 Phase 2 implementation begins after 0.3.0 publishes.
-The annotation, anchoring, fragment, structure, and normalized-matching beads can then
-proceed in parallel; suggestion batches require both the annotation schema and batch
-resolution contract.
+The native TextRef plan settles the shared reference, annotation-ownership, and context
+rendering design before the remaining fragment, structure, normalized-matching, and
+suggestion work. Its child-bead dependency graph lives in that focused plan; the table
+below keeps only the Phase 2 sequencing boundary.
 
 | Bead | Deliverable | Blocked By |
 | --- | --- | --- |
-| `flexdoc-jl5b` | Define annotation ownership and `DocGraph/v0.2` | `flexdoc-63p5` |
-| `flexdoc-rbvu` | Add quote construction and batch `SpanRef` resolution | `flexdoc-63p5` |
+| `flexdoc-4imy` | Implement native TextRef values, mapping, resolution, context, annotations, rendering, and validation through its child beads | `flexdoc-63p5` |
 | `flexdoc-p6xv` | Define rendered-text URL fragment projection | `flexdoc-63p5` |
 | `flexdoc-hc17` | Add structural text accessors and section outlines | `flexdoc-63p5` |
 | `flexdoc-i229` | Add opt-in normalized re-anchoring with corpus evidence | `flexdoc-63p5` |
-| `flexdoc-zdu2` | Define `SuggestedEdit` and atomic batch application | `flexdoc-jl5b`, `flexdoc-rbvu` |
+| `flexdoc-zdu2` | Define `SuggestedEdit` and atomic batch application | TextRef mapping, annotation, and resolution children of `flexdoc-4imy` |
 | `flexdoc-vav2` | Validate AI workflows with runnable examples and compatibility tests | All preceding Phase 2 API beads |
 | `flexdoc-f4mz` | Validate and publish 0.4.0 | `flexdoc-vav2` |
 
@@ -235,17 +241,22 @@ workflow APIs and the Chopdiff migration.
 3. Complete Phase 2 behind the next `DocGraph` schema version and publish 0.4.0.
 4. Complete Phase 3 only after downstream adoption validates the extension APIs.
 
-## Open Questions
+## Resolved Phase 2 Decisions
 
-- Who owns annotations, and how are they supplied to `DocGraph` serialization?
-- Does a populated annotation layer require `DocGraph/v0.2` on every graph or only on
-  graphs that include annotations?
+- Consumers own annotations and pass them explicitly to FlexDoc for rendering or graph
+  serialization; `FlexDoc` does not store mutable annotation state.
+- `FlexDoc.graph(document=...)` returns one `DocGraph/v0.2` type. Annotations optionally
+  populate that same contract after document and source-hash validation.
+- TextRef identifies targets. Annotation bodies, workflow state, edit operations, and
+  contextual views remain separate layers over it.
 
 ## References
 
 - PR [#9](https://github.com/jlevy/flexdoc/pull/9)
 - [2026-07 senior engineering review](../../review/senior-engineering-review-flexdoc-2026-07.md)
 - [FlexDoc design specification](../../../flexdoc-spec.md)
+- [Native TextRef integration plan](plan-2026-07-14-native-textref-integration.md)
+- [TextRef research](../../research/research-2026-07-10-text-reference-microformat.md)
 - [Initial post-review refinements plan](plan-2026-07-08-post-review-refinements.md)
 - [Extraction plan](plan-2026-06-11-flexdoc-extraction.md)
 - [W3C Web Annotation selectors](https://www.w3.org/TR/annotation-model/#selectors)

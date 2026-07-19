@@ -1,0 +1,315 @@
+{
+  "$defs": {
+    "DocRef": {
+      "description": "A non-empty document locator. Parsing and serialization perform no I/O.",
+      "title": "DocRef",
+      "type": "string"
+    },
+    "HeadingAnchor": {
+      "additionalProperties": false,
+      "description": "Quote and position evidence for one complete CommonMark heading.",
+      "properties": {
+        "exact": {
+          "title": "Exact",
+          "type": "string"
+        },
+        "prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prefix"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "suffix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Suffix"
+        }
+      },
+      "required": [
+        "exact"
+      ],
+      "title": "HeadingAnchor",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "PointAffinity": {
+      "description": "The side of a point that owns its identity across insertions.",
+      "enum": [
+        "before",
+        "after"
+      ],
+      "title": "PointAffinity",
+      "type": "string"
+    },
+    "PointSelector": {
+      "additionalProperties": false,
+      "description": "A zero-width source boundary with affinity and recovery context.",
+      "properties": {
+        "affinity": {
+          "$ref": "#/$defs/PointAffinity"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Position"
+        },
+        "prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prefix"
+        },
+        "suffix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Suffix"
+        },
+        "type": {
+          "const": "point",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "affinity"
+      ],
+      "title": "PointSelector",
+      "type": "object"
+    },
+    "SectionSelector": {
+      "additionalProperties": false,
+      "description": "A complete CommonMark heading section, including nested subsections.",
+      "properties": {
+        "end_anchor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/HeadingAnchor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "start_anchor": {
+          "$ref": "#/$defs/HeadingAnchor"
+        },
+        "syntax": {
+          "const": "commonmark",
+          "title": "Syntax",
+          "type": "string"
+        },
+        "type": {
+          "const": "section",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "syntax",
+        "start_anchor"
+      ],
+      "title": "SectionSelector",
+      "type": "object"
+    },
+    "SpanSelector": {
+      "additionalProperties": false,
+      "description": "A non-empty source range with optional quote evidence or hash-bound positions.",
+      "properties": {
+        "end": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "exact": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exact"
+        },
+        "prefix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Prefix"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "suffix": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Suffix"
+        },
+        "type": {
+          "const": "span",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "SpanSelector",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A document plus an optional source hash and optional typed selector.",
+  "properties": {
+    "document": {
+      "$ref": "#/$defs/DocRef"
+    },
+    "extensions": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Extensions",
+      "type": "object"
+    },
+    "format": {
+      "const": "textref/0.1",
+      "title": "Format",
+      "type": "string"
+    },
+    "selector": {
+      "anyOf": [
+        {
+          "discriminator": {
+            "mapping": {
+              "point": "#/$defs/PointSelector",
+              "section": "#/$defs/SectionSelector",
+              "span": "#/$defs/SpanSelector"
+            },
+            "propertyName": "type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/SpanSelector"
+            },
+            {
+              "$ref": "#/$defs/PointSelector"
+            },
+            {
+              "$ref": "#/$defs/SectionSelector"
+            }
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Selector"
+    },
+    "source_hash": {
+      "anyOf": [
+        {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Hash"
+    }
+  },
+  "required": [
+    "format",
+    "document"
+  ],
+  "title": "TextRef",
+  "type": "object"
+}

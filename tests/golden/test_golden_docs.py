@@ -50,11 +50,11 @@ def _load(path: Path) -> tuple[str, int]:
     return content, depth
 
 
-def _artifacts(content: str, depth: int) -> dict[str, str]:
+def _artifacts(content: str, depth: int, document: str) -> dict[str, str]:
     td = FlexDoc.from_text(content)
     return {
         "report.yaml": doc_report(td, item_partition_depth=depth),
-        "docgraph.yaml": doc_graph_yaml(td),
+        "docgraph.yaml": doc_graph_yaml(td, document=document),
         "reassembled.md": td.reassemble(),
     }
 
@@ -66,7 +66,7 @@ def test_golden_artifacts():
     failures: list[str] = []
     for path in docs:
         content, depth = _load(path)
-        artifacts = _artifacts(content, depth)
+        artifacts = _artifacts(content, depth, str(path.relative_to(_REPO_ROOT)))
         dest = _EXPECTED_DIR / path.stem
 
         if _UPDATE:
@@ -146,8 +146,9 @@ def test_model_invariants():
                 assert 0 <= s <= e <= len(source)
 
         # DocGraph child references are all valid within the projection.
-        ids = {nm.id for nm in td.graph().nodes}
-        for nm in td.graph().nodes:
+        graph = td.graph(document=where)
+        ids = {nm.id for nm in graph.nodes}
+        for nm in graph.nodes:
             for cid in nm.children:
                 assert cid in ids, f"{where}: docgraph child {cid} missing for {nm.id}"
 
@@ -257,5 +258,5 @@ def test_repo_markdown_invariants():
 
         for kind in INLINE_KINDS:
             td.collect(kinds={kind}, recursive=True)
-        td.graph()
+        td.graph(document=where)
         td.prose_text()
