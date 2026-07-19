@@ -1,15 +1,15 @@
 ---
 type: is
 id: is-01kxxrvyg4sc5knk9rwfe65j3g
-title: "PR #20 review R1: Make span exact evidence optional"
+title: "Future TextRef 0.2: bounded span evidence"
 kind: bug
-status: in_progress
+status: open
 priority: 2
-version: 3
+version: 4
 labels: []
 dependencies: []
 parent_id: is-01kxnwyc7hcd0djd3p2dknpj9k
 created_at: 2026-07-19T18:05:29.988Z
-updated_at: 2026-07-19T18:07:13.321Z
+updated_at: 2026-07-19T18:17:39.632Z
 ---
-Formal review 4731209857, PR #20. Replace mandatory unbounded SpanSelector.exact evidence with an optional exact quote plus explicit start/end positions for exact-less, hash-bound spans. Keep existing simple behavior by default; let TextRefContext callers choose a max_exact_chars policy and override include_exact per span/target. Exact-less stale references must fail conservatively. Update schemas, normative spec, usage, research notes, examples, and regression coverage.
+Follow-up from formal review 4731209857 R1 after the textref/0.1 size tradeoff and fallback guidance were documented in b33bec0. Design a future bounded-evidence span selector, such as head/tail boundary context plus length and an exact digest, without changing the current textref/0.1 wire format.
