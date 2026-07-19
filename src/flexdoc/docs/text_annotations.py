@@ -10,7 +10,7 @@ from frontmatter_format import new_yaml
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
 
 from flexdoc.docs.serialization import clean_yaml
-from flexdoc.docs.text_ref import DocRef, Selector, SourceHash, TextRef
+from flexdoc.docs.text_ref import TEXTREF_FORMAT, DocRef, Selector, SourceHash, TextRef
 
 ANNOTATION_FORMAT = "text-annotations/0.1"
 
@@ -121,7 +121,7 @@ class AnnotationSet(_StrictModel):
             TextAnnotation(
                 **annotation.model_dump(exclude={"target"}),
                 target=TextRef(
-                    format="textref/0.1",
+                    format=TEXTREF_FORMAT,
                     document=self.document,
                     source_hash=self.source_hash,
                     selector=annotation.target,

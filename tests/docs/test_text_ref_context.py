@@ -129,6 +129,25 @@ def test_structured_context_has_unicode_coordinates_and_bounded_lines():
     assert context.omitted_after is True
 
 
+def test_structured_context_treats_only_lf_as_a_line_separator():
+    source = "alpha\fpart\N{LINE SEPARATOR}still\nbeta\n"
+    doc = FlexDoc.from_text(source)
+    refs = doc.references(document="unicode.md")
+    start = source.index("beta")
+    context = refs.context(
+        refs.for_span(start, start + len("beta")),
+        before_lines=1,
+        after_lines=0,
+    )
+
+    assert context.start is not None
+    assert (context.start.line, context.start.column) == (2, 1)
+    assert [(line.number, line.text) for line in context.lines] == [
+        (1, "alpha\fpart\N{LINE SEPARATOR}still"),
+        (2, "beta"),
+    ]
+
+
 def test_structured_context_covers_whole_document_points_and_failures():
     doc = FlexDoc.from_text(SOURCE)
     refs = doc.references(document="design.md")
@@ -187,3 +206,12 @@ def test_reference_context_reuses_snapshot_indexes():
     assert hashes.call_count == 0
     assert source_lines.call_count == 1
     assert sections.call_count == 1
+
+
+def test_reference_context_uses_identity_equality_and_hashing():
+    doc = FlexDoc.from_text(SOURCE)
+    first = doc.references(document="design.md")
+    second = doc.references(document="design.md")
+
+    assert first != second
+    assert len({first, second}) == 2

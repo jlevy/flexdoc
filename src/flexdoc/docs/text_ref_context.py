@@ -85,7 +85,7 @@ class _RenderWindow:
     annotations: list[tuple[TextAnnotation, TextRefSourceContext]]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, eq=False)
 class TextRefContext:
     """
     Bind a document locator to one FlexDoc source snapshot. TextRefs remain derived
@@ -499,13 +499,10 @@ class TextRefContext:
 def _source_lines(source: str) -> list[SourceLine]:
     lines: list[SourceLine] = []
     start = 0
-    for number, raw_line in enumerate(source.splitlines(keepends=True), start=1):
-        text = raw_line[:-1] if raw_line.endswith("\n") else raw_line
+    for number, text in enumerate(source.split("\n"), start=1):
         end = start + len(text)
         lines.append(SourceLine(number=number, start=start, end=end, text=text))
-        start += len(raw_line)
-    if not lines or source.endswith("\n"):
-        lines.append(SourceLine(number=len(lines) + 1, start=start, end=start, text=""))
+        start = end + 1
     return lines
 
 
@@ -545,6 +542,8 @@ def _render_uri(text_ref: TextRef) -> str:
 
 
 def _resolution_label(resolution: TextRefResolution) -> str:
+    if resolution.document != DocumentStatus.resolved:
+        return f"document {resolution.document.value}"
     if resolution.method.value == "none":
         return resolution.selector.value
     return f"{resolution.selector.value} via {resolution.method.value}"

@@ -128,11 +128,12 @@ sentence_nodes = [node for node in graph.nodes if node.id in graph.views.sentenc
 
 ### Persist and Resolve Spans
 
-Use `SpanRef` when a tool needs to persist a source reference and re-resolve it after a
+Use `SpanRef` for in-memory or document-local source anchoring and re-resolution after a
 reparse. A `SpanRef` carries a text quote (the durable anchor) plus offsets (a
 recomputable hint): `to_persisted()` drops the offsets, keeping the quote, and
 `SpanRef.resolve()` re-locates the quote in the (possibly changed) source, returning
-`None` if the quote is gone or ambiguous.
+`None` if the quote is gone or ambiguous. Persist a `TextRef` for anything that leaves
+the process because it also carries portable document and snapshot identity.
 
 ```python
 from flexdoc import SpanRef
@@ -178,6 +179,12 @@ context only for hash-bound document start: it requires `position=0` and a `sour
 and resolves by position only when that hash matches. Position zero has stable
 structural meaning and also covers the sole boundary of an empty document; other bare
 positions are rejected.
+
+Span TextRefs retain the complete selected source as exact evidence, so their size grows
+with the selected span. The URI form is intended for modest spans and may be unavailable
+for long paragraphs, chunks, code blocks, or tables. Prefer section selectors for large
+heading-owned regions; otherwise persist structured JSON, use an annotation sidecar, or
+embed the selector in a DocGraph instead of requiring a URI.
 
 Store one `TextRef` or `tuple[TextRef, ...]` in a consumer-owned `source_refs` field.
 `doc.graph(document="docs/guide.md")` returns the single `DocGraph/v0.2` contract.

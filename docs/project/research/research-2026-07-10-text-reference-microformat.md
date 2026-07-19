@@ -3168,7 +3168,9 @@ positions or drop stale positions before changing the hoisted hash.
 
 36. **Quote limits:** What maximum `exact`, `captured_text`, prefix, suffix, document
     size, and candidate count prevent denial of service and accidental copying of large
-    copyrighted or sensitive passages?
+    copyrighted or sensitive passages? Should a later format add bounded span evidence,
+    such as head and tail quotes plus selected length and an `exact_hash`, so large spans
+    remain verifiable without embedding their complete source?
 37. **Versioning:** What changes are compatible within `textref/0.x`, and when does a
     new major become necessary?
 38. **Governance:** Who owns releases and adjudicates behavior changes when tbd and

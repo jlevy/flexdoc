@@ -84,10 +84,11 @@ def test_annotation_render_golden_covers_merged_and_unresolved_groups():
     assert "## Missing" in rendered
     assert "## Ambiguous" in rendered
     assert "## Orphaned" in rendered
+    assert "Resolution: document invalid" in rendered
 
 
 def test_annotation_set_render_and_quote_elision_are_deterministic():
-    source = "# Heading\n\n" + "x" * 100
+    source = "# Heading\n\n" + "x" * 9000
     doc = FlexDoc.from_text(source)
     refs = doc.references("long.md")
     annotation = TextAnnotation(
@@ -100,6 +101,7 @@ def test_annotation_set_render_and_quote_elision_are_deterministic():
     second = refs.render_annotations(sidecar, max_quote_chars=40)
     assert first == second
     assert "chars elided" in first
+    assert "URI: unavailable (use structured TextRef)" in first
 
 
 def test_render_exposes_boundary_mismatch_and_source_mismatch():

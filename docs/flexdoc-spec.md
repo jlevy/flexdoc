@@ -935,6 +935,10 @@ canonical source profile is:
 - spans represented as half-open `[start, end)` ranges
 - hashing over the UTF-8 encoding of the complete normalized source
 
+The profile does not apply Unicode normalization. Canonically equivalent NFC and NFD
+strings remain different source text, and quote evidence must come from the canonical
+source rather than a rendered or normalized derivative.
+
 `DocRef` is a non-empty, opaque locator supplied by the consumer. It may be a repository
 locator, URL, database key, path, or application identifier. FlexDoc validates the
 string but does not perform I/O or decide that `./design.md` and `design.md` are equal.
@@ -1102,6 +1106,13 @@ as `%20`, rejects duplicates and incompatible fields, performs no I/O, and refus
 over its defined size limit. The URI contains one TextRef only. It never contains an
 annotation body or workflow state.
 
+A span selector retains the complete selected source as `exact`, so its structured size
+is O(span length). The URI projection is therefore intended for modest spans and may be
+unavailable for long paragraphs, chunks, code blocks, or tables. Prefer section
+selectors for large heading-owned regions. Persist structured JSON, use an annotation
+sidecar, or embed the selector in a DocGraph when a large arbitrary span exceeds the URI
+limit.
+
 Restricted YAML is a convenience projection for annotation sidecars. It must parse to
 the same JSON-compatible value tree before strict model validation; YAML tags,
 duplicate keys, and YAML-specific value semantics are not part of the format.
@@ -1117,6 +1128,10 @@ callers can distinguish stale content from missing or ambiguous targets:
 | Source validation | `absent`, `matched`, `mismatched` |
 | Selector | `whole_document`, `resolved`, `missing`, `ambiguous`, `boundary_mismatched`, `unsupported` |
 | Method | `source_position`, `context_position`, `exact_quote`, `context_quote`, `point_context`, `point_affinity`, `section_structure`, `section_anchors`, `none` |
+
+Consumers must inspect the document axis first. The selector axis is meaningful only
+when the document is `resolved`; a missing or different document prevents selector
+evaluation.
 
 A consumer first retrieves the requested DocRef. Failure to retrieve it is
 `unavailable`; supplying a different bound document is `invalid`. The resolver then

@@ -176,7 +176,10 @@ class SectionRange(_StrictModel):
 
 
 class TextRefResolution(_StrictModel):
-    """Typed exact-resolution result whose failure axes remain independent."""
+    """
+    Typed exact-resolution result whose failure axes remain independent.
+    The selector axis is meaningful only when `document` is resolved.
+    """
 
     document: DocumentStatus
     source_validation: SourceValidation

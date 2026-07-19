@@ -55,5 +55,5 @@ Annotations:
   Motivations: ["commenting"]
   Target: span
   URI: textref:0.1?doc=other.md&hash=sha256%3A4b35cec681e761310afc82c729c814b15743e01165eeca4a760455615eb79693&type=span&exact=%23%20Alpha&suffix=%0A%0AFirst%20target.%0A%0ASecond%20&start=0
-  Resolution: unsupported
+  Resolution: document invalid
   Source validation: matched
