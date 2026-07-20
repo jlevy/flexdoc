@@ -4,11 +4,10 @@
 
 **Author:** Joshua Levy (with Codex assistance)
 
-**Status:** In Review
+**Status:** Implemented
 
 **Implementation status:** The implementation and follow-up naming revision are
-complete. Draft PR #18 documents the final contract, its GitHub Actions matrix is
-passing, and it is ready for review.
+complete and merged in PR #18, which documents the final contract.
 
 ## Overview
 

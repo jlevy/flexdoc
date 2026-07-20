@@ -307,6 +307,8 @@ def build_doc_graph(
             raise ValueError("annotation set source hash is required for DocGraph embedding")
         if annotations.source_hash != actual_source_hash:
             raise ValueError("annotation set source hash does not match the document snapshot")
+        for annotation in annotations.annotations:
+            _validate_annotation_bounds(annotation, len(source_text))
         annotation_entries = annotations.annotations
 
     source_info = SourceInfo(
