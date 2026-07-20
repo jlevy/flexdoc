@@ -4,10 +4,12 @@ All notable changes to flexdoc are documented here.
 This project uses [semantic versioning](https://semver.org/); while pre-1.0, breaking
 changes bump the **minor** version (see `docs/publishing.md`).
 
-## Unreleased
+## 0.4.0 (2026-07-20)
 
-This is an intentional pre-1.0 API break and requires a minor release (expected 0.4.0),
-not a 0.3.x patch.
+This is an intentional pre-1.0 API break; per the pre-1.0 rule it is a minor release,
+not a 0.3.x patch. The release-gate review, validation evidence, and full
+breaking-change catalog with migrations are in
+`docs/project/review/senior-engineering-review-v0.4-release-2026-07.md`.
 
 ### Added
 
