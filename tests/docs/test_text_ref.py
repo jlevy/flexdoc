@@ -13,6 +13,7 @@ from flexdoc.docs.span_ref import SpanRef, resolve_batch
 from flexdoc.docs.text_ref import (
     TEXTREF_FORMAT,
     DocRef,
+    DocumentStatus,
     HeadingAnchor,
     PointAffinity,
     PointSelector,
@@ -23,6 +24,7 @@ from flexdoc.docs.text_ref import (
     SourceValidation,
     SpanSelector,
     TextRef,
+    TextRefResolution,
     TextRefTargetKind,
     normalize_source,
     resolve_text_ref,
@@ -195,6 +197,16 @@ def test_canonical_source_normalization_and_hashing():
 def test_textref_json_schema_matches_committed_file():
     current = json.dumps(TextRef.model_json_schema(), indent=2, sort_keys=True) + "\n"
     assert SCHEMA_PATH.read_text() == current
+
+
+def test_resolution_flag_requires_resolved_document():
+    resolution = TextRefResolution(
+        document=DocumentStatus.invalid,
+        source_validation=SourceValidation.matched,
+        selector=SelectorStatus.resolved,
+    )
+
+    assert not resolution.resolved
 
 
 def test_typed_span_resolution_distinguishes_exact_outcomes():

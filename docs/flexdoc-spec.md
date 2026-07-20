@@ -1214,8 +1214,10 @@ multiple targets remain multiple TextRefs.
 `AnnotationSet` is a strict one-document JSON/YAML sidecar. It hoists `document` and
 optional `source_hash`, stores bare selectors under each annotation, and expands them
 mechanically to complete TextRefs before resolution. A null target represents the whole
-document. Annotation IDs are unique within a set. A sidecar containing an exact-less
-span requires the shared source hash.
+document. Annotation IDs are unique within a set. Every entry must satisfy the complete
+TextRef evidence contract under the hoisted identity, and the set enforces this at
+construction: an exact-less span requires the shared source hash, and a context-free
+point is valid only as the hash-bound `position=0` sentinel.
 
 Annotations remain outside mutable `FlexDoc` state. Callers pass them to context
 rendering or `FlexDoc.graph()`. A detached, hash-less sidecar may resolve conservatively
@@ -1399,7 +1401,7 @@ This spec stands alone; the following are background, not dependencies.
   [`research-2026-07-10-text-reference-microformat.md`](project/research/research-2026-07-10-text-reference-microformat.md)
   supplies the evidence and protocol rationale for §11. The focused implementation
   plan is
-  [`plan-2026-07-14-native-textref-integration.md`](project/specs/active/plan-2026-07-14-native-textref-integration.md).
+  [`plan-2026-07-14-native-textref-integration.md`](project/specs/done/plan-2026-07-14-native-textref-integration.md).
 - Dated planning documents under `docs/project/specs/` (active and archived) track the
   incremental work toward this design and reference this spec.
 - The external

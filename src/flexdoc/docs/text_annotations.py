@@ -15,7 +15,6 @@ from flexdoc.docs.text_ref import (
     DocRef,
     Selector,
     SourceHash,
-    SpanSelector,
     TextRef,
 )
 
@@ -94,11 +93,13 @@ class AnnotationSet(_StrictModel):
         ids = [annotation.id for annotation in self.annotations]
         if len(ids) != len(set(ids)):
             raise ValueError("annotation ids must be unique within a set")
-        if self.source_hash is None and any(
-            isinstance(annotation.target, SpanSelector) and annotation.target.exact is None
-            for annotation in self.annotations
-        ):
-            raise ValueError("a span without exact requires a source hash")
+        for annotation in self.annotations:
+            TextRef(
+                format=TEXTREF_FORMAT,
+                document=self.document,
+                source_hash=self.source_hash,
+                selector=annotation.target,
+            )
         return self
 
     @classmethod

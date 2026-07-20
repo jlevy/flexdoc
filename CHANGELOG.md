@@ -30,12 +30,15 @@ not a 0.3.x patch.
 
 ### Changed
 
-- **DocGraph has one current model and builder.** `FlexDoc.graph()` now requires a
-  consumer-owned `document` locator and always returns `DocGraph/v0.2`; annotations
-  optionally populate that same model. `DocGraphV2`, `SourceInfoV2`,
-  `build_doc_graph_v2`, the separate v0.2 schema file, and the redundant unqualified
-  `source.sha256` field are removed. Consumers use `source.source_hash`, whose
-  algorithm-qualified value is shared with TextRef.
+- **DocGraph is v0.2 and self-identifying.** `FlexDoc.graph()` and `build_doc_graph()`
+  now require a consumer-owned `document` locator and always return `DocGraph/v0.2`;
+  annotations optionally populate that same model, and the debug helpers
+  `doc_graph_yaml()`/`dump_views()` take the same `document` argument. In the
+  serialized graph, `source.document` is required and the unqualified `source.sha256`
+  field is replaced by `source.source_hash`, whose algorithm-qualified value is shared
+  with TextRef. All DocGraph models are now strict (unknown fields rejected, strict
+  types, frozen instances) and validate node-reference integrity, span/text
+  consistency, and annotation bounds.
 
 - **`TextUnit.words` changes from raw to logical semantics.** It matches the raw count
   for ordinary non-wide prose averaging 3–6 characters per word, but differs for
@@ -150,7 +153,7 @@ Remaining pre-1.0 design decisions and future mechanisms are collected in
 ## 0.2.0 (2026-06-14)
 
 Correctness fixes and a completed inline/heading/link surface for the document-metrics
-use case (`docs/project/specs/active/plan-2026-06-13-metrics-use-case.md`, issue #6). As
+use case (`docs/project/specs/done/plan-2026-06-13-metrics-use-case.md`, issue #6). As
 a preview-stage library this takes the cleanest shape with no compatibility shims; the
 API additions below include breaking signature changes (see **Changed**).
 

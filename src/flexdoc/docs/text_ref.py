@@ -190,7 +190,10 @@ class TextRefResolution(_StrictModel):
 
     @property
     def resolved(self) -> bool:
-        return self.selector in {SelectorStatus.whole_document, SelectorStatus.resolved}
+        return self.document == DocumentStatus.resolved and self.selector in {
+            SelectorStatus.whole_document,
+            SelectorStatus.resolved,
+        }
 
 
 @dataclass(frozen=True)

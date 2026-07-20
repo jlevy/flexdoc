@@ -66,7 +66,7 @@ Filesystem, network, Git, rendering, and application policy should remain in
 consumer-owned adapters.
 
 FlexDoc adopts this direction in the
-[native TextRef integration plan](../specs/active/plan-2026-07-14-native-textref-integration.md).
+[native TextRef integration plan](../specs/done/plan-2026-07-14-native-textref-integration.md).
 That plan settles the FlexDoc binding API, consumer ownership of annotations,
 contextual rendering boundary, and the unified `DocGraph/v0.2` contract. The remaining
 open decisions below concern protocol limits, conformance details, later adapters, and

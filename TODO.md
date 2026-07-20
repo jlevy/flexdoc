@@ -7,11 +7,6 @@ has the full detail; this file is the summary.
 
 ## Open Work
 
-- **Cross-language logical word metrics:** define `TextUnit.words` as the normalized
-  logical measure, add `raw_words` for literal whitespace counting, migrate token
-  estimates, and document the pre-1.0 semantic break. Epic: `flexdoc-2u8z`; GitHub
-  issue #16; spec:
-  [plan-2026-07-13-logical-word-metrics.md](docs/project/specs/active/plan-2026-07-13-logical-word-metrics.md).
 - **Synthetic layer: migrate `TextNode`/`parse_divs` from chopdiff into the node table**
   (`flexdoc-t5rh`). Concretely mapped in the extraction plan, Stage 4, including the
   open overlap-policy decision.
@@ -20,9 +15,10 @@ has the full detail; this file is the summary.
   future mechanisms are consolidated in
   [plan-2026-07-09-flexdoc-stabilization-roadmap.md](docs/project/specs/active/plan-2026-07-09-flexdoc-stabilization-roadmap.md).
   Epic: `flexdoc-aqjg`; Phase 1 (`flexdoc-r634`, the 0.3.0 contract and release) is
-  complete with 0.3.0 published 2026-07-11, leaving `flexdoc-6582` (source-grounded
-  workflow APIs and 0.4.0) and `flexdoc-ww1i` (extensions, downstream adoption, and
-  promotion).
+  complete with 0.3.0 published 2026-07-11. Phase 2 (`flexdoc-6582`, the source-grounded
+  workflow APIs) is implemented and awaits the 0.4.0 release and downstream pin
+  coordination (`flexdoc-f4mz`, `flexdoc-0e6q`), leaving `flexdoc-ww1i` (extensions,
+  downstream adoption, and promotion).
 
 ## Downstream Work (in Chopdiff, Not This Repo)
 

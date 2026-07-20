@@ -12,6 +12,10 @@ from flexdoc.docs import (
     DocGraph,
     DocRef,
     FlexDoc,
+    HeadingAnchor,
+    PointAffinity,
+    PointSelector,
+    SectionSelector,
     SpanSelector,
     TextAnnotation,
     TextBody,
@@ -79,6 +83,24 @@ def test_annotation_validation_is_strict_and_ids_are_unique():
                 AnnotationSetEntry(
                     id="position-only",
                     target=SpanSelector(type="span", start=0, end=7),
+                    motivations=["commenting"],
+                )
+            ],
+        )
+
+    with pytest.raises(ValidationError, match="point without context"):
+        AnnotationSet(
+            format="text-annotations/0.1",
+            document=DocRef("design.md"),
+            source_hash=annotation.target.source_hash,
+            annotations=[
+                AnnotationSetEntry(
+                    id="position-only",
+                    target=PointSelector(
+                        type="point",
+                        position=1,
+                        affinity=PointAffinity.after,
+                    ),
                     motivations=["commenting"],
                 )
             ],
@@ -164,6 +186,41 @@ def test_docgraph_rejects_a_hashless_sidecar():
     )
     with pytest.raises(ValueError, match="source hash is required"):
         doc.graph(document="design.md", annotations=sidecar)
+
+
+def test_default_docgraph_rejects_out_of_bounds_annotation_positions():
+    source = "# Alpha\n\nBody."
+    doc = FlexDoc.from_text(source)
+    invalid_targets = (
+        SpanSelector(type="span", exact="x", start=len(source)),
+        PointSelector(
+            type="point",
+            position=len(source) + 1,
+            affinity=PointAffinity.after,
+            suffix="x",
+        ),
+        SectionSelector(
+            type="section",
+            syntax="commonmark",
+            start_anchor=HeadingAnchor(exact="# Alpha", start=len(source)),
+        ),
+    )
+
+    for target in invalid_targets:
+        sidecar = AnnotationSet(
+            format="text-annotations/0.1",
+            document=DocRef("design.md"),
+            source_hash=doc.references("design.md").source_hash,
+            annotations=[
+                AnnotationSetEntry(
+                    id="outside-source",
+                    target=target,
+                    motivations=["commenting"],
+                )
+            ],
+        )
+        with pytest.raises(ValueError, match="annotation outside-source"):
+            doc.graph(document="design.md", annotations=sidecar)
 
 
 def test_docgraph_json_schema_includes_typed_annotations():
