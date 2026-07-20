@@ -4,8 +4,9 @@
 
 **Author:** Joshua Levy and Codex
 
-**Status:** In progress; Phase 1 is complete and 0.3.0 was published 2026-07-11.
-Later-stage design decisions remain open.
+**Status:** In progress; Phases 1 and 2 are complete, with 0.3.0 published 2026-07-11
+and 0.4.0 published 2026-07-20. Phase 3 (extensions, downstream adoption, and
+promotion) remains open.
 
 ## Overview
 
@@ -238,7 +239,9 @@ workflow APIs and the Chopdiff migration.
    0.2.x publication.
 2. Complete Phase 1 and publish 0.3.0 with a migration-focused changelog; completed
    2026-07-11 (tag `v0.3.0`, GitHub Release, and PyPI publication via `release.yml`).
-3. Complete Phase 2 behind the next `DocGraph` schema version and publish 0.4.0.
+3. Complete Phase 2 behind the next `DocGraph` schema version and publish 0.4.0;
+   completed 2026-07-20 (tag `v0.4.0`, GitHub Release, and PyPI publication via
+   `release.yml`, gated by the senior release review of PR #21).
 4. Complete Phase 3 only after downstream adoption validates the extension APIs.
 
 ## Resolved Phase 2 Decisions
@@ -255,9 +258,9 @@ workflow APIs and the Chopdiff migration.
 - PR [#9](https://github.com/jlevy/flexdoc/pull/9)
 - [2026-07 senior engineering review](../../review/senior-engineering-review-flexdoc-2026-07.md)
 - [FlexDoc design specification](../../../flexdoc-spec.md)
-- [Native TextRef integration plan](plan-2026-07-14-native-textref-integration.md)
+- [Native TextRef integration plan](../done/plan-2026-07-14-native-textref-integration.md)
 - [TextRef research](../../research/research-2026-07-10-text-reference-microformat.md)
-- [Initial post-review refinements plan](plan-2026-07-08-post-review-refinements.md)
+- [Initial post-review refinements plan](../done/plan-2026-07-08-post-review-refinements.md)
 - [Extraction plan](plan-2026-06-11-flexdoc-extraction.md)
 - [W3C Web Annotation selectors](https://www.w3.org/TR/annotation-model/#selectors)
 - [URL Fragment Text Directives](https://wicg.github.io/scroll-to-text-fragment/)

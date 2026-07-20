@@ -122,7 +122,8 @@ are one requirement.”
 **Prerequisite: robustness hardening.** This plan builds on `TextDoc`’s offsets,
 sub-document slicing, and transforms.
 Phase 1 of
-[`plan-2026-05-26-robustness-hardening.md`](plan-2026-05-26-robustness-hardening.md)
+`plan-2026-05-26-robustness-hardening.md` (predates the FlexDoc extraction and is not
+in this repository's history)
 should land first: `sub_doc`/`sub_paras` currently alias caller objects (the node
 table/`SpanRef` model wants safe copies), `filtered_transform` can skip its filter, and
 div chunking mis-slices.

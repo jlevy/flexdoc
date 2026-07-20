@@ -630,7 +630,7 @@ Most can land before or alongside Stage 3.
   this plan’s Stage 4):
   [`plan-2026-05-29-unified-document-model.md`](plan-2026-05-29-unified-document-model.md).
 - Markdown-layer completion (prerequisite):
-  [`plan-2026-06-11-structural-metadata.md`](plan-2026-06-11-structural-metadata.md).
+  [`plan-2026-06-11-structural-metadata.md`](../done/plan-2026-06-11-structural-metadata.md).
 - Layered-model backing:
   [`research-2026-05-30-multilayer-parsing.md`](../../research/research-2026-05-30-multilayer-parsing.md)
   and
