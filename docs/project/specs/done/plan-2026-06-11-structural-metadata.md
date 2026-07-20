@@ -28,7 +28,7 @@ Status).
 >   its inline tests) recovered from the abandoned branch and exported from
 >   `flexdoc.util`; depends only on `prettyfmt.fmt_timedelta` (already available).
 > - ✔︎ **Frontmatter isolation (#22).** Landed in its own PR
->   ([`plan-2026-06-11-frontmatter-isolation.md`](plan-2026-06-11-frontmatter-isolation.md)):
+>   (its own plan document was never committed):
 >   `TextDoc.frontmatter` excludes a leading YAML block from all views/counts.
 >   This completes issues #18–#22. The `docs/flexdoc-spec.md` / `TODO.md` updates also
 >   landed (post-extraction cleanup PR).
@@ -400,7 +400,7 @@ Independent of Phase 1: #21 and #22.
 - Doc-model refinements (precedent for `attrs` / layer-aware `collect()`):
   `plan-2026-05-31-doc-model-refinements.md`.
 - FlexDoc package extraction:
-  [`plan-2026-06-11-flexdoc-extraction.md`](plan-2026-06-11-flexdoc-extraction.md) (the
+  [`plan-2026-06-11-flexdoc-extraction.md`](../active/plan-2026-06-11-flexdoc-extraction.md) (the
   standalone document-model package this surface is being shaped toward).
 
 <!-- This document follows common-doc-guidelines.md.

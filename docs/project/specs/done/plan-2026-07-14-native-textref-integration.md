@@ -336,7 +336,7 @@ named API parameters or module policy constants, not wire-format semantics.
 
 - [FlexDoc design specification](../../../flexdoc-spec.md)
 - [TextRef research](../../research/research-2026-07-10-text-reference-microformat.md)
-- [Stabilization roadmap](plan-2026-07-09-flexdoc-stabilization-roadmap.md)
+- [Stabilization roadmap](../active/plan-2026-07-09-flexdoc-stabilization-roadmap.md)
 - [Span-reference research](../../research/research-2026-05-30-span-references.md)
 
 <!-- This document follows common-doc-guidelines.md.

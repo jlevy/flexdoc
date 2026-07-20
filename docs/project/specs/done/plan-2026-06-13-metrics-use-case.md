@@ -454,7 +454,7 @@ release per `docs/publishing.md`.
 - `docs/flexdoc-spec.md` §2 (Error posture: P17, builder vs input contracts), §4.3 (node
   table / layer nesting), §7 (Sections and TOC—the heading-set rule), §8 (Inline
   elements and links).
-- `docs/project/specs/active/plan-2026-06-11-structural-metadata.md`—the `*_info`
+- `docs/project/specs/done/plan-2026-06-11-structural-metadata.md`—the `*_info`
   pattern this extends with `HeadingInfo`.
 - `docs/publishing.md`—release/versioning.
 

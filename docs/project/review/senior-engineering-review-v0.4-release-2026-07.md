@@ -188,6 +188,12 @@ exports the working set of these names; `tests/test_root_api.py` pins the surfac
   serialized formats working (TextRef URI, annotation sidecar YAML, DocGraph v0.2
   YAML) with real captured output, subsection headers, direct links to the key
   components and spec sections, and a status line reflecting 0.4.x.
+- **Specs archive (`flexdoc-9z3m`, first half):** the seven implemented or superseded
+  plans moved from `docs/project/specs/active/` to `docs/project/specs/done/`, with
+  every cross-reference updated (and one dead link to a never-committed plan file
+  de-linked). The extraction plan, the unified-document-model plan (Phases 3-4
+  deferred), and the stabilization roadmap remain active; the roadmap-close half of
+  `flexdoc-9z3m` stays open pending the Phase 2 and 3 gates.
 
 ## 6. Remaining Before the Tag
 

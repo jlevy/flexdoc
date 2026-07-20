@@ -153,7 +153,7 @@ Remaining pre-1.0 design decisions and future mechanisms are collected in
 ## 0.2.0 (2026-06-14)
 
 Correctness fixes and a completed inline/heading/link surface for the document-metrics
-use case (`docs/project/specs/active/plan-2026-06-13-metrics-use-case.md`, issue #6). As
+use case (`docs/project/specs/done/plan-2026-06-13-metrics-use-case.md`, issue #6). As
 a preview-stage library this takes the cleanest shape with no compatibility shims; the
 API additions below include breaking signature changes (see **Changed**).
 

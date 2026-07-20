@@ -5,7 +5,7 @@
 **Author:** Joshua Levy (with LLM assistance)
 
 **Status:** Superseded on 2026-07-09 by
-[`plan-2026-07-09-flexdoc-stabilization-roadmap.md`](plan-2026-07-09-flexdoc-stabilization-roadmap.md).
+[`plan-2026-07-09-flexdoc-stabilization-roadmap.md`](../active/plan-2026-07-09-flexdoc-stabilization-roadmap.md).
 Retained as the initial review snapshot.
 
 ## Overview

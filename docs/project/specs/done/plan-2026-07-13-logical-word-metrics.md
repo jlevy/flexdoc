@@ -252,7 +252,7 @@ default-behavior decisions; issue #16 and its validation resolve the initial con
 - GitHub issue [#16](https://github.com/jlevy/flexdoc/issues/16)
 - [Logical Word Count research and validation](https://gist.github.com/jlevy/0d6d87885f6d85f31440e58b8cfce663)
 - [Document-metrics use case](plan-2026-06-13-metrics-use-case.md)
-- [FlexDoc stabilization roadmap](plan-2026-07-09-flexdoc-stabilization-roadmap.md)
+- [FlexDoc stabilization roadmap](../active/plan-2026-07-09-flexdoc-stabilization-roadmap.md)
 - `docs/flexdoc-spec.md` sizing and token-estimation contract
 
 <!-- This document follows common-doc-guidelines.md.

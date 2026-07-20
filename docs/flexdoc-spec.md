@@ -1401,7 +1401,7 @@ This spec stands alone; the following are background, not dependencies.
   [`research-2026-07-10-text-reference-microformat.md`](project/research/research-2026-07-10-text-reference-microformat.md)
   supplies the evidence and protocol rationale for §11. The focused implementation
   plan is
-  [`plan-2026-07-14-native-textref-integration.md`](project/specs/active/plan-2026-07-14-native-textref-integration.md).
+  [`plan-2026-07-14-native-textref-integration.md`](project/specs/done/plan-2026-07-14-native-textref-integration.md).
 - Dated planning documents under `docs/project/specs/` (active and archived) track the
   incremental work toward this design and reference this spec.
 - The external

@@ -231,8 +231,8 @@ For contributors:
   [publishing.md](https://github.com/jlevy/flexdoc/blob/main/docs/publishing.md).
 - Dependency policy:
   [SUPPLY-CHAIN-SECURITY.md](https://github.com/jlevy/flexdoc/blob/main/SUPPLY-CHAIN-SECURITY.md).
-- Design history and plans:
-  [docs/project/specs/active/](https://github.com/jlevy/flexdoc/tree/main/docs/project/specs/active).
+- Design history and plans (active and done):
+  [docs/project/specs/](https://github.com/jlevy/flexdoc/tree/main/docs/project/specs).
 
 * * *
 
