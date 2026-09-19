@@ -6,7 +6,8 @@ name: Create Release
 # .github/release-request/request.json and notes.md, land the change on main
 # via PR after the docs/publishing.md pre-release checklist passes, and the
 # merge triggers this workflow. It creates the tag and GitHub Release at the
-# merged commit, then calls publish.yml to build, test, and publish to PyPI.
+# merged commit, then calls publish.yml. That workflow waits for CI on the
+# commit, re-runs tests and pip-audit, then builds and publishes to PyPI.
 #
 # The release is created with GITHUB_TOKEN, whose events do not trigger other
 # workflows, so publish.yml is invoked here as a reusable workflow instead of
@@ -51,4 +52,5 @@ jobs:
     permissions:
       id-token: write
       contents: read
+      actions: read
     uses: ./.github/workflows/publish.yml

@@ -8,6 +8,17 @@ changes bump the **minor** version (see `docs/publishing.md`).
 
 ### Changed
 
+- **Lock `pip==26.2.1`** so the CI and publish audit gates remediate PYSEC-2026-3721
+  (26.1.2). The June 26 cutoff could not see 26.2 (published 2026-07-29); the
+  per-package cool-off for pip is `2026-08-12`.
+- **Publish requires green CI and re-runs `pip-audit`.** The `release` event does not
+  inherit the push CI result, so `publish.yml` waits for `ci.yml` on the tagged commit
+  and audits the lock before upload.
+
+## 0.4.1 (2026-09-19)
+
+### Changed
+
 - **Declared support is GIL CPython 3.11–3.14, not 3.14t.** `requires-python` is now
   `>=3.11,<3.15`. `token_diffs` refuses a free-threaded build (`Py_GIL_DISABLED`)
   before importing `cydifflib`.

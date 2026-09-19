@@ -7,7 +7,47 @@ on:
   workflow_call: # Callable from release.yml, which cannot fire the release event.
 
 jobs:
+  # The `release` event does not wait for the push CI workflow. Require that workflow
+  # to have succeeded on this commit before uploading (tagging can race CI).
+  require-ci:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Require CI success on this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          sha="${GITHUB_SHA}"
+          echo "Waiting for workflow ci.yml on ${sha}"
+          for _ in $(seq 1 60); do
+            json="$(gh run list --repo "${GITHUB_REPOSITORY}" --commit "${sha}" --workflow ci.yml --limit 1 --json status,conclusion,url)"
+            if [[ "${json}" == "[]" ]]; then
+              echo "No CI run yet"
+              sleep 10
+              continue
+            fi
+            status="$(jq -r '.[0].status' <<<"${json}")"
+            conclusion="$(jq -r '.[0].conclusion' <<<"${json}")"
+            url="$(jq -r '.[0].url' <<<"${json}")"
+            echo "CI ${url} status=${status} conclusion=${conclusion}"
+            if [[ "${status}" != "completed" ]]; then
+              sleep 10
+              continue
+            fi
+            if [[ "${conclusion}" != "success" ]]; then
+              echo "CI did not succeed on ${sha}" >&2
+              exit 1
+            fi
+            exit 0
+          done
+          echo "Timed out waiting for CI on ${sha}" >&2
+          exit 1
+
   build-and-publish:
+    needs: require-ci
     runs-on: ubuntu-latest
     permissions:
       id-token: write # Mandatory for OIDC.
@@ -38,6 +78,9 @@ jobs:
 
       - name: Run tests
         run: uv run --frozen pytest
+
+      - name: Audit dependencies for known vulnerabilities
+        run: uv run --frozen --group audit pip-audit
 
       - name: Build package
         run: uv build

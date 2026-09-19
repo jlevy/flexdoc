@@ -12,6 +12,11 @@ you can simply create tagged releases (using standard format for the tag name, e
 `v0.1.0`) on GitHub and the tag will trigger a release build, which then uploads it to
 PyPI.
 
+`publish.yml` does not inherit the push CI result. It waits for `ci.yml` to succeed on
+the tagged commit, re-runs tests and `pip-audit`, then builds and uploads. A red CI run
+blocks publish even if you create the GitHub release anyway. `main` has no required
+status checks, so a red `audit` job does not block the merge itself.
+
 ### First-Time Setup
 
 This part is a little confusing the first time.
@@ -108,7 +113,8 @@ Follow this checklist for each new release.
 
    Or check the Actions tab on GitHub.
    The most recent run for the commit you’re about to tag must be green (a superseded
-   older failure is fine).
+   older failure is fine). `publish.yml` also waits for that `ci.yml` run and fails if
+   it is red.
 
 5. **Determine the new version number:**
 
@@ -214,7 +220,8 @@ replaced by the release-request path: after the pre-release checklist passes, up
 `.github/release-request/request.json` (the tag) and `.github/release-request/notes.md`
 (the release notes) and land them on `main` via PR. The merge triggers
 `.github/workflows/release.yml`, which creates the tag and GitHub Release at the merged
-commit and then calls `publish.yml` to test, build, and publish to PyPI.
+commit and then calls `publish.yml`. That workflow waits for CI, re-runs tests and
+`pip-audit`, then builds and publishes to PyPI.
 Maintainer releases created with `gh release create` fire `publish.yml` directly and
 never run `release.yml`.
 
