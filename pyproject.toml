@@ -82,11 +82,6 @@ dev = [
     "basedpyright>=1.39.3",
     "funlog>=0.2.1",
 ]
-# Supply-chain audit tooling, kept out of the default dev install. CI runs it via
-# `uv run --group audit pip-audit`. See SUPPLY-CHAIN-SECURITY.md.
-audit = [
-    "pip-audit>=2.7.0",
-]
 
 
 # ---- Build system ----
@@ -124,11 +119,6 @@ packages = ["src/flexdoc"]
 # resolve to the same vetted versions when the projects are developed together.
 [tool.uv]
 exclude-newer = "2026-06-26T00:00:00Z"
-
-# Cool-off exception reviewed and recorded in SUPPLY-CHAIN-SECURITY.md.
-[tool.uv.exclude-newer-package]
-# pip 26.2 (PYSEC-2026-3721) published 2026-07-29; 14-day cool-off elapsed.
-pip = "2026-08-12T00:00:00Z"
 
 [tool.ruff]
 # Set as desired, typically 88 (black standard) or 100 (wide).

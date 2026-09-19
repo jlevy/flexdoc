@@ -4,7 +4,7 @@
 
 .DEFAULT_GOAL := default
 
-.PHONY: default install lint lint-check test upgrade build clean
+.PHONY: default install lint lint-check test audit upgrade build clean
 
 default: install lint test
 
@@ -20,6 +20,13 @@ lint-check:
 
 test:
 	uv run --frozen pytest
+
+# Audit locked runtime, extras, and groups. pip-audit is ephemeral (uvx), not
+# a project dependency. See SUPPLY-CHAIN-SECURITY.md.
+audit:
+	@tmp="$$(mktemp)"; \
+	uv export --frozen --all-extras --all-groups --no-emit-project -q -o "$$tmp"; \
+	uvx pip-audit --disable-pip --no-deps -r "$$tmp"
 
 upgrade:
 	uv sync --upgrade --all-extras --dev

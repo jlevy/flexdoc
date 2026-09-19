@@ -13,9 +13,9 @@ you can simply create tagged releases (using standard format for the tag name, e
 PyPI.
 
 `publish.yml` does not inherit the push CI result. It waits for `ci.yml` to succeed on
-the tagged commit, re-runs tests and `pip-audit`, then builds and uploads. A red CI run
-blocks publish even if you create the GitHub release anyway. `main` has no required
-status checks, so a red `audit` job does not block the merge itself.
+the tagged commit, re-runs tests and the export `pip-audit`, then builds and uploads. A
+red CI run blocks publish even if you create the GitHub release anyway. `main` has no
+required status checks, so a red `audit` job does not block the merge itself.
 
 ### First-Time Setup
 
@@ -221,7 +221,7 @@ replaced by the release-request path: after the pre-release checklist passes, up
 (the release notes) and land them on `main` via PR. The merge triggers
 `.github/workflows/release.yml`, which creates the tag and GitHub Release at the merged
 commit and then calls `publish.yml`. That workflow waits for CI, re-runs tests and
-`pip-audit`, then builds and publishes to PyPI.
+the export `pip-audit`, then builds and publishes to PyPI.
 Maintainer releases created with `gh release create` fire `publish.yml` directly and
 never run `release.yml`.
 
