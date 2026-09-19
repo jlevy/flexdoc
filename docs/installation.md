@@ -26,6 +26,9 @@ Now you can use uv to install a current Python environment:
 uv python install 3.13 # Or pick another version.
 ```
 
+flexdoc supports CPython 3.11–3.14 with the GIL, not free-threaded 3.14t; use
+`--python 3.13` or a GIL 3.14 (`uv python find 3.14` may resolve to 3.14t).
+
 <!-- This document follows common-doc-guidelines.md.
 See github.com/jlevy/practical-prose and review guidelines before editing.
 -->
