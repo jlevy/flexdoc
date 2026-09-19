@@ -4,6 +4,14 @@ All notable changes to flexdoc are documented here.
 This project uses [semantic versioning](https://semver.org/); while pre-1.0, breaking
 changes bump the **minor** version (see `docs/publishing.md`).
 
+## Unreleased
+
+### Changed
+
+- **Drop `cydifflib`.** Token diffs use the stdlib `difflib.SequenceMatcher`.
+  Removes a native extension that fails to build on CPython 3.14 (no wheel; sdist
+  Cython errors). Public APIs are unchanged.
+
 ## 0.4.0 (2026-07-20)
 
 This is an intentional pre-1.0 API break; per the pre-1.0 rule it is a minor release,

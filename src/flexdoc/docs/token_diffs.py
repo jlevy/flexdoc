@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import difflib
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
 from typing import TypeAlias
 
-import cydifflib as difflib
 from funlog import log_calls, tally_calls
 from typing_extensions import override
 
