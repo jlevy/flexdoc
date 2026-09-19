@@ -94,19 +94,22 @@ caught up), remove the override and re-lock.
 
 ### Active Exceptions
 
-There are no active per-package cool-off exceptions.
+- **pip** (`2026-08-12`). Needed so the lock can take `pip==26.2.1`, which fixes
+  [PYSEC-2026-3721](https://osv.dev/vulnerability/PYSEC-2026-3721). 26.2 was published
+  2026-07-29 (more than 14 days ago); the project cutoff of 2026-06-26 still pinned
+  26.1.2. This is a version upgrade, not an audit ignore.
 
 ### Audit-Gate Ignores
 
 Distinct from the cool-off overrides above: `pip-audit --ignore-vuln <ID>` suppresses a
-specific advisory at the audit gate (`.github/workflows/ci.yml`). Use it only for a
-finding in a **tool dependency that flexdoc does not ship** and that has no fix
-available within the cool-off window.
+specific advisory at the audit gate (`.github/workflows/ci.yml` and `publish.yml`). Use
+it only for a finding in a **tool dependency that flexdoc does not ship** and that has
+no fix available within the cool-off window.
 It does not change dependency resolution or the cool-off.
 
 There are no active audit-gate ignores.
-The 2026-06-26 cutoff resolves `pip` 26.1.2 and `msgpack` 1.2.1, and the unignored audit
-passes.
+`pip==26.2.1` remediates PYSEC-2026-3721. The June 26 cutoff still admits the fixed
+`msgpack` version.
 
 ## Untrusted Repositories
 
