@@ -4,6 +4,14 @@ All notable changes to flexdoc are documented here.
 This project uses [semantic versioning](https://semver.org/); while pre-1.0, breaking
 changes bump the **minor** version (see `docs/publishing.md`).
 
+## Unreleased
+
+### Changed
+
+- **Declared support is GIL CPython 3.11–3.14, not 3.14t.** `requires-python` is now
+  `>=3.11,<3.15`. `token_diffs` refuses a free-threaded build (`Py_GIL_DISABLED`)
+  before importing `cydifflib`. `cydifflib>=1.2.0` remains a hard dependency.
+
 ## 0.4.0 (2026-07-20)
 
 This is an intentional pre-1.0 API break; per the pre-1.0 rule it is a minor release,

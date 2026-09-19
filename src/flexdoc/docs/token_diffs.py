@@ -6,11 +6,14 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TypeAlias
 
-import cydifflib as difflib
 from funlog import log_calls, tally_calls
 from typing_extensions import override
 
 from flexdoc.docs.flex_doc import FlexDoc
+from flexdoc.util.cpython_build import require_gil_cpython
+
+require_gil_cpython()
+import cydifflib as difflib
 
 log = logging.getLogger(__name__)
 
