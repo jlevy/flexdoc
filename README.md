@@ -34,6 +34,7 @@ uv add flexdoc
 
 flexdoc supports CPython 3.11–3.14 with the GIL, not free-threaded 3.14t; use
 `--python 3.13` or a GIL 3.14 (`uv python find 3.14` may resolve to 3.14t).
+Token diffs need `flexdoc[diff]`; core flexdoc does not.
 
 ## Status
 

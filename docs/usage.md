@@ -218,7 +218,8 @@ updated = FlexDoc.from_text(doc.reassemble())
 
 `flexdoc.docs` promotes the document model.
 Word-token, token-diff, mapping, and search utilities remain available from their owning
-modules for lower-level pipelines:
+modules for lower-level pipelines.
+Token diffs need `flexdoc[diff]`; core flexdoc does not.
 
 ```python
 from flexdoc.docs.search_tokens import search_tokens
