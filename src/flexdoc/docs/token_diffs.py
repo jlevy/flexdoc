@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import importlib
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
+from types import ModuleType
 from typing import TypeAlias
 
 from funlog import log_calls, tally_calls
@@ -12,8 +14,17 @@ from typing_extensions import override
 from flexdoc.docs.flex_doc import FlexDoc
 from flexdoc.util.cpython_build import require_gil_cpython
 
-require_gil_cpython()
-import cydifflib as difflib
+MISSING_CYDIFFLIB_ERROR = "Token diffs require cydifflib. Install the extra: `flexdoc[diff]`."
+
+
+def _cydifflib() -> ModuleType:
+    """Load cydifflib after refusing free-threaded CPython. No stdlib fallback."""
+    require_gil_cpython()
+    try:
+        return importlib.import_module("cydifflib")
+    except ImportError as exc:
+        raise ImportError(MISSING_CYDIFFLIB_ERROR) from exc
+
 
 log = logging.getLogger(__name__)
 
@@ -252,7 +263,7 @@ def diff_wordtoks(wordtoks1: list[str], wordtoks2: list[str]) -> TokenDiff:
     """
     Perform an LCS-style diff on two lists of wordtoks.
     """
-    s = difflib.SequenceMatcher(None, wordtoks1, wordtoks2, autojunk=False)  # pyright: ignore
+    s = _cydifflib().SequenceMatcher(None, wordtoks1, wordtoks2, autojunk=False)  # pyright: ignore
     diff: list[DiffOp] = []
 
     # log.message(f"Diffing {len(wordtoks1)} wordtoks against {len(wordtoks2)} wordtoks")

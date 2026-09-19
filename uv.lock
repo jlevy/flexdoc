@@ -266,7 +266,6 @@ wheels = [
 name = "flexdoc"
 source = { editable = "." }
 dependencies = [
-    { name = "cydifflib" },
     { name = "flowmark" },
     { name = "frontmatter-format" },
     { name = "funlog" },
@@ -277,6 +276,11 @@ dependencies = [
     { name = "selectolax" },
     { name = "strif" },
     { name = "typing-extensions" },
+]
+
+[package.optional-dependencies]
+diff = [
+    { name = "cydifflib" },
 ]
 
 [package.dev-dependencies]
@@ -295,7 +299,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "cydifflib", specifier = ">=1.2.0" },
+    { name = "cydifflib", marker = "extra == 'diff'", specifier = ">=1.2.0" },
     { name = "flowmark", specifier = ">=0.7.1" },
     { name = "frontmatter-format", specifier = ">=0.3.0" },
     { name = "funlog", specifier = ">=0.2.1" },
@@ -307,6 +311,7 @@ requires-dist = [
     { name = "strif", specifier = ">=3.1.0" },
     { name = "typing-extensions", specifier = ">=4.12.2" },
 ]
+provides-extras = ["diff"]
 
 [package.metadata.requires-dev]
 audit = [{ name = "pip-audit", specifier = ">=2.7.0" }]

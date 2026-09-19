@@ -10,7 +10,10 @@ changes bump the **minor** version (see `docs/publishing.md`).
 
 - **Declared support is GIL CPython 3.11–3.14, not 3.14t.** `requires-python` is now
   `>=3.11,<3.15`. `token_diffs` refuses a free-threaded build (`Py_GIL_DISABLED`)
-  before importing `cydifflib`. `cydifflib>=1.2.0` remains a hard dependency.
+  before importing `cydifflib`.
+- **`cydifflib` is the optional `diff` extra.** Token diffs still use
+  `cydifflib>=1.2.0` (no stdlib fallback). Core flexdoc no longer depends on it.
+  Install `flexdoc[diff]`.
 
 ## 0.4.0 (2026-07-20)
 
