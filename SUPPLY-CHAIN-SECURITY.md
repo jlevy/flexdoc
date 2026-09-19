@@ -26,8 +26,10 @@ dependencies resolve to the same vetted versions when they are developed togethe
 3. **Prefer wheels; review build code.** Building an sdist runs arbitrary code.
    Prefer prebuilt wheels (`uv` does by default) and treat any source build as code to
    review.
-4. **Audit after changes.** Run `pip-audit` (CI runs it on every push) and address
-   findings before merging.
+4. **Audit after changes.** Export the locked runtime, extras, and dependency groups
+   and run `uvx pip-audit` on that file (CI does this on every push). Address findings
+   before merging. Do not add `pip-audit` to the project lock: it depends on `pip`,
+   which this repo does not ship.
 5. **Don’t upgrade for its own sake.** The safest upgrade is the one you skip: each bump
    is fresh attack surface.
    Bump for a concrete reason: a needed feature, a fix, or a CVE.
@@ -94,22 +96,32 @@ caught up), remove the override and re-lock.
 
 ### Active Exceptions
 
-- **pip** (`2026-08-12`). Needed so the lock can take `pip==26.2.1`, which fixes
-  [PYSEC-2026-3721](https://osv.dev/vulnerability/PYSEC-2026-3721). 26.2 was published
-  2026-07-29 (more than 14 days ago); the project cutoff of 2026-06-26 still pinned
-  26.1.2. This is a version upgrade, not an audit ignore.
+There are no active per-package cool-off exceptions.
+
+### How CI Audits
+
+`pip-audit` is not a project dependency. CI and `make audit` export the lock, then run
+an ephemeral auditor:
+
+```shell
+uv export --frozen --all-extras --all-groups --no-emit-project -q -o requirements-audit.txt
+uvx pip-audit --disable-pip --no-deps -r requirements-audit.txt
+```
+
+That covers runtime dependencies, extras (`flexdoc[diff]`), and the `dev` group. It does
+not install `pip-audit` into `.venv` or record `pip` / `pip-api` in `uv.lock`.
+`--disable-pip` and `--no-deps` keep the scan on the pinned export; the auditor does not
+resolve extra packages or inspect its own environment.
 
 ### Audit-Gate Ignores
 
-Distinct from the cool-off overrides above: `pip-audit --ignore-vuln <ID>` suppresses a
-specific advisory at the audit gate (`.github/workflows/ci.yml` and `publish.yml`). Use
-it only for a finding in a **tool dependency that flexdoc does not ship** and that has
-no fix available within the cool-off window.
+`pip-audit --ignore-vuln <ID>` suppresses a specific advisory at the audit gate
+(`.github/workflows/ci.yml` and `publish.yml`). Use it only for a finding in a **tool
+dependency that flexdoc does not ship** and that has no fix available within the
+cool-off window.
 It does not change dependency resolution or the cool-off.
 
 There are no active audit-gate ignores.
-`pip==26.2.1` remediates PYSEC-2026-3721. The June 26 cutoff still admits the fixed
-`msgpack` version.
 
 ## Untrusted Repositories
 

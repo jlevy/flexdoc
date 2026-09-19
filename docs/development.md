@@ -36,6 +36,9 @@ make lint-check
 # Run tests:
 make test
 
+# Audit locked runtime, extras, and groups (ephemeral pip-audit, not a project dep):
+make audit
+
 # Delete all the build artifacts:
 make clean
 
@@ -108,7 +111,8 @@ Its key defaults:
   dependency.
 
 - **Pin, lock, and audit:** Commit your `uv.lock`, pin GitHub Actions to a commit SHA or
-  immutable tag, and run a vulnerability audit (e.g. `pip-audit`) after changes.
+  immutable tag, and run `make audit` after changes (`uvx pip-audit` on a `uv export`
+  of runtime, extras, and groups; see [SUPPLY-CHAIN-SECURITY.md](../SUPPLY-CHAIN-SECURITY.md)).
 
 ## Publishing Releases
 

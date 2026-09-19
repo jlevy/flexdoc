@@ -8,12 +8,12 @@ changes bump the **minor** version (see `docs/publishing.md`).
 
 ### Changed
 
-- **Lock `pip==26.2.1`** so the CI and publish audit gates remediate PYSEC-2026-3721
-  (26.1.2). The June 26 cutoff could not see 26.2 (published 2026-07-29); the
-  per-package cool-off for pip is `2026-08-12`.
-- **Publish requires green CI and re-runs `pip-audit`.** The `release` event does not
-  inherit the push CI result, so `publish.yml` waits for `ci.yml` on the tagged commit
-  and audits the lock before upload.
+- **Stop locking `pip-audit`.** CI and publish run `uvx pip-audit` against a
+  `uv export` of runtime dependencies, extras, and the `dev` group. `pip` / `pip-api`
+  are no longer in `uv.lock`.
+- **Publish requires green CI and re-runs the export audit.** The `release` event does
+  not inherit the push CI result, so `publish.yml` waits for `ci.yml` on the tagged
+  commit and audits the locked export before upload.
 
 ## 0.4.1 (2026-09-19)
 

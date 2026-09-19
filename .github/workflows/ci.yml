@@ -99,7 +99,13 @@ jobs:
           enable-cache: true
 
       - name: Audit dependencies for known vulnerabilities
-        run: uv run --frozen --group audit pip-audit
+        # Export locked runtime, extras, and groups; audit that file with an
+        # ephemeral pip-audit. Do not lock pip-audit (it depends on pip).
+        # See SUPPLY-CHAIN-SECURITY.md.
+        run: |
+          REQ="${RUNNER_TEMP}/requirements-audit.txt"
+          uv export --frozen --all-extras --all-groups --no-emit-project -q -o "${REQ}"
+          uvx pip-audit --disable-pip --no-deps -r "${REQ}"
 
   # Packaging check: the flexdoc wheel must import cleanly from an isolated install, not
   # just from the source tree. Guards against missing package data or accidental reliance

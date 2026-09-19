@@ -80,7 +80,12 @@ jobs:
         run: uv run --frozen pytest
 
       - name: Audit dependencies for known vulnerabilities
-        run: uv run --frozen --group audit pip-audit
+        # Same export + uvx pattern as ci.yml. Do not lock pip-audit.
+        # See SUPPLY-CHAIN-SECURITY.md.
+        run: |
+          REQ="${RUNNER_TEMP}/requirements-audit.txt"
+          uv export --frozen --all-extras --all-groups --no-emit-project -q -o "${REQ}"
+          uvx pip-audit --disable-pip --no-deps -r "${REQ}"
 
       - name: Build package
         run: uv build
